@@ -17,7 +17,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
 
-**REQUIRED SUB-SKILL:** Before ExitPlanMode, apply superpowers:rule-of-five to the plan document (Draft→Correctness→Clarity→Edge Cases→Excellence). Plans are significant artifacts that benefit from 5-pass review.
+**REQUIRED:** Before ExitPlanMode, run the Plan Verification Checklist (scope/accuracy), then apply rule-of-five (Draft→Correctness→Clarity→Edge Cases→Excellence). Verify *what* before polishing *how*.
 
 ## Bite-Sized Task Granularity
 
@@ -141,6 +141,21 @@ The `Files:` section enables safe parallel execution by detecting conflicts.
 - Include test files
 - If two tasks modify the same file, they CANNOT run in parallel
 
+## Plan Verification Checklist
+
+**Before applying rule-of-five, verify scope and accuracy:**
+
+| Check | Question |
+|-------|----------|
+| **Complete** | All requirements from brainstorming addressed? |
+| **Accurate** | File paths verified? (existing files exist, new files in correct locations) |
+| **Commands valid** | Test/build commands correct and runnable? |
+| **YAGNI** | Every task directly serves a stated requirement? |
+| **Minimal** | Could any task be removed or combined without losing functionality? |
+| **Not over-engineered** | Is this the simplest approach that works? |
+
+**Why before rule-of-five:** This checklist verifies *what* you're building is correct. Rule-of-five then polishes *how* it's written. Scope errors caught here save wasted polish on tasks that get deleted.
+
 ## Remember
 - Exact file paths always
 - Complete code in plan (not "add validation")
@@ -148,17 +163,17 @@ The `Files:` section enables safe parallel execution by detecting conflicts.
 - Reference relevant skills with @ syntax
 - DRY, YAGNI, TDD, frequent commits
 - **Every task needs `Depends on:` and `Files:`**
-- **Apply superpowers:rule-of-five before finalizing plan**
+- **Run Plan Verification Checklist before rule-of-five**
+- **Apply rule-of-five before finalizing plan**
 
 ## Execution Handoff
 
 **The full workflow:**
 ```
-writing-plans → Human Review → plan2beads → bd verify → Execute
-                    ↓                                      ↓
-               Approve/Edit                    superpowers:subagent-driven-development
-                                                       OR
-                                               superpowers:executing-plans
+writing-plans → Plan Verification → rule-of-five → Human Review → plan2beads → /compact → subagent-driven
+                      ↓                   ↓              ↓              ↓           ↓            ↓
+                 Scope check         Quality polish  Approve/Edit   bd verify   Reclaim     Parallel
+                                                                               context     execution
 ```
 
 After saving the plan and human approval:
@@ -186,23 +201,27 @@ bd blocked        # Shows tasks waiting on dependencies
 bd graph <epic>   # Visual dependency graph
 ```
 
-**Step 3: Choose Execution Approach**
+**Step 3: Compact Session**
 
-**"Plan converted to beads epic. Two execution options:**
+Planning consumes context. Before execution, reclaim it:
 
-**1. Subagent-Driven (this session)** - Parallel dispatch of independent tasks, review between completions, maximum throughput
+**Tell the user:**
+```
+Epic <epic-id> ready with N tasks.
 
-**2. Parallel Session (separate)** - Open new session, batch execution with checkpoints
+To maximize context for execution, run:
+  /compact
 
-**Which approach?"**
+Then say:
+  execute epic <epic-id>
+```
 
-**If Subagent-Driven chosen:**
-- **REQUIRED SUB-SKILL:** Use `superpowers:subagent-driven-development`
+**Why compact:** Subagents need context for implementation. Planning conversation is no longer needed - the epic preserves all task details.
+
+**Step 4: Execute**
+
+**REQUIRED SUB-SKILL:** Use `superpowers:subagent-driven-development`
 - Reads from beads epic (not markdown)
 - Parallel dispatch of non-conflicting tasks
 - Dependency-aware execution
-
-**If Parallel Session chosen:**
-- Guide them to open new session in worktree
-- **REQUIRED SUB-SKILL:** New session uses `superpowers:executing-plans`
-- Reads from beads epic (not markdown)
+- Two-stage review (spec compliance + code quality) after each task
