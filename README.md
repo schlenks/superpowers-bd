@@ -117,9 +117,46 @@ Fetch and follow instructions from https://raw.githubusercontent.com/obra/superp
 - **finishing-a-development-branch** - Merge/PR decision workflow
 - **subagent-driven-development** - Fast iteration with two-stage review (spec compliance, then code quality)
 
+**Quality**
+- **rule-of-five** - 5-pass review for significant artifacts (Draft, Correctness, Clarity, Edge Cases, Excellence)
+
 **Meta**
 - **writing-skills** - Create new skills following best practices (includes testing methodology)
 - **using-superpowers** - Introduction to the skills system
+
+## Customizing for Your Organization
+
+Superpowers is designed to be forked and customized. The skill system supports a **local > marketplace** priority:
+
+1. **Local skills** in `~/.claude/skills/` take precedence
+2. **Marketplace skills** are used as fallbacks
+
+This means you can:
+- Fork this repository to your organization
+- Add custom skills or modify existing ones
+- Install your fork as a plugin
+- Your customizations override marketplace defaults
+
+### TBL Customizations
+
+This fork includes ToursByLocals-specific enhancements:
+
+**Beads Integration** - Skills are updated to use [beads](https://github.com/obra/beads), a git-backed issue tracker:
+- `writing-plans` - Tasks include `Depends on:` and `Files:` sections for dependency tracking
+- `executing-plans` - Uses `bd ready`, `bd blocked`, `bd close` for dependency-aware batch execution
+- `subagent-driven-development` - Wave-based parallel dispatch with file conflict detection
+- `plan2beads` command - Converts markdown plans to beads epics
+
+**Rule-of-Five** - 5-pass quality review for significant artifacts (>50 lines):
+- Draft → Correctness → Clarity → Edge Cases → Excellence
+- Integrated into `writing-plans`, `executing-plans`, `writing-skills`, and `implementer-prompt`
+
+**Skill Resolution** - When invoking skills, Claude checks for unprefixed local versions first:
+| If you want... | Try first (local) | Fall back to (marketplace) |
+|----------------|-------------------|---------------------------|
+| brainstorming | `brainstorming` | `superpowers:brainstorming` |
+| writing-plans | `writing-plans` | `superpowers:writing-plans` |
+| executing-plans | `executing-plans` | `superpowers:executing-plans` |
 
 ## Philosophy
 
