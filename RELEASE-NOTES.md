@@ -1,5 +1,76 @@
 # Superpowers Release Notes
 
+## v4.0.7 (2026-01-23) - TBL Fork
+
+### Major Feature: Native Task Tool Integration
+
+Integrated Claude Code's native task tools (TaskCreate, TaskGet, TaskUpdate, TaskList) as a complementary layer to beads for fine-grained quality gate enforcement.
+
+**Key insight:** Beads tracks WHAT work to do (features/tasks, 1-4 hours). Native tasks track HOW progress is made within those items (quality gates, 5-30 min).
+
+**12 skills + 1 command now enforce quality gates with task dependencies:**
+
+| Skill | Tasks | Purpose |
+|-------|-------|---------|
+| systematic-debugging | 4 phase tasks | Enforce "NO FIXES BEFORE PHASE 1" iron law |
+| writing-skills | 3 RED/GREEN/REFACTOR tasks | Enforce "NO SKILL WITHOUT FAILING TEST" |
+| rule-of-five | 5 sequential pass tasks | Enforce all 5 passes with dependencies |
+| receiving-code-review | 5 response tasks | VERIFY step blocks IMPLEMENT |
+| verification-before-completion | 1 evidence task | Cannot claim done without verification |
+| writing-plans | 7 tasks | Plan checklist + rule-of-five enforcement |
+| finishing-a-development-branch | 4 tasks | Test verification gate before merge |
+| plan2beads | 5 conversion tasks | Track multi-step conversion process |
+| executing-plans | 3 batch tasks | Checkpoint + feedback between batches |
+| subagent-driven-development | 3 wave tasks | File conflict verification |
+| test-driven-development | 3 per-feature tasks | RED/GREEN/REFACTOR enforcement |
+| using-git-worktrees | 6 setup tasks | Verification steps tracked |
+
+**Pattern:** Each skill creates tasks with `addBlockedBy` dependencies. Skipping phases becomes visible in TaskList, and blocked tasks cannot be marked in_progress.
+
+**Documentation:**
+- Added "Native Task Integration" section to using-superpowers skill
+- Documented task ID capture pattern for dependencies
+- Listed all skills using this pattern with task counts
+
+**Platform support:**
+- OpenCode: TaskCreate/TaskUpdate/TaskList/TaskGet → `update_plan`
+- Codex: TaskCreate/TaskUpdate/TaskList/TaskGet → `update_plan`
+
+**Test updates:**
+- Tests now accept both TaskCreate and legacy TodoWrite patterns
+- Explicit skill request tests filter task tool calls
+
+### Files Changed (23 total)
+
+**Skills (12):**
+- skills/systematic-debugging/SKILL.md
+- skills/writing-skills/SKILL.md
+- skills/rule-of-five/SKILL.md
+- skills/receiving-code-review/SKILL.md
+- skills/verification-before-completion/SKILL.md
+- skills/writing-plans/SKILL.md
+- skills/finishing-a-development-branch/SKILL.md
+- skills/executing-plans/SKILL.md
+- skills/subagent-driven-development/SKILL.md
+- skills/test-driven-development/SKILL.md
+- skills/using-git-worktrees/SKILL.md
+- skills/using-superpowers/SKILL.md
+
+**Commands (1):**
+- commands/plan2beads.md
+
+**Supporting files (10):**
+- skills/writing-skills/persuasion-principles.md
+- tests/claude-code/test-subagent-driven-development-integration.sh
+- tests/explicit-skill-requests/run-test.sh
+- tests/explicit-skill-requests/run-multiturn-test.sh
+- docs/testing.md
+- .opencode/plugin/superpowers.js
+- .opencode/INSTALL.md
+- .codex/superpowers-bootstrap.md
+- docs/README.opencode.md
+- docs/README.codex.md
+
 ## v4.0.6 (2026-01-19) - TBL Fork
 
 ### Improvements
