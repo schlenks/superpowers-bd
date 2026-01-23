@@ -96,10 +96,13 @@ Many skills use Claude Code's native task tools (TaskCreate, TaskUpdate, TaskLis
 TaskCreate: "Phase 1: [Description]"
   description: "[Acceptance criteria]"
   activeForm: "[Present continuous action]"
+  # Returns task ID (e.g., "1") - capture this for dependencies
 
 TaskCreate: "Phase 2: [Description]"
-  addBlockedBy: [phase-1-id]  # Cannot start until Phase 1 completes
+  addBlockedBy: ["1"]  # Use actual ID returned from Phase 1
 ```
+
+**Note:** TaskCreate returns a task ID in its response. Capture this ID to use in `addBlockedBy` for dependent tasks. The `[phase-1-id]` placeholders in skill documentation represent where you insert the actual returned ID.
 
 **Why this matters:**
 - **Visibility:** TaskList shows where you are in the process
