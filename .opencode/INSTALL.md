@@ -124,7 +124,8 @@ git pull
 ### Tool mapping issues
 
 When a skill references a Claude Code tool you don't have:
-- `TodoWrite` → use `update_plan`
+- `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` → use `update_plan`
+- `TodoWrite` (legacy) → use `update_plan`
 - `Task` with subagents → use `@mention` syntax to invoke OpenCode subagents
 - `Skill` → use `use_skill` tool
 - File operations → use your native tools

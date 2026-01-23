@@ -106,7 +106,8 @@ The Codex implementation uses the shared `skills-core` module (ES module format)
 
 Skills written for Claude Code are adapted for Codex with these mappings:
 
-- `TodoWrite` → `update_plan`
+- `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` → `update_plan`
+- `TodoWrite` (legacy) → `update_plan`
 - `Task` with subagents → Tell user subagents aren't available, do work directly
 - `Skill` tool → `~/.codex/superpowers/.codex/superpowers-codex use-skill`
 - File operations → Native Codex tools

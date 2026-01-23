@@ -142,7 +142,8 @@ The plugin listens for `session.compacted` events and automatically re-injects t
 
 Skills written for Claude Code are automatically adapted for OpenCode. The plugin provides mapping instructions:
 
-- `TodoWrite` → `update_plan`
+- `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` → `update_plan`
+- `TodoWrite` (legacy) → `update_plan`
 - `Task` with subagents → OpenCode's `@mention` system
 - `Skill` tool → `use_skill` custom tool
 - File operations → Native OpenCode tools

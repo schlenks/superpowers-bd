@@ -205,13 +205,20 @@ else
 fi
 echo ""
 
-# Test 3: TodoWrite was used for tracking
+# Test 3: Task tracking was used (TaskCreate/TaskUpdate or legacy TodoWrite)
 echo "Test 3: Task tracking..."
+task_create_count=$(grep -c '"name":"TaskCreate"' "$SESSION_FILE" || echo "0")
+task_update_count=$(grep -c '"name":"TaskUpdate"' "$SESSION_FILE" || echo "0")
 todo_count=$(grep -c '"name":"TodoWrite"' "$SESSION_FILE" || echo "0")
-if [ "$todo_count" -ge 1 ]; then
-    echo "  [PASS] TodoWrite used $todo_count time(s) for task tracking"
+total_task_ops=$((task_create_count + task_update_count + todo_count))
+if [ "$total_task_ops" -ge 1 ]; then
+    if [ "$task_create_count" -ge 1 ] || [ "$task_update_count" -ge 1 ]; then
+        echo "  [PASS] Native task tools used (TaskCreate: $task_create_count, TaskUpdate: $task_update_count)"
+    else
+        echo "  [PASS] TodoWrite used $todo_count time(s) for task tracking (legacy)"
+    fi
 else
-    echo "  [FAIL] TodoWrite not used"
+    echo "  [FAIL] No task tracking tools used"
     FAILED=$((FAILED + 1))
 fi
 echo ""

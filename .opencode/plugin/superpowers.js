@@ -30,12 +30,13 @@ export const SuperpowersPlugin = async ({ client, directory }) => {
     const content = skillsCore.stripFrontmatter(fullContent);
 
     const toolMapping = compact
-      ? `**Tool Mapping:** TodoWrite->update_plan, Task->@mention, Skill->use_skill
+      ? `**Tool Mapping:** TaskCreate/TaskUpdate/TaskList/TodoWrite->update_plan, Task->@mention, Skill->use_skill
 
 **Skills naming (priority order):** project: > personal > superpowers:`
       : `**Tool Mapping for OpenCode:**
 When skills reference tools you don't have, substitute OpenCode equivalents:
-- \`TodoWrite\` → \`update_plan\`
+- \`TaskCreate\`, \`TaskUpdate\`, \`TaskList\`, \`TaskGet\` → \`update_plan\`
+- \`TodoWrite\` (legacy) → \`update_plan\`
 - \`Task\` tool with subagents → Use OpenCode's subagent system (@mention)
 - \`Skill\` tool → \`use_skill\` custom tool
 - \`Read\`, \`Write\`, \`Edit\`, \`Bash\` → Your native tools
