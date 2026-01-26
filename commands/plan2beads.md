@@ -84,6 +84,7 @@ TaskCreate: "Final validation gate"
 | **Task Dependencies** | `**Depends on:**` line within task | `--deps` flag |
 | **Task Files** | `**Files:**` section within task | Preserved in description |
 | **Success Criteria** | H2 "Success Metrics/Criteria" with checkboxes `- [ ]` | Epic acceptance criteria |
+| **Key Decisions** | `## Key Decisions` section with bullet points | Epic description (prominently placed) |
 
 **Parsing Rules:**
 - H2s that are NOT phases/stages/success-metrics are context (epic description)
@@ -117,6 +118,16 @@ bd create --silent --type epic "Epic Title" --body-file temp/epic-desc.md --acce
 - If no H1 found, use the filename (without extension) as title
 
 **Capture the returned ID** (e.g., `hub-abc`) - you'll need it for child tasks.
+
+**Epic description structure:**
+1. **Key Decisions** (first, for visibility when running `bd show`)
+2. Problem Statement / Goals
+3. Architecture / Technical approach
+4. Other context sections
+
+This ensures implementers see the "why" immediately when they check the epic.
+
+**If Key Decisions is missing:** Warn in Step 6 summary ("Plan missing Key Decisions section") but continue - older plans should still convert successfully.
 
 ### Step 4: Create Child Tasks (Dependency-Aware)
 
