@@ -225,6 +225,8 @@ The `Files:` section enables safe parallel execution by detecting conflicts.
 | **YAGNI** | Every task directly serves a stated requirement? |
 | **Minimal** | Could any task be removed or combined without losing functionality? |
 | **Not over-engineered** | Is this the simplest approach that works? |
+| **Key Decisions documented** | Are 3-5 key decisions captured with rationale? |
+| **Context sections present** | Do non-obvious tasks have Purpose? Scope-boundary tasks have Not In Scope? |
 
 **Why before rule-of-five:** This checklist verifies *what* you're building is correct. Rule-of-five then polishes *how* it's written. Scope errors caught here save wasted polish on tasks that get deleted.
 
@@ -241,6 +243,8 @@ Running Plan Verification Checklist...
 - YAGNI: ✓/✗ [explanation]
 - Minimal: ✓/✗ [explanation]
 - Not over-engineered: ✓/✗ [explanation]
+- Key Decisions documented: ✓/✗ [count of decisions]
+- Context sections present: ✓/✗ [tasks with Purpose/Not In Scope/Gotchas]
 ```
 
 **Before each rule-of-five pass (mark corresponding todo in_progress):**
@@ -280,6 +284,8 @@ Changes made: [list specific changes or "none needed"]
 | YAGNI | ✓/✗ | [tasks removed if any] |
 | Minimal | ✓/✗ | [tasks combined if any] |
 | Not over-engineered | ✓/✗ | [simplifications made if any] |
+| Key Decisions documented | ✓/✗ | [count of decisions] |
+| Context sections present | ✓/✗ | [tasks with Purpose/Not In Scope/Gotchas] |
 
 ### Rule-of-Five Passes
 | Pass | Changes Made |
