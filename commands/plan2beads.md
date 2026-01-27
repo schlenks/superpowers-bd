@@ -245,15 +245,21 @@ If no phases, omit the `-l` flag.
 
 **Every epic MUST have verification tasks that enforce completion criteria.** These tasks form a dependency chain that ensures quality gates are executed in order.
 
+> **CRITICAL:** Add this verification chain REGARDLESS of what's in the plan. Even if the plan has a "Verify Build and Tests" task, you MUST still add these 4 tasks. They serve different purposes:
+> - **Plan's verification task** (if present): Engineering verification (typecheck, tests, build pass)
+> - **This verification chain**: Process verification (rule-of-five quality, code review, spec compliance)
+>
+> These are complementary, not redundant. The plan's task becomes implementation task N; the chain starts at N+1.
+
 **Dependency chain:**
 ```
-Implementation Tasks (1 through N)
+Implementation Tasks (1 through N, including any plan verification task)
          ↓
 Rule-of-Five (N+1)
          ↓
 Code Review (N+2)
          ↓
-Plan Verification (N+3)
+Spec Verification (N+3)
          ↓
 Verification Gate (N+4)
 ```
@@ -294,25 +300,38 @@ Create the task:
 bd create --silent --parent hub-abc "Request code review" --body-file temp/task-desc.md --deps "hub-abc.N+1" --acceptance $'Code review requested via /requesting-code-review\nAll feedback addressed\nNo blocking issues remain' -p 1
 ```
 
-**Task 3: Plan Verification Checklist** (depends on code review task)
+**Task 3: Spec Verification** (depends on code review task)
 
 Write description to temp file:
 ```markdown
-## Plan Verification Checklist
+## Spec Verification
 
-Re-run the plan's verification checklist against the implementation.
+Compare implementation against the original plan to verify spec compliance.
+
+**Engineering verification checklist:**
+
+| Check | Question |
+|-------|----------|
+| Complete | Does implementation address ALL requirements from the plan? |
+| Accurate | Do file paths, line numbers, and commands match the plan? |
+| YAGNI | Were extra features, refactors, or "improvements" added beyond scope? |
+| Minimal | Is the solution the simplest that meets requirements? |
+| Not over-engineered | Are there unnecessary abstractions, helpers, or configurability? |
+| Key Decisions followed | Does implementation match the Key Decisions section? |
+| No drift | Did implementation stray from the plan without documenting why? |
 
 **Required evidence for spec reviewer:**
 - Each checklist item verified with pass/fail
+- Any deviations from plan documented with justification
 - Any failures documented with resolution
 ```
 
 Create the task:
 ```bash
-bd create --silent --parent hub-abc "Run plan verification checklist" --body-file temp/task-desc.md --deps "hub-abc.N+2" --acceptance $'All verification checklist items checked\nEach item has pass/fail status\nAll failures resolved or documented' -p 1
+bd create --silent --parent hub-abc "Spec verification" --body-file temp/task-desc.md --deps "hub-abc.N+2" --acceptance $'All engineering verification checks passed\nNo undocumented deviations from plan\nAll failures resolved or documented' -p 1
 ```
 
-**Task 4: Verification Gate (Final)** (depends on plan verification task)
+**Task 4: Verification Gate (Final)** (depends on spec verification task)
 
 Write description to temp file:
 ```markdown
@@ -325,14 +344,15 @@ Final gate confirming all verification steps complete.
 
 Create the task:
 ```bash
-bd create --silent --parent hub-abc "Verification Gate" --body-file temp/task-desc.md --deps "hub-abc.N+3" --acceptance $'Rule-of-five applied to all artifacts\nCode review completed\nPlan verification checklist passed\nAll tests pass\nBuild succeeds' -p 1
+bd create --silent --parent hub-abc "Verification Gate" --body-file temp/task-desc.md --deps "hub-abc.N+3" --acceptance $'Rule-of-five applied to all artifacts\nCode review completed\nSpec verification passed (YAGNI, minimal, no drift)\nAll tests pass\nBuild succeeds' -p 1
 ```
 
 **Why this matters:** The verification task chain provides:
 - **Structural enforcement:** Each verification step is a real task that must be closed
-- **Sequencing:** Dependencies ensure rule-of-five → code review → plan verification → gate
+- **Sequencing:** Dependencies ensure rule-of-five → code review → spec verification → gate
 - **Verifiability:** Each task has acceptance criteria the spec reviewer can check
 - **Audit trail:** bd history shows when each verification completed
+- **No shortcuts:** Even if plan has a "verify tests pass" task, spec compliance is separate
 
 ### Step 5: Verify Dependency Structure
 
@@ -362,10 +382,11 @@ Created epic: hub-abc "Epic Title"
 
 Created N implementation tasks + 4 verification tasks:
   Implementation tasks: hub-abc.1 through hub-abc.N
-  Verification chain:
+    (includes any "verify tests pass" task from plan - that's engineering verification)
+  Process verification chain (ALWAYS added, not from plan):
     hub-abc.N+1 "Apply rule-of-five"         (blocked by all implementation tasks)
     hub-abc.N+2 "Request code review"        (blocked by N+1)
-    hub-abc.N+3 "Run plan verification"      (blocked by N+2)
+    hub-abc.N+3 "Spec verification"          (blocked by N+2) - YAGNI, minimal, no drift
     hub-abc.N+4 "Verification Gate"          (blocked by N+3)
 
 Ready (no blockers): hub-abc.1, hub-abc.2
@@ -386,6 +407,7 @@ Verification chain ensures:
   - Spec reviewer can verify each step was performed
   - No shortcuts - must complete in order
   - Audit trail shows what was verified and when
+  - Implementation checked against plan spec (YAGNI, minimal, no drift)
 
 Next commands:
   bd show hub-abc        # View epic details
