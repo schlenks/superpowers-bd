@@ -328,11 +328,11 @@ Create the task:
 bd create --silent --parent hub-abc "Verification Gate" --body-file temp/task-desc.md --deps "hub-abc.N+3" --acceptance $'Rule-of-five applied to all artifacts\nCode review completed\nPlan verification checklist passed\nAll tests pass\nBuild succeeds' -p 1
 ```
 
-**Why this matters:** Separate verification tasks ensure:
-- Each quality gate executes independently and leaves evidence
-- Spec reviewer can verify each step was actually performed
-- Dependencies enforce correct execution order
-- Audit trail shows what was verified and when
+**Why this matters:** The verification task chain provides:
+- **Structural enforcement:** Each verification step is a real task that must be closed
+- **Sequencing:** Dependencies ensure rule-of-five → code review → plan verification → gate
+- **Verifiability:** Each task has acceptance criteria the spec reviewer can check
+- **Audit trail:** bd history shows when each verification completed
 
 ### Step 5: Verify Dependency Structure
 
