@@ -241,28 +241,98 @@ bd create --silent --parent hub-abc "Task Name" -d "..." -l "phase:1" --deps "hu
 
 If no phases, omit the `-l` flag.
 
-#### 4f. Verification Gate Task (Required)
+#### 4f. Verification Tasks (Required)
 
-**Every epic MUST have a final Verification Gate task.** This task depends on ALL other tasks and enforces completion criteria.
+**Every epic MUST have verification tasks that enforce completion criteria.** These tasks form a dependency chain that ensures quality gates are executed in order.
 
-1. Write gate description to temp file:
+**Dependency chain:**
+```
+Implementation Tasks (1 through N)
+         ↓
+Rule-of-Five (N+1)
+         ↓
+Code Review (N+2)
+         ↓
+Plan Verification (N+3)
+         ↓
+Verification Gate (N+4)
+```
+
+**Task 1: Rule-of-Five** (depends on ALL implementation tasks)
+
+Write description to temp file:
+```markdown
+## Apply Rule-of-Five
+
+Execute `/rule-of-five` on all implementation artifacts.
+
+**Required evidence for spec reviewer:**
+- List each file reviewed with rule-of-five
+- Note any issues found and corrections made per pass
+```
+
+Create the task:
+```bash
+bd create --silent --parent hub-abc "Apply rule-of-five to implementation" --body-file temp/task-desc.md --deps "hub-abc.1,hub-abc.2,..." --acceptance $'All implementation files reviewed with /rule-of-five\nIssues found documented with corrections\nNo outstanding quality issues' -p 1
+```
+
+**Task 2: Code Review** (depends on rule-of-five task)
+
+Write description to temp file:
+```markdown
+## Code Review
+
+Execute `/requesting-code-review` for the implementation.
+
+**Required evidence for spec reviewer:**
+- Code review feedback captured
+- All review items addressed or documented as deferred
+```
+
+Create the task:
+```bash
+bd create --silent --parent hub-abc "Request code review" --body-file temp/task-desc.md --deps "hub-abc.N+1" --acceptance $'Code review requested via /requesting-code-review\nAll feedback addressed\nNo blocking issues remain' -p 1
+```
+
+**Task 3: Plan Verification Checklist** (depends on code review task)
+
+Write description to temp file:
+```markdown
+## Plan Verification Checklist
+
+Re-run the plan's verification checklist against the implementation.
+
+**Required evidence for spec reviewer:**
+- Each checklist item verified with pass/fail
+- Any failures documented with resolution
+```
+
+Create the task:
+```bash
+bd create --silent --parent hub-abc "Run plan verification checklist" --body-file temp/task-desc.md --deps "hub-abc.N+2" --acceptance $'All verification checklist items checked\nEach item has pass/fail status\nAll failures resolved or documented' -p 1
+```
+
+**Task 4: Verification Gate (Final)** (depends on plan verification task)
+
+Write description to temp file:
 ```markdown
 ## Verification Gate
 
-This task verifies the epic implementation is complete and meets quality standards.
+Final gate confirming all verification steps complete.
 
 **Do not close this task until ALL criteria are met.**
 ```
 
-2. Create the gate task (depends on ALL previous tasks):
+Create the task:
 ```bash
-bd create --silent --parent hub-abc "Verification Gate" --body-file temp/task-desc.md --deps "hub-abc.1,hub-abc.2,hub-abc.3,..." --acceptance $'All tests pass\nBuild succeeds\nNo TypeScript errors\nInvoke /rule-of-five on implementation\nInvoke /requesting-code-review\nPlan Verification Checklist re-run against implementation\nDocumentation updated if needed' -p 1
+bd create --silent --parent hub-abc "Verification Gate" --body-file temp/task-desc.md --deps "hub-abc.N+3" --acceptance $'Rule-of-five applied to all artifacts\nCode review completed\nPlan verification checklist passed\nAll tests pass\nBuild succeeds' -p 1
 ```
 
-**Why this matters:** Without a gate task, epic completion has no verification trigger. The gate task:
-- Blocks until all implementation tasks complete
-- Forces verification before epic can be closed
-- Provides audit trail of completion criteria
+**Why this matters:** Separate verification tasks ensure:
+- Each quality gate executes independently and leaves evidence
+- Spec reviewer can verify each step was actually performed
+- Dependencies enforce correct execution order
+- Audit trail shows what was verified and when
 
 ### Step 5: Verify Dependency Structure
 
