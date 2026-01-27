@@ -301,7 +301,6 @@ Wave 3: Task 4 is ready
 [bd close hub-abc.4]
 
 [All issues closed]
-[Dispatch final code reviewer for entire epic]
 [Use superpowers:finishing-a-development-branch]
 
 Done!
@@ -322,7 +321,6 @@ Done!
 **Quality gates (unchanged):**
 - Two-stage review: spec compliance, then code quality
 - Review loops ensure fixes work
-- Final review of entire implementation
 
 ## Red Flags
 
