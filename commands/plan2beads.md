@@ -360,20 +360,32 @@ Show summary:
 ```
 Created epic: hub-abc "Epic Title"
 
-Created N tasks + 1 Verification Gate:
-  Ready (no blockers): hub-abc.1, hub-abc.2
-  Blocked: hub-abc.3 (by hub-abc.1), hub-abc.4 (by hub-abc.2,hub-abc.3)
-  Verification Gate: hub-abc.N (blocked by all tasks)
+Created N implementation tasks + 4 verification tasks:
+  Implementation tasks: hub-abc.1 through hub-abc.N
+  Verification chain:
+    hub-abc.N+1 "Apply rule-of-five"         (blocked by all implementation tasks)
+    hub-abc.N+2 "Request code review"        (blocked by N+1)
+    hub-abc.N+3 "Run plan verification"      (blocked by N+2)
+    hub-abc.N+4 "Verification Gate"          (blocked by N+3)
+
+Ready (no blockers): hub-abc.1, hub-abc.2
+Blocked: hub-abc.3 through hub-abc.N+4
 
 Dependency verification:
   bd ready shows: 2 tasks ready
-  bd blocked shows: N-1 tasks blocked (including gate)
+  bd blocked shows: N+2 tasks blocked (including verification chain)
 
-Parallelization potential:
-  Wave 1: Tasks 1, 2 (parallel)
-  Wave 2: Task 3 (after 1)
-  Wave 3: Task 4 (after 2, 3)
-  Final: Verification Gate (after all tasks)
+Execution flow:
+  1. Complete all N implementation tasks (respecting dependencies)
+  2. Rule-of-five task unblocks automatically
+  3. Each verification task unblocks after previous completes
+  4. Verification Gate is final task (closes epic when done)
+
+Verification chain ensures:
+  - Each quality gate executes independently with evidence
+  - Spec reviewer can verify each step was performed
+  - No shortcuts - must complete in order
+  - Audit trail shows what was verified and when
 
 Next commands:
   bd show hub-abc        # View epic details
@@ -385,14 +397,7 @@ To execute the epic, use the autonomous work loop:
   bd update <id> --claim          # Claim a task
   # ... do the work ...
   bd close <id> --suggest-next    # Complete and see what unblocked
-  # Repeat until only Verification Gate remains
-
-When only Verification Gate is ready:
-  1. Invoke /rule-of-five on the implementation
-  2. Invoke /requesting-code-review
-  3. Re-run Plan Verification Checklist against implementation
-  4. Close the gate task
-  5. Close the epic
+  # Repeat through all tasks including verification chain
 ```
 
 ## bd CLI Quick Reference
