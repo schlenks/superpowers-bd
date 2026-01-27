@@ -86,6 +86,59 @@ digraph process {
 }
 ```
 
+## Verification Tasks
+
+Verification tasks (like Rule-of-Five, Code Review, Plan Verification) are processed through the **same dispatch loop** as implementation tasks. They are not special—they appear in `bd ready` when their dependencies close, get dispatched to implementer subagents, and go through spec/quality review like any other task.
+
+**Key points:**
+
+1. **Appear in `bd ready`** - When an implementation task closes, its dependent verification task becomes ready
+2. **Same dispatch flow** - Dispatched via implementer prompt, reviewed via spec then quality reviewers
+3. **Specific acceptance criteria** - The spec reviewer verifies the verification was actually performed, not just claimed
+
+**Example: Rule-of-Five verification task**
+
+```
+Task superpowers-xyz.5 (Rule-of-Five verification)
+  Dependencies: [superpowers-xyz.1, superpowers-xyz.2, superpowers-xyz.3, superpowers-xyz.4]
+  Files: [docs/plans/implementation-plan.md]
+  Acceptance: Apply 5-pass review to all artifacts >50 lines created in tasks 1-4
+```
+
+**Dispatch flow:**
+```
+[Tasks 1-4 all closed]
+[bd ready now shows superpowers-xyz.5]
+
+[bd update superpowers-xyz.5 --status=in_progress]
+[Dispatch implementer for superpowers-xyz.5]
+
+Implementer:
+  - Reviews artifacts from tasks 1-4
+  - Applies Rule-of-Five passes
+  - Documents changes made in each pass
+  - Committed
+
+[Dispatch spec reviewer]
+Spec reviewer:
+  - Verifies each required artifact was reviewed
+  - Confirms 5 passes were applied (not just claimed)
+  - Checks that improvements were substantive
+  ✅ Passes
+
+[Dispatch code quality reviewer]
+Code reviewer: ✅ Approved
+
+[bd close superpowers-xyz.5]
+```
+
+**Why no special handling?** Verification tasks have:
+- Clear acceptance criteria (verifiable by spec reviewer)
+- Defined file scope (what to review)
+- Dependencies (run after implementation completes)
+
+This means the existing dispatch → review → close flow works unchanged.
+
 ## Filtering to Current Epic
 
 `bd ready` returns ALL ready issues across all epics. Filter to current epic:
