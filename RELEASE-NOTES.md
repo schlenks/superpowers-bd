@@ -1,5 +1,53 @@
 # Superpowers Release Notes
 
+## v4.0.9 (2026-01-27) - TBL Fork
+
+### Feature: Epic Verification Enforcement
+
+Ensures epic completion verification steps (rule-of-five, code-review, plan verification checklist) are structurally enforced via beads dependencies, not just documented as text.
+
+**Key Decisions:**
+- **Separate verification issues over text criteria:** Beads dependencies provide structural sequencing; text criteria are easily skipped
+- **Verifiable acceptance criteria over procedural instructions:** "Invoke /rule-of-five" is unverifiable; "Show TaskList with 5 completed passes" is verifiable
+- **Two-layer enforcement:** Beads dependencies for sequencing + spec reviewer for verification within each issue
+- **Defensive check in finishing-a-development-branch:** Catches legacy epics that predate this change
+
+**plan2beads: 4 Verification Tasks**
+
+Instead of a single "Verification Gate" task with text acceptance criteria, `plan2beads` now creates 4 verification tasks with explicit dependencies:
+
+1. **Rule-of-Five (N+1)** — blocked by all implementation tasks
+2. **Code Review (N+2)** — blocked by rule-of-five
+3. **Plan Verification (N+3)** — blocked by code review
+4. **Verification Gate (N+4)** — blocked by plan verification
+
+Each task has:
+- `## Required evidence for spec reviewer` section with specific verification criteria
+- Explicit acceptance criteria the spec reviewer can objectively check
+- Dependencies that enforce correct execution order
+
+**finishing-a-development-branch: Legacy Epic Check**
+
+Added Step 0 that checks for verification tasks before proceeding:
+- **Verification tasks not closed** → STOP, list open tasks
+- **No verification tasks (legacy epic)** → WARNING, proceed with caution
+- **All verification tasks closed** → Proceed to Step 1
+
+**subagent-driven-development: Updated Flow**
+
+- Removed redundant "Final code review" node from flow diagram (now handled as verification task)
+- Added `## Verification Tasks` section documenting that verification tasks flow through the same dispatch loop
+- Includes example showing rule-of-five task dispatch/review cycle
+
+### Files Changed (3)
+
+**Commands (1):**
+- commands/plan2beads.md (+98 lines across 3 commits)
+
+**Skills (2):**
+- skills/finishing-a-development-branch/SKILL.md (+44 lines)
+- skills/subagent-driven-development/SKILL.md (+57 lines across 4 commits)
+
 ## v4.0.8 (2026-01-26) - TBL Fork
 
 ### Feature: Enhanced Context Preservation
