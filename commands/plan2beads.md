@@ -241,118 +241,71 @@ bd create --silent --parent hub-abc "Task Name" -d "..." -l "phase:1" --deps "hu
 
 If no phases, omit the `-l` flag.
 
-#### 4f. Verification Tasks (Required)
+#### 4f. Epic Verification Task (Required)
 
-**Every epic MUST have verification tasks that enforce completion criteria.** These tasks form a dependency chain that ensures quality gates are executed in order.
+**Every epic MUST have ONE final verification task** that combines automated checks AND process verification in a single explicit checklist.
 
-> **CRITICAL:** Add this verification chain REGARDLESS of what's in the plan. Even if the plan has a "Verify Build and Tests" task, you MUST still add these 4 tasks. They serve different purposes:
-> - **Plan's verification task** (if present): Engineering verification (typecheck, tests, build pass)
-> - **This verification chain**: Process verification (rule-of-five quality, code review, spec compliance)
->
-> These are complementary, not redundant. The plan's task becomes implementation task N; the chain starts at N+1.
-
-**Dependency chain:**
-```
-Implementation Tasks (1 through N, including any plan verification task)
-         ↓
-Rule-of-Five (N+1)
-         ↓
-Code Review (N+2)
-         ↓
-Spec Verification (N+3)
-         ↓
-Verification Gate (N+4)
-```
-
-**Task 1: Rule-of-Five** (depends on ALL implementation tasks)
+> **Why a single task with explicit checklist?** The planning phase succeeds because it has an explicit checklist (Plan Verification Checklist). Epic completion needs the same pattern—tell the agent exactly what to do, step by step.
 
 Write description to temp file:
 ```markdown
-## Apply Rule-of-Five
+## Epic Verification
 
-Execute `/rule-of-five` on all implementation artifacts.
+**Complete each item. Do not close this task with any item unmarked.**
 
-**Required evidence for spec reviewer:**
-- List each file reviewed with rule-of-five
-- Note any issues found and corrections made per pass
+### Step 1: Review cumulative changes
+
+Run: `git diff main...HEAD --stat`
+
+Record: ___ files changed, ___ insertions, ___ deletions
+
+### Step 2: Automated checks
+
+- [ ] Tests pass: `pnpm test` → Result: ___
+- [ ] Build succeeds: `pnpm build` → Result: ___
+- [ ] Typecheck passes: `pnpm typecheck` → Result: ___
+
+### Step 3: Rule-of-five on significant changes
+
+For files with >50 lines changed (from Step 1 diff):
+
+- [ ] Pass 1 (Draft): Structure correct?
+- [ ] Pass 2 (Correctness): Any bugs?
+- [ ] Pass 3 (Clarity): Understandable to newcomers?
+- [ ] Pass 4 (Edge Cases): Failure modes handled?
+- [ ] Pass 5 (Excellence): Would you sign your name to this?
+
+Files reviewed: ___
+Issues found and fixed: ___
+
+### Step 4: Engineering checklist
+
+Review the cumulative diff against the original plan:
+
+- [ ] **Complete** — All requirements from plan addressed
+- [ ] **YAGNI** — No extra features added beyond plan scope
+- [ ] **Minimal** — Simplest solution that meets requirements
+- [ ] **No drift** — Implementation follows plan (or deviations documented)
+- [ ] **Key Decisions followed** — Matches plan's Key Decisions section
+
+Deviations from plan (if any): ___
+
+### Step 5: Final confirmation
+
+- [ ] All automated checks pass
+- [ ] Rule-of-five completed on significant changes
+- [ ] Engineering checklist all items marked
+- [ ] Ready for merge/PR
 ```
 
 Create the task:
 ```bash
-bd create --silent --parent hub-abc "Apply rule-of-five to implementation" --body-file temp/task-desc.md --deps "hub-abc.1,hub-abc.2,..." --acceptance $'All implementation files reviewed with /rule-of-five\nIssues found documented with corrections\nNo outstanding quality issues' -p 1
+bd create --silent --parent hub-abc "Epic Verification" --body-file temp/task-desc.md --deps "hub-abc.1,hub-abc.2,..." --acceptance $'All automated checks pass\nRule-of-five applied to changes >50 lines\nEngineering checklist complete\nNo unmarked items' -p 1
 ```
 
-**Task 2: Code Review** (depends on rule-of-five task)
+**Note:** The `--deps` should include ALL implementation task IDs so this task only unblocks after all work is done.
 
-Write description to temp file:
-```markdown
-## Code Review
-
-Execute `/requesting-code-review` for the implementation.
-
-**Required evidence for spec reviewer:**
-- Code review feedback captured
-- All review items addressed or documented as deferred
-```
-
-Create the task:
-```bash
-bd create --silent --parent hub-abc "Request code review" --body-file temp/task-desc.md --deps "hub-abc.N+1" --acceptance $'Code review requested via /requesting-code-review\nAll feedback addressed\nNo blocking issues remain' -p 1
-```
-
-**Task 3: Spec Verification** (depends on code review task)
-
-Write description to temp file:
-```markdown
-## Spec Verification
-
-Compare implementation against the original plan to verify spec compliance.
-
-**Engineering verification checklist:**
-
-| Check | Question |
-|-------|----------|
-| Complete | Does implementation address ALL requirements from the plan? |
-| Accurate | Do file paths, line numbers, and commands match the plan? |
-| YAGNI | Does implementation contain ONLY what was specified? (no extra features/refactors) |
-| Minimal | Is the solution the simplest that meets requirements? |
-| Not over-engineered | Is the solution free of unnecessary abstractions or configurability? |
-| Key Decisions followed | Does implementation match the Key Decisions section? |
-| No drift | Does implementation follow the plan? (or document justified deviations) |
-
-**Required evidence for spec reviewer:**
-- Each checklist item verified with pass/fail
-- Any deviations from plan documented with justification
-- Any failures documented with resolution
-```
-
-Create the task:
-```bash
-bd create --silent --parent hub-abc "Spec verification" --body-file temp/task-desc.md --deps "hub-abc.N+2" --acceptance $'All engineering verification checks passed\nNo undocumented deviations from plan\nAll failures resolved or documented' -p 1
-```
-
-**Task 4: Verification Gate (Final)** (depends on spec verification task)
-
-Write description to temp file:
-```markdown
-## Verification Gate
-
-Final gate confirming all verification steps complete.
-
-**Do not close this task until ALL criteria are met.**
-```
-
-Create the task:
-```bash
-bd create --silent --parent hub-abc "Verification Gate" --body-file temp/task-desc.md --deps "hub-abc.N+3" --acceptance $'Rule-of-five applied to all artifacts\nCode review completed\nSpec verification passed (YAGNI, minimal, no drift)\nAll tests pass\nBuild succeeds' -p 1
-```
-
-**Why this matters:** The verification task chain provides:
-- **Structural enforcement:** Each verification step is a real task that must be closed
-- **Sequencing:** Dependencies ensure rule-of-five → code review → spec verification → gate
-- **Verifiability:** Each task has acceptance criteria the spec reviewer can check
-- **Audit trail:** bd history shows when each verification completed
-- **No shortcuts:** Even if plan has a "verify tests pass" task, spec compliance is separate
+**Why this works:** The checklist tells the agent exactly what to do—same pattern as the Plan Verification Checklist during planning. No ambiguity about "artifacts" or "implementation files."
 
 ### Step 5: Verify Dependency Structure
 
@@ -380,34 +333,27 @@ Show summary:
 ```
 Created epic: hub-abc "Epic Title"
 
-Created N implementation tasks + 4 verification tasks:
+Created N implementation tasks + 1 verification task:
   Implementation tasks: hub-abc.1 through hub-abc.N
-    (includes any "verify tests pass" task from plan - that's engineering verification)
-  Process verification chain (ALWAYS added, not from plan):
-    hub-abc.N+1 "Apply rule-of-five"         (blocked by all implementation tasks)
-    hub-abc.N+2 "Request code review"        (blocked by N+1)
-    hub-abc.N+3 "Spec verification"          (blocked by N+2) - YAGNI, minimal, no drift
-    hub-abc.N+4 "Verification Gate"          (blocked by N+3)
+  Epic Verification: hub-abc.N+1 (blocked by all implementation tasks)
 
 Ready (no blockers): hub-abc.1, hub-abc.2
-Blocked: hub-abc.3 through hub-abc.N+4
+Blocked: hub-abc.3 through hub-abc.N+1
 
 Dependency verification:
   bd ready shows: 2 tasks ready
-  bd blocked shows: N+2 tasks blocked (including verification chain)
+  bd blocked shows: N-1 tasks blocked (including verification)
 
 Execution flow:
   1. Complete all N implementation tasks (respecting dependencies)
-  2. Rule-of-five task unblocks automatically
-  3. Each verification task unblocks after previous completes
-  4. Verification Gate is final task (closes epic when done)
+  2. Epic Verification task unblocks automatically
+  3. Complete verification checklist (automated + rule-of-five + engineering)
+  4. Close Epic Verification to complete the epic
 
-Verification chain ensures:
-  - Each quality gate executes independently with evidence
-  - Spec reviewer can verify each step was performed
-  - No shortcuts - must complete in order
-  - Audit trail shows what was verified and when
-  - Implementation checked against plan spec (YAGNI, minimal, no drift)
+Epic Verification task includes explicit checklist:
+  - Automated checks (tests, build, typecheck)
+  - Rule-of-five on changes >50 lines
+  - Engineering checklist (Complete, YAGNI, Minimal, No drift, Key Decisions)
 
 Next commands:
   bd show hub-abc        # View epic details
@@ -419,7 +365,7 @@ To execute the epic, use the autonomous work loop:
   bd update <id> --claim          # Claim a task
   # ... do the work ...
   bd close <id> --suggest-next    # Complete and see what unblocked
-  # Repeat through all tasks including verification chain
+  # Repeat through all tasks including verification
 ```
 
 ## bd CLI Quick Reference

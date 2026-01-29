@@ -1,5 +1,36 @@
 # Superpowers Release Notes
 
+## v4.0.11 (2026-01-28) - TBL Fork
+
+### Simplify: Single Epic Verification Task with Explicit Checklist
+
+Replaced the 4-task verification chain with a single "Epic Verification" task containing an explicit step-by-step checklist.
+
+**Problem:** Despite v4.0.9-v4.0.10 adding a 4-task verification chain with "CRITICAL" callouts, agents still skipped creating the verification tasks when the plan already had a "Final Verification" task. More documentation didn't prevent rationalization.
+
+**Solution:** Mirror the planning phase pattern. During planning, the Plan Verification Checklist works because it's explicit—the agent sees checkboxes and fills them in. Apply the same pattern to epic completion.
+
+**Changes:**
+- Replaced 4 verification tasks (rule-of-five, code review, spec verification, gate) with ONE task
+- New task has explicit step-by-step checklist with checkboxes:
+  1. Review cumulative changes (`git diff main...HEAD --stat`)
+  2. Automated checks (tests, build, typecheck)
+  3. Rule-of-five on files with >50 lines changed
+  4. Engineering checklist (Complete, YAGNI, Minimal, No drift, Key Decisions)
+  5. Final confirmation
+- Updated Step 6 summary to reflect simplified structure
+
+**Why this is better:**
+- Same pattern as planning (explicit checklist works there)
+- Agent sees exactly what to do, not vague "apply rule-of-five to artifacts"
+- Single task is simpler than 4-task chain
+- Checklist items are concrete: "Run `git diff main...HEAD --stat`" vs "Execute /rule-of-five"
+
+**Files Changed (1):**
+- commands/plan2beads.md (section 4f rewritten, Step 6 updated)
+
+---
+
 ## v4.0.10 (2026-01-27) - TBL Fork
 
 ### Fix: Verification Chain Always Required
