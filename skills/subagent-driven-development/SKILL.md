@@ -259,6 +259,50 @@ PARALLEL (new):
 
 **ENFORCEMENT:** Wave dispatch task is blocked until file conflict verification completes. This makes the verification step visible and non-skippable.
 
+### Background Execution with Polling
+
+For true parallelism (not just concurrent dispatch), use `run_in_background: true` with TaskOutput polling.
+
+**Dispatch Phase:**
+
+```python
+task_ids = []
+for issue in parallelizable:
+    bd update <issue.id> --status=in_progress
+    result = Task(
+        subagent_type="general-purpose",
+        model=tier_model,
+        run_in_background=True,
+        description=f"Implement: {issue.id} {issue.title}",
+        prompt=implementer_prompt
+    )
+    task_ids.append(result.task_id)
+```
+
+**Monitor Phase:**
+
+```python
+while task_ids:
+    for task_id in list(task_ids):
+        result = TaskOutput(task_id, block=False, timeout=5000)
+        if result.status == "completed":
+            dispatch_review(task_id, result)
+            task_ids.remove(task_id)
+
+    # Also check review completions
+    for review_id in list(pending_reviews):
+        result = TaskOutput(review_id, block=False)
+        if result.status == "completed":
+            process_review(review_id, result)
+```
+
+**Benefits of background execution:**
+
+- **True parallelism** - Tasks execute simultaneously, not just dispatched concurrently
+- **Simultaneous monitoring** - Can poll multiple tasks without blocking on any single one
+- **Immediate review dispatch** - Start reviews as soon as implementations complete, even while other implementations are running
+- **Better throughput** - Wave N+1 reviews can overlap with Wave N implementations completing
+
 ## Wave Summary (Cross-Wave Context)
 
 **After each wave completes, post a summary comment to the epic:**
