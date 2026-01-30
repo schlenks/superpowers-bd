@@ -158,6 +158,27 @@ This fork includes ToursByLocals-specific enhancements:
 | writing-plans | `writing-plans` | `superpowers:writing-plans` |
 | executing-plans | `executing-plans` | `superpowers:executing-plans` |
 
+### Local-Only Beads Setup
+
+If you want to use beads for personal issue tracking **without committing to the repo** (useful for company codebases):
+
+```bash
+# One-liner setup (installs beads, initializes stealth mode, adds worktree support)
+curl -fsSL https://raw.githubusercontent.com/schlenks/superpowers/main/scripts/setup-beads-local.sh | bash
+```
+
+Or manually:
+
+```bash
+# 1. Install beads
+brew install beads  # or: npm install -g @beads/bd
+
+# 2. Initialize in stealth mode (adds to .git/info/exclude, not .gitignore)
+bd init --stealth
+```
+
+**Git Worktree Support**: The setup script adds shell functions that automatically exclude `.beads/` in each worktree's local git exclude. This ensures beads works seamlessly across `git worktree` environments without polluting the repo.
+
 ## Philosophy
 
 - **Test-Driven Development** - Write tests first, always

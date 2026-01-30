@@ -16,6 +16,19 @@ Reference for AI agents using the beads issue tracker CLI with Claude Code.
 - Managing epics, tasks, and dependencies
 - Starting or ending coding sessions with persistent work
 
+## First-Time Setup
+
+**If `bd` command is not found**, tell the user:
+
+> Beads isn't installed yet. Run this to set it up for local-only use (won't affect the repo):
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/schlenks/superpowers/main/scripts/setup-beads-local.sh | bash
+> ```
+>
+> This script installs beads, initializes stealth mode, and adds git worktree support to your shell.
+
+For team use where `.beads/` should be committed and shared, use `bd init` without `--stealth`.
+
 ## TL;DR
 
 ```bash
