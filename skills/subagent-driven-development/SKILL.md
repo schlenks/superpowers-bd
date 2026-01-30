@@ -638,6 +638,57 @@ Transitions:
   CLOSE → LOADING (re-check ready after closes)
 ```
 
+## Failure Recovery
+
+### Subagent Timeout/Crash
+```
+1. TaskOutput(task_id, block=False) shows no progress
+2. Check git status for partial commits
+3. If partial work committed:
+   - Read what was done
+   - Dispatch new agent: "Continue from: [summary of completed work]"
+4. If no work:
+   - Dispatch fresh implementer
+   - Note in wave summary: "Task X restarted due to agent failure"
+```
+
+### Review Rejection Loop (>2 iterations)
+```
+if rejection_count[task_id] > 2:
+    PAUSE automated flow
+    Report to human:
+      "Task {task_id} rejected {n} times.
+       Rejection reasons: {reasons}
+       Options:
+       1. Continue automated retries
+       2. Take over manually
+       3. Split task into smaller pieces
+       4. Clarify spec and retry"
+    WAIT for human decision
+```
+
+### Deadlock Detection
+```
+if bd_ready ∩ epic_children == empty AND open_issues > 0:
+    Run: bd blocked
+
+    if circular_dependency_detected:
+        Report: "Circular dependency: A → B → A"
+        Suggest: bd dep remove <id> <blocker>
+
+    if forgot_to_close:
+        Report: "Task X completed but not closed"
+        Action: bd close <task_id>
+```
+
+### bd Command Failures
+```
+if bd_command_fails:
+    1. bd doctor  # Check beads health
+    2. git status  # Check git state
+    3. If persistent: STOP, ask human for help
+```
+
 ## Integration
 
 **Required workflow skills:**
