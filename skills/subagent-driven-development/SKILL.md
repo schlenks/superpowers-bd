@@ -610,6 +610,34 @@ If `bd ready` shows nothing for your epic BUT issues remain open, check for:
 - Check git status: `git status`
 - If persistent errors, stop and ask human for help
 
+## Orchestrator State Machine
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        STATES                                │
+├──────────┬──────────────────────────────────────────────────┤
+│ INIT     │ Ask budget tier, load epic                       │
+│ LOADING  │ Parse children, check bd ready, filter to epic   │
+│ DISPATCH │ File conflict check → dispatch non-conflicting   │
+│ MONITOR  │ Poll background tasks, route completions         │
+│ REVIEW   │ Dispatch spec/code reviewers as tasks complete   │
+│ CLOSE    │ bd close passed tasks, post wave summary         │
+│ COMPLETE │ All epic children closed → finishing-branch      │
+└──────────┴──────────────────────────────────────────────────┘
+
+Transitions:
+  INIT → LOADING (tier selected, epic loaded)
+  LOADING → DISPATCH (ready tasks exist)
+  LOADING → MONITOR (all in_progress, waiting)
+  LOADING → COMPLETE (all closed)
+  DISPATCH → MONITOR (tasks dispatched)
+  MONITOR → REVIEW (implementation completed)
+  MONITOR → DISPATCH (wave complete, new tasks ready)
+  REVIEW → CLOSE (reviews passed)
+  REVIEW → MONITOR (review failed, fix dispatched)
+  CLOSE → LOADING (re-check ready after closes)
+```
+
 ## Integration
 
 **Required workflow skills:**
