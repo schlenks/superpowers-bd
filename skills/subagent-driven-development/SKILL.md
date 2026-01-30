@@ -390,6 +390,48 @@ on_spec_review_pass(task_id, result):
     pending_code_reviews.add(code_task)
 ```
 
+### Wave Orchestration with Native Tasks
+
+Create tasks to track orchestrator state:
+
+```python
+# At wave start
+conflict_task = TaskCreate(
+    subject="Wave 1: Conflict check",
+    activeForm="Checking file conflicts"
+)
+
+wave_task = TaskCreate(
+    subject="Wave 1: hub-abc.1, hub-abc.2",
+    activeForm="Executing wave 1",
+    addBlockedBy=[conflict_task.id]
+)
+
+# For each implementation
+impl_task = TaskCreate(
+    subject="Implement hub-abc.1",
+    activeForm="Implementing User Model"
+)
+
+review_task = TaskCreate(
+    subject="Review hub-abc.1",
+    activeForm="Reviewing User Model",
+    addBlockedBy=[impl_task.id]
+)
+
+# At wave end
+summary_task = TaskCreate(
+    subject="Wave 1 summary",
+    activeForm="Summarizing wave 1",
+    addBlockedBy=[all_review_task_ids]
+)
+```
+
+**Benefits:**
+- Visual progress in Claude Code UI
+- Clear dependency enforcement
+- Audit trail of execution
+
 ## Wave Summary (Cross-Wave Context)
 
 **After each wave completes, post a summary comment to the epic:**
