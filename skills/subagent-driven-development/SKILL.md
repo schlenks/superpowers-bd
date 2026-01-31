@@ -731,8 +731,9 @@ Transitions:
   DISPATCH → MONITOR (tasks dispatched)
   MONITOR → REVIEW (implementation completed)
   MONITOR → DISPATCH (wave complete, new tasks ready)
-  REVIEW → CLOSE (reviews passed)
+  REVIEW → CLOSE (reviews + verification passed)
   REVIEW → MONITOR (review failed, fix dispatched)
+  REVIEW → PENDING_HUMAN (verification failed >3 attempts)
   CLOSE → LOADING (re-check ready after closes)
 ```
 
