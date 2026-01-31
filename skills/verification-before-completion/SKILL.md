@@ -47,7 +47,7 @@ is part of the gate function - not optional.
 Visual verification runs automatically when ALL conditions are met:
 - Browser tools available (`mcp__plugin_superpowers-chrome_chrome__use_browser` OR `browser_navigate`)
 - Frontend files changed (see patterns below)
-- Dev server is running
+- Dev server is running (check common ports: 3000, 5173, 4200, 8080)
 
 If browser tools aren't available or no frontend files changed, skip silently.
 If dev server isn't running, note: "Visual verification skipped: start dev server for browser testing"
@@ -69,7 +69,7 @@ If dev server isn't running, note: "Visual verification skipped: start dev serve
 2. **Navigate** to dev server (check ports: 3000, 5173, 4200, 8080)
 3. **Check console** for uncaught exceptions or React errors (fail if found)
 4. **Verify elements** render (page not blank, no error boundaries)
-5. **Capture screenshot** as evidence
+5. **Capture screenshot** as evidence (browser tools auto-capture to session directory)
 
 ### Failure Handling
 
