@@ -15,6 +15,16 @@ Task tool:
 
     [FULL CONTENT from `bd show <issue-id>` - paste it here, don't make subagent run bd]
 
+    ## Epic Context (Optional)
+
+    [EPIC_GOAL - One sentence describing what the epic achieves]
+
+    **Key Decisions:**
+    [KEY_DECISIONS - 3-5 architectural decisions with rationale from epic description]
+
+    **Why This Task Matters:**
+    [TASK_PURPOSE - How this task contributes to the epic goal]
+
     ## Files You Own
 
     You are ONLY allowed to modify these files:
@@ -29,9 +39,15 @@ Task tool:
     These issues have been completed. You can use their outputs:
     [List completed dependency issues, if any]
 
-    ## Context
+    ## Established Conventions (from previous waves)
 
-    [Scene-setting: where this fits in the epic, architectural context]
+    [WAVE_CONVENTIONS - Patterns and conventions from previous wave summaries]
+
+    If this section is empty, you are establishing conventions. Document your choices clearly in commit messages.
+
+    ## Additional Context
+
+    [ADDITIONAL_CONTEXT - Any scene-setting beyond epic context and wave conventions]
 
     ## Before You Begin
 
