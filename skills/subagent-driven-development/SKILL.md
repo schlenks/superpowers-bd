@@ -444,6 +444,48 @@ on_spec_review_pass(task_id, result):
     pending_code_reviews.add(code_task)
 ```
 
+### Verification Gap Closure
+
+After both reviews pass, apply `superpowers:verification-before-completion` with gap closure:
+
+```python
+on_code_review_pass(task_id, result):
+    # Create verification task for the implementation
+    verify_task = TaskCreate(
+        subject=f"Verify: {task_id} implementation",
+        description=f"Run tests, check build. Max 3 attempts.",
+        metadata={"attempt": 1, "max_attempts": 3}
+    )
+
+    # Run verification with gap closure loop
+    verification_result = run_verification_with_gap_closure(
+        task_id=task_id,
+        verification_command="npm test && npm run build",
+        max_attempts=3
+    )
+
+    if verification_result.passed:
+        bd_close(task_id)
+    elif verification_result.escalated:
+        # Human intervention task created by gap closure
+        pending_human_intervention.add(task_id)
+```
+
+**Gap closure flow within SDD:**
+```
+Code review passes → Create verification task (attempt 1) → Run verification
+  → passes? → yes → bd close
+  → no → Create gap-fix task → Fix completes → Re-verify (attempt N+1)
+    → passes? → yes → bd close
+    → no, attempt < 3 → loop
+    → no, attempt >= 3 → Escalate to human
+```
+
+**Integration with state machine:**
+- Gap closure happens in REVIEW → CLOSE transition
+- If escalated, task moves to "pending human" (not closed, not dispatched)
+- After human resolves, re-enter REVIEW state for that task
+
 ### Wave Orchestration with Native Tasks
 
 Create tasks to track orchestrator state:
@@ -722,6 +764,19 @@ if rejection_count[task_id] > 2:
        3. Split task into smaller pieces
        4. Clarify spec and retry"
     WAIT for human decision
+```
+
+### Verification Gap Closure (>3 attempts)
+```
+if verification_attempt_count[task_id] > 3:
+    # Gap closure already escalated - task in pending_human_intervention
+    # Don't dispatch new work for this task
+    # Human must resolve via intervention task
+
+    Report status:
+      "Task {task_id} verification failed {n} times.
+       Gap closure escalated to human.
+       Awaiting resolution of: [intervention task subject]"
 ```
 
 ### Deadlock Detection
