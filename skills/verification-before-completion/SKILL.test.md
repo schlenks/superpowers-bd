@@ -9,13 +9,13 @@ Manual test cases to verify gap closure loop works correctly.
 2. First run: tests fail (1 failing test)
 
 **Expected:**
-1. Gap task created: "Gap: 1 test failure in [module]"
-2. Re-verify task created, blocked by gap task
+1. Fix task created: "Fix: 1 test failure in [module]"
+2. Re-verify task created, blocked by fix task
 3. After gap fix, re-verification runs
 4. If passes: original verification marked complete
 
 **Verify:**
-- TaskList shows gap task and re-verify task
+- TaskList shows fix task and re-verify task
 - Metadata shows attempt: 2
 - Final status: completed (not escalated)
 
@@ -35,7 +35,7 @@ Manual test cases to verify gap closure loop works correctly.
 **Verify:**
 - TaskList shows intervention task
 - Intervention description includes all 3 failure reasons
-- No further automated gap tasks created
+- No further automated fix tasks created
 
 ## Test 3: Immediate Success
 
@@ -44,7 +44,7 @@ Manual test cases to verify gap closure loop works correctly.
 2. First run: linter passes
 
 **Expected:**
-1. No gap tasks created
+1. No fix tasks created
 2. Verification marked complete immediately
 
 **Verify:**
@@ -57,11 +57,11 @@ Manual test cases to verify gap closure loop works correctly.
 **Setup:**
 1. Verification fails
 2. Gap task created
-3. Re-verify task blocked by gap task
+3. Re-verify task blocked by fix task
 
 **Expected:**
-1. Cannot mark re-verify as in_progress while gap task pending
-2. After gap task completed, re-verify unblocks
+1. Cannot mark re-verify as in_progress while fix task pending
+2. After fix task completed, re-verify unblocks
 
 **Verify:**
 - Attempting to start re-verify before gap completes fails
