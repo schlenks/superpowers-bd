@@ -69,7 +69,7 @@ If dev server isn't running, note: "Visual verification skipped: start dev serve
 2. **Navigate** to dev server (check ports: 3000, 5173, 4200, 8080)
 3. **Check console** for uncaught exceptions or React errors (fail if found)
 4. **Verify elements** render (page not blank, no error boundaries)
-5. **Capture screenshot** as evidence (browser tools auto-capture to session directory)
+5. **Capture screenshot** as evidence (save to temp/ with descriptive name)
 
 ### Failure Handling
 
