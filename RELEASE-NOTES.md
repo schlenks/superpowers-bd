@@ -1,5 +1,77 @@
 # Superpowers Release Notes
 
+## v4.1.1 (2026-01-31) - Beads Fork
+
+### Feature: Gap Closure Loop
+
+Automated verification retry mechanism that creates fix tasks and re-verifies up to 3 times before escalating to human.
+
+**Problem:** When verification failed, agents would just report failure. Manual intervention was required to create fix tasks and re-verify.
+
+**Solution:** Added gap closure loop to `verification-before-completion` skill that automatically:
+1. Creates a "Fix: [failure]" task when verification fails
+2. Creates a blocked "Re-verify" task
+3. Loops up to 3 attempts
+4. Escalates to human with full failure history after 3 failures
+
+**Files Modified:**
+- `skills/verification-before-completion/SKILL.md` - Gap Closure Loop section, attempt tracking metadata, Gap Closure Enforcement protocol
+- `skills/verification-before-completion/SKILL.test.md` (NEW) - 4 manual test cases for gap closure behavior
+
+---
+
+### Feature: Context Loading for Implementers
+
+Rich context injection so implementers understand "why" they're building something and what conventions previous waves established.
+
+**Problem:** Implementers received task specs but lacked broader context—epic goals, key architectural decisions, and patterns established by earlier waves.
+
+**Solution:** Added context loading instructions to SDD and context slots to implementer prompt template.
+
+**New template slots in `implementer-prompt.md`:**
+- `[EPIC_GOAL]` - One sentence describing what the epic achieves
+- `[KEY_DECISIONS]` - 3-5 architectural decisions with rationale
+- `[TASK_PURPOSE]` - How this task contributes to the epic goal
+- `[WAVE_CONVENTIONS]` - Patterns and conventions from previous wave summaries
+
+**Context extraction using bd CLI:**
+```bash
+# Epic context
+bd show <epic-id>  # Extract goal and Key Decisions section
+
+# Wave conventions
+bd comments <epic-id> --json | jq -r '
+  .[] | select(.text | contains("Wave")) | .text
+' | tail -3
+```
+
+**Files Modified:**
+- `skills/subagent-driven-development/SKILL.md` - Context Loading section, Verification Gap Closure integration, PENDING_HUMAN state in state machine
+- `skills/subagent-driven-development/implementer-prompt.md` - Epic Context and Established Conventions slots
+- `skills/subagent-driven-development/SKILL.test.md` (NEW) - 4 manual test cases for context loading behavior
+
+---
+
+### Key Decisions
+
+- **Gap Closure in verification-before-completion** — Centralizes retry logic in one skill rather than duplicating across SDD, executing-plans, etc.
+- **Context extraction via bd CLI** — Uses existing `bd show` and `bd comments` rather than parsing JSONL directly
+- **Max 3 retry attempts** — Balances automated recovery against infinite loops
+- **Wave conventions in epic comments** — Reuses existing wave summary pattern for convention propagation
+
+### Files Changed (5)
+
+**Modified (3):**
+- `skills/verification-before-completion/SKILL.md` (+87 lines)
+- `skills/subagent-driven-development/SKILL.md` (+114 lines)
+- `skills/subagent-driven-development/implementer-prompt.md` (+40 lines)
+
+**New (2):**
+- `skills/verification-before-completion/SKILL.test.md` (68 lines)
+- `skills/subagent-driven-development/SKILL.test.md` (67 lines)
+
+---
+
 ## v4.1.0 (2026-01-30) - Beads Fork
 
 ### Major Feature: Epic Verifier Agent
