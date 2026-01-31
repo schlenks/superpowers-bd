@@ -37,6 +37,24 @@ BEFORE claiming any status or expressing satisfaction:
 Skip any step = lying, not verifying
 ```
 
+## Gap Closure Loop
+
+When verification fails, don't just report failure—create a fix task and re-verify:
+
+```
+IF verification fails:
+  1. CREATE gap-fix task
+  2. CREATE re-verification task (blocked by fix)
+  3. WAIT for gap fix completion
+  4. RUN re-verification
+  5. IF still fails AND attempt < 3: → Increment attempt, GOTO step 1
+  6. IF still fails AND attempt >= 3: → ESCALATE to human
+```
+
+**Why 3 attempts:** Balances recovery against infinite loops. Most genuine bugs fix in 1-2 tries. Persistent failure indicates deeper issues needing human judgment.
+
+**Edge case - fix introduces new failures:** The re-verification catches any regressions.
+
 ## Verification Task Enforcement
 
 **Before making ANY completion claim, create a verification task:**
@@ -58,6 +76,9 @@ TaskCreate: "Verify: [specific claim]"
 TaskCreate: "Verify: tests pass"
   description: "Run: npm test. Evidence: 0 failures in output, exit code 0."
   activeForm: "Running verification tests"
+  metadata:
+    attempt: 1
+    max_attempts: 3
 
 // RUN the command, capture output
 // ONLY if passes: TaskUpdate status=completed
@@ -77,6 +98,54 @@ TaskCreate: "Verify: tests pass"
 | Regression test works | Red-green cycle verified | Test passes once |
 | Agent completed | VCS diff shows changes | Agent reports "success" |
 | Requirements met | Line-by-line checklist | Tests passing |
+
+## Gap Closure Enforcement
+
+When verification fails, follow this protocol exactly:
+
+**Step 1: Create Gap-Fix Task**
+```
+TaskCreate: "Fix: [specific failure from verification]"
+  description: "Failure evidence: [actual error message]. Fix the root cause."
+  activeForm: "Fixing [failure]"
+  metadata:
+    triggered_by: "[verification task ID]"
+    gap_closure_attempt: [1|2|3]
+```
+
+**Step 2: Create Blocked Re-Verification Task**
+```
+TaskCreate: "Re-verify: [original claim]"
+  description: "Re-run verification after fix. Evidence: [same verification command]."
+  activeForm: "Re-verifying [claim]"
+  blockedBy: "[gap-fix task ID]"
+  metadata:
+    attempt: [2|3]
+    max_attempts: 3
+    original_verification: "[original task ID]"
+```
+
+**Step 3: Execute Fix, Then Re-Verify**
+- Complete the gap-fix task
+- Re-verification task unblocks automatically
+- Run the verification command again
+- If passes: Complete re-verification task, proceed
+- If fails: Check attempt count
+
+**Step 4: Handle Persistent Failure**
+```
+IF attempt >= max_attempts AND still failing:
+  TaskCreate: "ESCALATE: [claim] failed after 3 attempts"
+    description: "Human intervention required. Attempts: [list failures and fixes tried]."
+    activeForm: "Awaiting human input"
+    metadata:
+      requires_human: true
+      failure_history: [array of attempt summaries]
+```
+
+**Why blockedBy matters:** Ensures fix completes before re-verification runs. Prevents race conditions and premature re-verification.
+
+**Tracking attempt history:** Each re-verification task links to its predecessor via `original_verification` metadata. This creates an audit trail of gap closure attempts.
 
 ## Red Flags - STOP
 
