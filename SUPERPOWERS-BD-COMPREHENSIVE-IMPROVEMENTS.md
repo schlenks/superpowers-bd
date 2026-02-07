@@ -1,6 +1,6 @@
 # Superpowers-BD: Comprehensive Improvement Report
 
-**Date:** February 7, 2026 (v4.3 — Experimental feature opt-in architecture, skill modernization P1.5, 47 active)
+**Date:** February 7, 2026 (v4.3 — Stable skill modernization P1.5, experimental deferred, 45 active)
 **Purpose:** Dramatically improve superpowers-bd by leveraging native Claude Code features + adding unique value (quality gates, persistence, file ownership)
 **Philosophy:** If it's worth doing, do it. If Claude Code does it natively, use that instead. If beads already does it, don't rebuild it.
 
@@ -8,7 +8,7 @@
 
 ## How to Read This Document
 
-1. **Section 1:** All **47 ACTIVE** improvements ranked by impact
+1. **Section 1:** All **45 ACTIVE** improvements ranked by impact
 2. **Section 2:** **PRIORITIZED** implementation order — easy wins first, code changes later
 3. **Section 3:** Reference info (Opus 4.6, Claude Code 2.1.33+, Beads v0.49.4)
 4. **Section 4:** Open questions — answered with research
@@ -25,8 +25,8 @@
 - **Process termination (#7 v4.1): REMOVED** — Gastown tmux-specific. superpowers-bd uses Claude Code's Task tool which manages its own process lifecycle. Plugin layer cannot fix upstream orphan process bugs (Claude Code Issues #20369, #22554).
 - **Pre-commit quality guard (#8 v4.1): REMOVED** — Agent identity unavailable in git hooks. pre-commit.com destroys beads' existing hook shims. Redundant if PreToolUse file ownership (#3) is implemented.
 - **Task type classification (#10 v4.1): REMOVED** — Already implemented in subagent-driven-development skill (prompt routing, budget tier matrix, retry/escalation). Remaining effort-level aspect merged into #36.
-- **Experimental feature opt-in:** Skills detect agent teams via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` env var. User preferences stored in `.claude/superpowers-features.json`. Skills branch behavior: Task mode (default) vs Agent Teams mode (opt-in). Agent teams use ~7x tokens but unlock hard file ownership enforcement via `CLAUDE_CODE_AGENT_NAME`.
-- **Priority reordering:** Config/hooks first → experimental opt-in + skill modernization → prompt changes → code changes.
+- **Agent Teams: DEFERRED** — ~7x token cost makes this impractical for Max 20x subscribers (could wipe daily/weekly quota in a single session). Research preserved in Section 3.1 for when costs decrease or API users want it. Two items removed (#45 feature detection, #46 two-mode SDD). Agent teams integration (#35) moved to P8 (future).
+- **Priority reordering:** Config/hooks first → stable skill modernization → prompt changes → code changes.
 
 ---
 
@@ -43,7 +43,7 @@
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
 | 2 | **Two-phase delayed dispatch** | Ensures ALL preparatory work (beads status, file-locks.json) completes before ANY subagent spawns in a wave. The SDD skill already conceptually does this (conflict verification tasks block dispatch via `addBlockedBy`). This formalizes it: add explicit `file-locks.json` generation between conflict detection and dispatch. **#3 depends on this** (lock file must exist before first subagent edit). ~30 min skill/prompt change. | Gastown §1.4 (adapted) |
-| 3 | **File ownership enforcement via hooks** | Proactive conflict prevention. `PreToolUse` hook on `Edit\|Write` checks `.claude/file-locks.json` and blocks edits to files owned by other agents. **Two paths:** (a) **Agent Teams mode:** `CLAUDE_CODE_AGENT_NAME` env var IS available for team members — hook can compare agent name against lock file owner. **Implementable today with opt-in.** (b) **Task mode:** `$AGENT_NAME` does not exist for regular subagents ([Issue #16126](https://github.com/anthropics/claude-code/issues/16126)). Use prompt-based enforcement as interim. Hook input JSON correctly provides `tool_input.file_path`. Use `permissionDecision: "deny"` pattern (not `exit 2`). Requires `jq`. | Hook-based |
+| 3 | **File ownership enforcement via hooks** | Proactive conflict prevention. `PreToolUse` hook on `Edit\|Write` checks `.claude/file-locks.json` and blocks edits to files owned by other agents. **⚠️ BLOCKED:** `$AGENT_NAME` does not exist in Claude Code for regular subagents. [Issue #16126](https://github.com/anthropics/claude-code/issues/16126) is an open feature request. **Interim:** prompt-based enforcement (instruct subagents to check file-locks.json before editing). Hook input JSON correctly provides `tool_input.file_path`. Use `permissionDecision: "deny"` pattern (not `exit 2`). Requires `jq`. **Note:** `CLAUDE_CODE_AGENT_NAME` exists for agent team members, but agent teams are deferred due to ~7x token cost. | Hook-based |
 | 4 | **Strict SSOT: Query, Don't Track** | Prevents state drift bugs. Instead of caching task state in skills, always query beads for truth. Reality is authoritative; derived state cannot diverge. **Note:** The SDD skill already follows this pattern (queries `bd ready` at every loop iteration). This is a **design principle to codify**, not a code change. "Skills MUST NOT cache beads query results across wave boundaries." | Distributed systems SSOT principle |
 | 5 | **TaskCompleted hook for quality gates** | Hard enforcement at task completion. `TaskCompleted` hook exits with code 2 to block task completion if quality criteria not met. Genuinely enforced by Claude Code (not advisory). Can use `type: "agent"` for 50-turn code analysis hooks. **Note:** `addBlockedBy` for task sequencing is already in SDD skill and provides soft (prompt-based) enforcement only. | Native hooks |
 | 6 | **Strengthen existing simplification checks + linter hooks** | Reduces code complexity. The qualitative review ("dead code? duplication? over-engineering?") is already covered by 5+ existing skills (rule-of-five Clarity pass, spec-reviewer over-engineering check, epic-verifier YAGNI, code-reviewer DRY, TDD REFACTOR phase). **Do NOT create a new skill.** Instead: (a) add quantitative checklist items to existing code-reviewer.md, (b) implement cyclomatic complexity enforcement via PostToolUse linter hooks (#25). Thresholds: flag >10, block >15 (matches McCabe/NIST). | Industry standard (SonarQube, ESLint, NIST) |
@@ -100,7 +100,7 @@
 |---|-------------|------------------|--------|
 | 33 | **[FUTURE] Leverage 1M context for full-codebase awareness** | ⚠️ **BETA ONLY** — not available to general users yet. When available: load entire codebase into context. Monitor for GA release. | Opus 4.6 beta |
 | 34 | **Use 128K output for comprehensive deliverables** | Full implementation plans, complete code reviews, exhaustive test suites in single response. **Available now.** | Opus 4.6 release |
-| 35 | **Integrate native agent teams for parallel coordination** | Replace custom parallel dispatch with native TeammateTool (13 operations) for peer-to-peer messaging. **KEY UNLOCK:** Enables hard file ownership enforcement (#3) via `CLAUDE_CODE_AGENT_NAME`. Delegate mode maps to SDD orchestrator pattern. Shared task list with file locking. ~7x token cost vs subagents (official docs). **Available now (experimental).** Enable via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. | Opus 4.6 agent teams |
+| 35 | **Integrate native agent teams for parallel coordination** | Replace custom parallel dispatch with native TeammateTool (13 operations) for peer-to-peer messaging. Delegate mode maps to SDD orchestrator pattern. Enables hard file ownership via `CLAUDE_CODE_AGENT_NAME`. **⚠️ DEFERRED:** ~7x token cost (official docs) makes this impractical for Max subscribers. Revisit when costs decrease or for API-only users. Enable via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. | Opus 4.6 agent teams |
 | 36 | **Map task type to effort level** | VERIFICATION → low effort (cheaper). IMPLEMENTATION → high effort (better quality). Use adaptive thinking API parameters (`output_config.effort`). **Note:** Claude Code's Task tool does not currently expose the effort parameter. Task type routing (prompt templates, model selection) is already implemented in SDD skill. This improvement adds effort-level control when Claude Code exposes it. | Opus 4.6 adaptive thinking |
 | 37 | **Exploit ARC AGI 2 leap for novel problem-solving** | Route complex/novel problems to Opus 4.6 (68.8% ARC vs 37.6% before). Use Sonnet for routine tasks. **Available now.** | Opus 4.6 benchmarks |
 
@@ -116,13 +116,15 @@
 | 43 | **Use --from-pr flag for PR-linked sessions** | Sessions auto-link to PRs. Resume with `--from-pr`. Better PR workflow integration. | Claude Code v2.1.27 |
 | 44 | **Leverage skill character budget scaling** | Skill content budget scales at 2% of context window. More room for comprehensive skill instructions with Opus 4.6. | Claude Code v2.1.32 |
 
-### Experimental Feature Opt-In Architecture (Feb 7, 2026)
+### Stable Skill Modernization (Feb 7, 2026)
 
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
-| 45 | **SessionStart feature detection + config file** | Detect experimental features at session start via env vars (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). Store user preferences in `.claude/superpowers-features.json` (auto/enabled/disabled per feature). Inject detected capabilities as `additionalContext`. Skills read context and branch behavior accordingly. | v4.3 research |
-| 46 | **Two-mode SDD: Task mode vs Agent Teams mode** | SDD skill operates in two modes based on user opt-in. **Task mode (default):** Current subagent dispatch via Task tool. **Agent Teams mode (opt-in):** TeammateTool for dispatch, Delegate mode for orchestrator, shared task list, peer-to-peer messaging, hard file ownership. User chooses at epic start alongside budget tier. ~7x token cost disclosed. | v4.3 research |
-| 47 | **Modernize all skill/agent frontmatter** | Update all 17 skills + 2 agents with modern frontmatter: `memory: project` for persistent context, `max_turns` to prevent cost runaway, `tools` restrictions (e.g., `Task(code-reviewer)`), parameterized `model` instead of hardcoded strings. Update `writing-skills` guide (currently says "only name and description" — wrong since v2.1.33). Fix `plan2beads` missing frontmatter. | Codebase audit |
+| 45 | **Modernize all skill/agent frontmatter** | Update all 17 skills + 2 agents with modern frontmatter: `memory: project` for persistent context, `max_turns` to prevent cost runaway, `tools` restrictions (e.g., `Task(code-reviewer)`), parameterized `model` instead of hardcoded strings. Update `writing-skills` guide (currently says "only name and description" — wrong since v2.1.33). Fix `plan2beads` missing frontmatter. | Codebase audit |
+
+**Removed from active list (deferred due to ~7x agent teams token cost):**
+- ~~#45 (was) SessionStart feature detection + config file~~ — Not needed without agent teams opt-in
+- ~~#46 (was) Two-mode SDD: Task vs Agent Teams~~ — Agent teams impractical for Max subscribers
 
 ---
 
@@ -145,68 +147,28 @@ These features exist in Claude Code 2.1.33+. Just configure them.
 
 **Rationale:** Zero code required (except #3 which is blocked). Can be done in a single session. Immediate value.
 
-**File ownership — current status (updated v4.3):**
+**File ownership — current status:**
 - **Hook mechanism works:** `PreToolUse` on `Edit|Write` is real, `tool_input.file_path` is correct, `permissionDecision: "deny"` blocks edits
-- **Agent Teams mode (NEW):** `CLAUDE_CODE_AGENT_NAME` IS available for team members. Hook can read this env var and compare against lock file owner. **Hard enforcement is possible today** if user opts into agent teams.
-- **Task mode:** `$AGENT_NAME` does not exist for regular subagents ([Issue #16126](https://github.com/anthropics/claude-code/issues/16126)). Use prompt-based enforcement as interim.
+- **Agent identity missing:** No `$AGENT_NAME` env var for regular subagents ([Issue #16126](https://github.com/anthropics/claude-code/issues/16126)). Note: `CLAUDE_CODE_AGENT_NAME` exists for agent team members, but agent teams are deferred (~7x token cost).
 - **Interim approach:** Orchestrator writes `file-locks.json` before dispatch. Each subagent prompt includes: "Before editing any file, check `.claude/file-locks.json`. Only edit files where your name matches the owner."
-- **When Issue #16126 ships:** Switch Task mode to hook-based enforcement with `permissionDecision: "deny"`
+- **When Issue #16126 ships:** Switch to hook-based enforcement with `permissionDecision: "deny"`
 
-### Priority 1.5: Experimental Feature Opt-In + Skill Modernization (This Week)
+### Priority 1.5: Stable Skill Modernization (This Week — Zero Cost Increase)
 
-Enable users to opt into experimental features (agent teams, delegate mode, TeammateIdle hooks) and modernize all skills/agents with current frontmatter fields.
-
-**The opt-in architecture:**
-
-```
-SessionStart hook
-  ├── Check env: CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1?
-  ├── Check config: .claude/superpowers-features.json
-  ├── Inject detected capabilities as additionalContext
-  └── Skills read context → branch behavior accordingly
-```
-
-**Config file schema** (`.claude/superpowers-features.json`):
-```json
-{
-  "experimental": {
-    "agent_teams": "auto",
-    "delegate_mode": false
-  }
-}
-```
-Where `"auto"` = use if available, `"enabled"` = require, `"disabled"` = never use.
+Modernize all skills/agents with stable Claude Code 2.1.33+ features. Zero token cost increase. Immediate value.
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **1.5.1** | 45 | SessionStart feature detection + config file | 45 min (hook + config schema) |
-| **1.5.2** | 47 | Modernize all skill/agent frontmatter | 2 hours (17 skills + 2 agents + writing-skills guide) |
-| **1.5.3** | 46 | Two-mode SDD: Task mode vs Agent Teams mode | 2 hours (conditional logic + user opt-in flow) |
-| **1.5.4** | 35 | Agent Teams integration (full) | 1.5 hours (file ownership hook + delegate mode + shared tasks) |
+| **1.5.1** | 45 | Modernize all skill/agent frontmatter | 2 hours (17 skills + 2 agents + writing-skills guide) |
 
-**Rationale:** This unlocks the most impactful improvement (#3 file ownership with hard enforcement) and brings all skills up to date with Claude Code 2.1.33+ capabilities. The opt-in approach means zero disruption for users who don't want experimental features.
+**Rationale:** All 17 skills and 2 agents are built on outdated assumptions (wrong frontmatter guide, zero max_turns, no memory, hardcoded models). These are stable, GA features that cost nothing extra to use.
 
-**Two-mode SDD — how it works:**
-
-| Aspect | Task Mode (default) | Agent Teams Mode (opt-in) |
-|---|---|---|
-| **Dispatch** | Task tool subagents | TeammateTool teammates |
-| **File ownership** | Prompt-based (soft) | PreToolUse hook with `CLAUDE_CODE_AGENT_NAME` (hard) |
-| **Agent identity** | None | NAME, ID, TYPE, COLOR env vars |
-| **Communication** | Hub-and-spoke via Task results | Peer-to-peer write/broadcast |
-| **Orchestrator** | Manual state machine in SDD skill | Delegate mode (coordination-only tools) |
-| **Quality gates** | addBlockedBy (soft) | TaskCompleted hook + shared task list |
-| **Token cost** | ~1x baseline | ~7x baseline |
-| **Session resume** | Beads persistence | No teammate resumption |
-
-**Cost disclosure requirement:** Any skill that triggers Agent Teams mode MUST inform the user of ~7x token cost BEFORE proceeding. Budget tier selection already exists in SDD — extend it with agent teams cost warning.
-
-**Modernization checklist (P1.5.2):**
+**Modernization checklist:**
 - [ ] Add `memory: project` to all agent definitions (`agents/code-reviewer.md`, `agents/epic-verifier.md`)
-- [ ] Add `max_turns` to all subagent prompts (prevent cost runaway)
+- [ ] Add `max_turns` to all subagent prompts (prevent cost runaway — currently unlimited)
 - [ ] Replace hardcoded `model: "opus"` / `model: "sonnet"` with budget tier variables in SDD prompts
 - [ ] Add YAML frontmatter to `commands/plan2beads.md` (only command missing it)
-- [ ] Update `skills/writing-skills/SKILL.md` line 98: expand from "only name and description" to full frontmatter field reference
+- [ ] Update `skills/writing-skills/SKILL.md` line 98: expand from "only name and description" to full frontmatter field reference (memory, tools, hooks, model, context, agent, allowed-tools, argument-hint, skills)
 - [ ] Add `tools` restrictions where appropriate (e.g., `Task(code-reviewer)` in SDD)
 
 ### Priority 2: Quality Gate Skills (High ROI — Prompt/Skill Changes)
@@ -286,7 +248,7 @@ Builds on the P1 interim with full conflict prevention.
 | **6.4** | 43 | Use --from-pr flag | Config |
 | **6.5** | 34 | Use 128K output | Prompt update |
 | **6.6** | 44 | Leverage skill budget scaling | Config |
-| **6.7** | 35 | ~~Integrate native agent teams~~ | **MOVED to P1.5.4** — unlocks #3 file ownership |
+| **6.7** | 35 | ~~Integrate native agent teams~~ | **MOVED to P8** — ~7x token cost impractical for Max subscribers |
 | **6.8** | 36 | Map task type to effort level | Blocked: Task tool lacks effort param |
 | **6.9** | 7 | Checkpoint classification (binary flag) | Plan format update |
 
@@ -334,20 +296,19 @@ Builds on the P1 interim with full conflict prevention.
 
 **Adaptive Thinking:** Model picks up contextual clues about how much to think. Less cost for simple tasks, automatic deep thinking for complex ones. Effort controls (`output_config.effort`: low/medium/high/max) let developers tune the intelligence/speed/cost tradeoff. **Note:** Claude Code's Task tool does not yet expose the effort parameter.
 
-**Agent Teams (Experimental, officially supported):** Multiple agents work in parallel with peer-to-peer coordination via TeammateTool (13 operations). Enabled via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` (env var or `settings.json`). ~7x token cost vs standard sessions (official docs). Teammate env vars: `CLAUDE_CODE_AGENT_NAME`, `CLAUDE_CODE_AGENT_ID`, `CLAUDE_CODE_AGENT_TYPE`, `CLAUDE_CODE_TEAM_NAME`, `CLAUDE_CODE_AGENT_COLOR`.
+**Agent Teams (Experimental, officially supported — DEFERRED for superpowers-bd):** Multiple agents work in parallel with peer-to-peer coordination via TeammateTool (13 operations). Enabled via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` (env var or `settings.json`). **~7x token cost** vs standard sessions (official docs) — impractical for Max 20x subscribers, could consume daily/weekly quota in a single session. Teammate env vars: `CLAUDE_CODE_AGENT_NAME`, `CLAUDE_CODE_AGENT_ID`, `CLAUDE_CODE_AGENT_TYPE`, `CLAUDE_CODE_TEAM_NAME`, `CLAUDE_CODE_AGENT_COLOR`. **Revisit when:** costs decrease, GA removes experimental flag, or for API-only users with high limits.
 
-**superpowers-bd's unique value vs native agent teams:**
+**superpowers-bd's unique value vs native agent teams (reference — agent teams deferred):**
 
-| Capability | Native Agent Teams | superpowers-bd (Task mode) | superpowers-bd (Teams mode) |
-|------------|-------------------|---------------------------|----------------------------|
-| Parallel execution | ✅ Built-in | ✅ Task tool + waves | ✅ TeammateTool + waves |
-| Peer-to-peer messaging | ✅ TeammateTool | ❌ Hub-and-spoke | ✅ (via native) |
-| Session resumption | ❌ | ✅ Beads persistence | ✅ Beads persistence |
-| Quality gates | ❌ | ✅ Skills-based (soft) | ✅ Skills + TaskCompleted hook (hard) |
-| File ownership | `AGENT_NAME` available | ⚠️ Prompt-based (blocked #16126) | ✅ PreToolUse hook + `CLAUDE_CODE_AGENT_NAME` |
-| Git-backed state | ❌ | ✅ Beads on Dolt | ✅ Beads on Dolt |
-| Token cost | ~7x baseline | ~1x baseline | ~7x baseline |
-| Delegate mode | ✅ | ❌ | ✅ Maps to SDD orchestrator |
+| Capability | Native Agent Teams (~7x cost) | superpowers-bd (current) |
+|------------|-------------------------------|--------------------------|
+| Parallel execution | ✅ Built-in | ✅ Task tool + waves |
+| Peer-to-peer messaging | ✅ TeammateTool | ❌ Hub-and-spoke |
+| Session resumption | ❌ | ✅ Beads persistence |
+| Quality gates | ❌ | ✅ Skills-based |
+| File ownership | `AGENT_NAME` available | ⚠️ Prompt-based (blocked #16126) |
+| Git-backed state | ❌ | ✅ Beads on Dolt |
+| Token cost | ~7x baseline | ~1x baseline |
 
 ### 3.2 Claude Code 2.1.33+ Features (Feb 6, 2026)
 
@@ -729,40 +690,39 @@ For superpowers-bd, this suggests:
 
 1. **No silent failures** — Beads v0.49.4 concurrency protections, structured IDs, health checks
 2. **No missed work** — TaskCompleted hook quality gates, completion evidence
-3. **No conflicts** — File ownership: prompt-based (Task mode) OR hard enforcement via `CLAUDE_CODE_AGENT_NAME` (Agent Teams mode, opt-in)
+3. **No conflicts** — File ownership via prompt-based interim → hook-based when Issue #16126 ships
 4. **No state drift** — Strict SSOT principle, persistent memory, structured storage
-5. **Maximum parallelism** — Two modes: Task tool subagents (cost-efficient) or Agent Teams (richer coordination, ~7x tokens). User chooses.
+5. **Maximum parallelism** — Task tool subagents with wave-based dispatch, cost-efficient
 6. **Quality at scale** — Structured verification (Two-Phase Reflective hybrid), simplification via linters, multi-review aggregation
 7. **Comprehensive outputs** — 128K output means complete plans in single responses
-8. **Modern skills** — All 17 skills + 2 agents use current frontmatter fields (memory, tools, max_turns, hooks)
+8. **Modern skills** — All 17 skills + 2 agents use current stable frontmatter fields (memory, tools, max_turns)
 
 ### The Non-Negotiables
 
 1. **Structured verification** — Two-Phase Reflective + behavioral comparison hybrid for all reviewers (research-backed)
-2. **File ownership** — Two-mode: prompt-based (Task mode) + hook-based (Agent Teams mode). Issue #16126 unblocked for teams.
+2. **File ownership** — Prompt-based now, hook-based when agent identity ships (Issue #16126)
 3. **TaskCompleted hook** — Hard enforcement quality gate (the only non-advisory mechanism)
-4. **Experimental feature opt-in** — Users choose stable vs experimental. Cost disclosed. Zero disruption for those who don't opt in.
-5. **Opus 4.6 adoption** — 128K output, adaptive thinking, agent teams (opt-in)
+4. **Stable features first** — Use proven GA features only. Agent teams deferred (~7x token cost impractical for Max subscribers).
+5. **Opus 4.6 adoption** — 128K output, adaptive thinking (agent teams deferred)
 
 ### The Order Matters
 
-**Config/hooks → Experimental opt-in + skill modernization → Prompts → Optimization → Polish**
+**Config/hooks → Stable skill modernization → Prompts → Optimization → Polish**
 
-Don't write code when config works. Don't optimize before it works. Don't parallelize before conflicts are prevented. Don't rebuild what beads or Claude Code already provide. Let users choose their own risk tolerance for experimental features.
+Don't write code when config works. Don't optimize before it works. Don't parallelize before conflicts are prevented. Don't rebuild what beads or Claude Code already provide. Don't use experimental features that could wipe user quotas.
 
 ### What Remains Unique to superpowers-bd
 
-Native agent teams can coordinate. superpowers-bd ensures they produce **quality work that persists**:
+Native Claude Code provides coordination. superpowers-bd ensures **quality work that persists**:
 
-- **Two-mode dispatch** — Task tool (cost-efficient, default) or Agent Teams (richer coordination, opt-in)
 - **Beads** for git-backed task persistence (Dolt backend with 6-layer concurrency protection)
 - **Structured verification** via Two-Phase Reflective hybrid (research-backed)
 - **TaskCompleted hooks** for hard enforcement quality gates
-- **File ownership** — prompt-based (Task mode) or hard enforcement via `CLAUDE_CODE_AGENT_NAME` (Agent Teams mode)
+- **File ownership** (prompt-based interim → hook-based when #16126 ships)
 - **Rule-of-five** quality gate skills
-- **Experimental feature opt-in** — users control their own risk/cost trade-off
+- **Modern frontmatter** — memory, max_turns, tools restrictions on all skills/agents
 
-**The playbook:** Use Claude Code's native features for coordination (memory, hooks, metrics, agent teams) + superpowers-bd for discipline (quality gates, persistence, file ownership). Let users opt into experimental features when they're ready. Don't rebuild what beads or Claude Code already provide.
+**The playbook:** Use Claude Code's stable GA features for coordination (memory, hooks, metrics) + superpowers-bd for discipline (quality gates, persistence, file ownership). Don't rebuild what beads or Claude Code already provide. Don't use features that could wipe user quotas.
 
 ---
 
@@ -784,10 +744,10 @@ Native agent teams can coordinate. superpowers-bd ensures they produce **quality
 | 4.0 | 2026-02-07 | Streamlined: removed completed/deprecated/obsolete content. Renumbered 49 items. Reordered priorities. |
 | 4.1 | 2026-02-07 | Research-verified top 4. Removed semaphore + retry (already in beads/Gastown-specific). Reframed skeptical reviewers. Downgraded two-phase dispatch. 47 items. |
 | 4.2 | 2026-02-07 | **Research-verified top 10 via 5 parallel Opus agents.** Removed 3 items: process termination (Gastown tmux-specific, not applicable), pre-commit guard (agent identity gap in git hooks, pre-commit.com destroys beads hooks), task type classification (already implemented in SDD). Corrected 7 items: arXiv paper misrepresentation fixed (#1 — Claude benefits from Two-Phase Reflective, not behavioral comparison; RCRR measures false-positive avoidance only); dependency direction reversed (#2 depends on nothing, #3 depends on #2); `$AGENT_NAME` confirmed non-existent (#3 — blocked on Issue #16126); "ZFC" label dropped (#4 — fabricated, not from Gastown or math; renamed to Strict SSOT); quality gates split (#5 — TaskCompleted hard enforcement kept, addBlockedBy soft enforcement already in SDD); simplification review reframed (#6 — fold into existing skills + linter hooks, don't create new skill); checkpoint classification simplified (#7 — binary flag, lowered to P6). Added Section 3.4: Claude Code Hooks API verification. Updated Q3: pre-commit.com incompatible with beads. P3 (Foundation Code) eliminated (empty). **44 active improvements remain.** |
-| 4.3 | 2026-02-07 | **Experimental feature opt-in architecture via 2 parallel Opus research agents.** Added 3 items (#45-47): SessionStart feature detection + config file, two-mode SDD (Task vs Agent Teams), skill/agent frontmatter modernization. Added P1.5 priority tier: "Experimental Feature Opt-In + Skill Modernization." Key discovery: `CLAUDE_CODE_AGENT_NAME` IS available for agent team members — unblocks file ownership (#3) for teams mode. Updated #3 with two-mode path (Agent Teams = hard enforcement today, Task = prompt-based interim). Updated #35 with 7x cost data (corrected from earlier 3-5x estimate) and elevated from P6 to P1.5. Added 13 TeammateTool operations reference. Updated comparison table to three columns (native / Task mode / Teams mode). Updated Section 3.1 with teammate env vars. Updated Section 3.2 with experimental feature flag. Expanded hook env var reference. Updated summary with modern skills (#8) and experimental opt-in (#4 non-negotiable). **47 active improvements.** |
+| 4.3 | 2026-02-07 | **Agent teams research + stable-only pivot.** Via 2 parallel Opus research agents: discovered `CLAUDE_CODE_AGENT_NAME` exists for team members (unblocks file ownership in theory), documented all 13 TeammateTool operations, corrected token cost to ~7x (official docs). **However:** ~7x token cost makes agent teams impractical for Max 20x subscribers — could wipe daily/weekly quota in a single session. **Decision: defer all experimental features, focus on stable only.** Removed 2 items (#45 feature detection, #46 two-mode SDD). Kept #45 (renumbered) as stable frontmatter modernization. P1.5 is now "Stable Skill Modernization" (~2 hours, zero token cost increase). #35 moved from P6 to P8 (future). Agent teams research preserved in Section 3.1 for future reference. **45 active improvements.** |
 
 ---
 
 *This document synthesizes findings from: superpowers-bd, superpowers (original), get-shit-done, gastown (575 commits), loom, claude-flow, SWE-agent/mini-swe-agent, Dolt backend analysis, Opus 4.6 release analysis, Claude Code 2.1.33+ changelog analysis, empirical beads v0.49.4 concurrency testing, arXiv 2508.12358 (LLM verification), arXiv 2509.01494 (SWR-Bench multi-review), Claude Code hooks API verification (Issues #16126, #7881), pre-commit.com compatibility testing, Claude Code agent teams docs (code.claude.com), and experimental feature detection research (paddo.dev, kieranklaassen gist, claudefa.st).*
 
-***Version 4.3 Summary:** 47 active improvements, numbered 1-47. Three new items added: feature detection (#45), two-mode SDD (#46), frontmatter modernization (#47). New P1.5 priority tier for experimental feature opt-in + skill modernization (~7 hours total). File ownership (#3) no longer fully blocked — hard enforcement available via `CLAUDE_CODE_AGENT_NAME` when user opts into agent teams. Agent teams cost ~7x tokens (official docs). Two-mode architecture: Task mode (default, cost-efficient) vs Agent Teams mode (opt-in, richer coordination). Priority order: config (P1) → **experimental opt-in + modernization (P1.5)** → quality gate prompts (P2) → file ownership (P3) → context/state (P4) → performance (P5) → polish (P6) → SWE-agent (P7) → future (P8). Zero external runtime dependencies.*
+***Version 4.3 Summary:** 45 active improvements. Agent teams thoroughly researched (13 TeammateTool operations, env vars, delegate mode) but DEFERRED — ~7x token cost impractical for Max subscribers. Two experimental items removed (#45 feature detection, #46 two-mode SDD). P1.5 is now "Stable Skill Modernization" only: update all 17 skills + 2 agents with memory, max_turns, tools restrictions, fix writing-skills guide (~2 hours, zero cost increase). File ownership (#3) remains blocked on Issue #16126 (prompt-based interim). Priority order: config (P1) → **stable skill modernization (P1.5)** → quality gate prompts (P2) → file ownership (P3) → context/state (P4) → performance (P5) → polish (P6) → SWE-agent (P7) → future incl. agent teams (P8). Zero external runtime dependencies.*
