@@ -1,6 +1,6 @@
 # Superpowers-BD: Comprehensive Improvement Report
 
-**Date:** February 7, 2026 (v4.1 — Research-verified: removed Gastown-specific items, reframed review approach)
+**Date:** February 7, 2026 (v4.2 — Research-verified top 10: 3 removed, 7 corrected, 44 active)
 **Purpose:** Dramatically improve superpowers-bd by leveraging native Claude Code features + adding unique value (quality gates, persistence, file ownership)
 **Philosophy:** If it's worth doing, do it. If Claude Code does it natively, use that instead. If beads already does it, don't rebuild it.
 
@@ -8,9 +8,9 @@
 
 ## How to Read This Document
 
-1. **Section 1:** All **47 ACTIVE** improvements ranked by impact
+1. **Section 1:** All **44 ACTIVE** improvements ranked by impact
 2. **Section 2:** **PRIORITIZED** implementation order — easy wins first, code changes later
-3. **Section 3:** Reference info (Opus 4.6, Claude Code 2.1.33+)
+3. **Section 3:** Reference info (Opus 4.6, Claude Code 2.1.33+, Beads v0.49.4)
 4. **Section 4:** Open questions — answered with research
 5. **Section 5:** Additional research opportunities
 6. **Section 6:** SWE-Agent research findings
@@ -20,100 +20,100 @@
 - **Dolt migration: COMPLETED** (Feb 7, 2026). Beads v0.49.4 on Dolt backend.
 - **12 improvements deprecated** — now native to Claude Code 2.1.33+ (memory frontmatter, hooks, Task metrics, agent teams).
 - **Agent Mail: REMOVED** — beads Rust (`br`) incompatible with Dolt backend; hook-based file ownership replaces it with zero dependencies.
-- **Semaphore concurrency: ALREADY IN BEADS** — v0.49.4 has process-level semaphore, advisory flock, lock retry, JSONL file locking, and connection pool deadlock fix. Empirically tested: 40 concurrent `bd create` operations succeeded with zero failures.
-- **Retry with verification: NOT NEEDED** — beads uses embedded Dolt (not sql-server). Dolt's chunk journal with `fsync()` guarantees durability. `getBeadInfo()` is a Gastown function for Gastown's multi-agent sql-server mode. Silent write failures do not occur in embedded mode.
+- **Semaphore concurrency: ALREADY IN BEADS** — v0.49.4 has 6 layers of concurrency protection. 40 concurrent `bd create` operations succeeded with zero failures.
+- **Retry with verification: NOT NEEDED** — beads uses embedded Dolt (not sql-server). Silent write failures do not occur in embedded mode.
+- **Process termination (#7 v4.1): REMOVED** — Gastown tmux-specific. superpowers-bd uses Claude Code's Task tool which manages its own process lifecycle. Plugin layer cannot fix upstream orphan process bugs (Claude Code Issues #20369, #22554).
+- **Pre-commit quality guard (#8 v4.1): REMOVED** — Agent identity unavailable in git hooks. pre-commit.com destroys beads' existing hook shims. Redundant if PreToolUse file ownership (#3) is implemented.
+- **Task type classification (#10 v4.1): REMOVED** — Already implemented in subagent-driven-development skill (prompt routing, budget tier matrix, retry/escalation). Remaining effort-level aspect merged into #36.
 - **Priority reordering:** Config/hooks first → prompt changes → code changes.
 
 ---
 
-## 1. All ACTIVE Improvements Ranked by Impact (47 Remaining)
+## 1. All ACTIVE Improvements Ranked by Impact (44 Remaining)
 
 ### CRITICAL IMPACT — Prevents failures, enables core capabilities
 
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
-| 1 | **Structured verification via behavioral comparison** | Catches issues current reviews miss. Research shows unstructured "be skeptical" prompts *decrease* accuracy (52.4% → 11.0%). Instead: (1) extract requirements independently, (2) read code and summarize actual behavior, (3) compare point-by-point. This pattern reaches **85.4% accuracy**. The code quality reviewer currently has **zero** skepticism instructions and passes the implementer's self-report as fact. | superpowers original + [arXiv 2508.12358](https://arxiv.org/html/2508.12358v1) |
+| 1 | **Structured verification via Two-Phase Reflective + behavioral comparison** | Catches issues current reviews miss. Research ([arXiv 2508.12358](https://arxiv.org/html/2508.12358v1)) shows asking LLMs to explain-and-fix introduces over-correction bias (up to 89% false-positive rate for GPT-4o). The Two-Phase Reflective prompt outperforms behavioral comparison **for Claude specifically** (82.9% vs 78.0% RCRR on HumanEval). Hybrid approach: extract requirements → read code independently → compare point-by-point → check for unlisted behavior → THEN read implementer's report. **Note:** RCRR measures false-positive avoidance on correct code, not bug-catching ability. Spec reviewer already has strong skepticism; gaps are in `agents/code-reviewer.md` and `skills/requesting-code-review/code-reviewer.md`. | superpowers original + [arXiv 2508.12358](https://arxiv.org/html/2508.12358v1) |
 
 ### HIGH IMPACT — Significant quality or efficiency gains
 
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
-| 2 | **Two-phase delayed dispatch** | Ensures ALL preparatory work (beads status, file-locks.json) completes before ANY subagent spawns in a wave. The Gastown tmux race condition doesn't apply (Claude Code's Task tool passes context atomically in the prompt), but file-locks.json must be complete before the first subagent edit. This is a **skill/prompt change** (~30 min), not code. Depends on #3 to be fully meaningful. | Gastown §1.4 (adapted) |
-| 3 | **File ownership enforcement via hooks** | Proactive conflict prevention. `PreToolUse` hook on `Edit\|Write` checks `.claude/file-locks.json` and blocks edits to files owned by other agents. Zero external dependencies. | Hook-based |
-| 4 | **ZFC Philosophy: Query, Don't Track** | Prevents state drift bugs. Instead of caching task state in skills, always query beads for truth. Reality is authoritative; derived state cannot diverge. | Gastown §5 |
-| 5 | **Blocking quality gates (task dependencies)** | Ensures nothing proceeds without review. Downstream tasks blocked via `addBlockedBy` until review task completed. `TaskCompleted` hook enforces review quality. | Native hooks |
-| 6 | **Simplification review pass** | Reduces code complexity. Dedicated pass asking: dead code? duplication? over-engineering? unnecessary dependencies? Catches what correctness review misses. | Original research |
-| 7 | **5-step process termination with 2s grace** | Prevents orphan processes. Process group termination → recursive descendant detection → SIGTERM → 2s wait → SIGKILL. Previous 100ms was too short for Claude shutdown. | Gastown §4.6 |
-| 8 | **Pre-commit quality guard** | Enforcement at commit time. Git pre-commit hook checks `.claude/file-locks.json` — blocks commits touching files outside agent's assignment. | Git hook + file-locks.json |
+| 2 | **Two-phase delayed dispatch** | Ensures ALL preparatory work (beads status, file-locks.json) completes before ANY subagent spawns in a wave. The SDD skill already conceptually does this (conflict verification tasks block dispatch via `addBlockedBy`). This formalizes it: add explicit `file-locks.json` generation between conflict detection and dispatch. **#3 depends on this** (lock file must exist before first subagent edit). ~30 min skill/prompt change. | Gastown §1.4 (adapted) |
+| 3 | **File ownership enforcement via hooks** | Proactive conflict prevention. `PreToolUse` hook on `Edit\|Write` checks `.claude/file-locks.json` and blocks edits to files owned by other agents. **⚠️ BLOCKED:** `$AGENT_NAME` does not exist in Claude Code. [Issue #16126](https://github.com/anthropics/claude-code/issues/16126) is an open feature request. **Interim:** prompt-based enforcement (instruct subagents to check file-locks.json before editing). Hook input JSON correctly provides `tool_input.file_path`. Use `permissionDecision: "deny"` pattern (not `exit 2`). Requires `jq` (not zero-dependency). | Hook-based |
+| 4 | **Strict SSOT: Query, Don't Track** | Prevents state drift bugs. Instead of caching task state in skills, always query beads for truth. Reality is authoritative; derived state cannot diverge. **Note:** The SDD skill already follows this pattern (queries `bd ready` at every loop iteration). This is a **design principle to codify**, not a code change. "Skills MUST NOT cache beads query results across wave boundaries." | Distributed systems SSOT principle |
+| 5 | **TaskCompleted hook for quality gates** | Hard enforcement at task completion. `TaskCompleted` hook exits with code 2 to block task completion if quality criteria not met. Genuinely enforced by Claude Code (not advisory). Can use `type: "agent"` for 50-turn code analysis hooks. **Note:** `addBlockedBy` for task sequencing is already in SDD skill and provides soft (prompt-based) enforcement only. | Native hooks |
+| 6 | **Strengthen existing simplification checks + linter hooks** | Reduces code complexity. The qualitative review ("dead code? duplication? over-engineering?") is already covered by 5+ existing skills (rule-of-five Clarity pass, spec-reviewer over-engineering check, epic-verifier YAGNI, code-reviewer DRY, TDD REFACTOR phase). **Do NOT create a new skill.** Instead: (a) add quantitative checklist items to existing code-reviewer.md, (b) implement cyclomatic complexity enforcement via PostToolUse linter hooks (#25). Thresholds: flag >10, block >15 (matches McCabe/NIST). | Industry standard (SonarQube, ESLint, NIST) |
 
 ### MEDIUM IMPACT — Meaningful improvements to workflow
 
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
-| 9 | **Checkpoint classification in plans** | Distinguishes AUTOMATED (run without human) from HUMAN_DECISION (requires input) from HUMAN_ACTION (user must do something external). Execution system batches automated work, pauses only at true decision points. | get-shit-done |
-| 10 | **Task type classification** | Different behavior for IMPLEMENTATION vs VERIFICATION tasks. Implementation can retry; verification escalates on failure. Verification can use cheaper models. | loom |
-| 11 | **Parallelize review pipelines** | Reviews for different tasks run concurrently. Task A and Task B reviews don't wait for each other. Only sequential: spec review before code review for same task. | Original research |
-| 12 | **Parallel bd queries with indexed results** | 6x speedup on multi-query operations. Goroutines with pre-allocated result slice (no mutex needed). 32s → 5s inbox load in Gastown. | Gastown §3.5 |
-| 13 | **Structured agent IDs** | Validates task/bead IDs with parsing. Format: `<prefix>-<role>` or `<prefix>-<rig>-<role>-<name>`. Prevents silent failures from malformed IDs. | Gastown §2.1 |
-| 14 | **--fast mode for status commands** | 60% faster status checks. Skip non-essential operations. 5s → 2s. | Gastown §3.1 |
-| 15 | **Template rendering for prompts** | Consistent output formatting. Type-safe data injection. Reduces hallucination. Single source of truth for agent prompts. | Gastown §4.3 |
-| 16 | **Health checks (doctor command)** | Catches misconfigurations. Check for orphaned worktrees, prefix mismatches, stale agent beads, slow operations. Auto-fix common issues. | Gastown §2.2 |
-| 17 | **Completion evidence requirements** | Tasks can only close with proof. Commit hash, files changed, test results, coverage delta. `TaskCompleted` hook verifies before accepting. | Native hooks |
-| 18 | **File ownership declared in task definition** | Conflicts computed at dispatch time. Each task declares owned files in description. Orchestrator writes `.claude/file-locks.json` before spawning agents. | Hook-based |
-| 19 | **Artifact-specific rule-of-five variants** | Better quality for non-code. Code: Draft→Correctness→Clarity→Edge Cases→Excellence. Plans: Draft→Feasibility→Completeness→Risk→Optimality. Tests: Draft→Coverage→Independence→Speed→Maintainability. | Original research |
+| 7 | **Checkpoint classification in plans** | Binary flag: `requires_human: true/false` on plan steps. Current system already batches automated work and pauses at batch boundaries. This formalizes the annotation. Original three-way taxonomy (AUTOMATED/HUMAN_DECISION/HUMAN_ACTION) is over-specified — the HUMAN_DECISION vs HUMAN_ACTION distinction rarely matters in practice. | Inspired by get-shit-done (simplified) |
+| 8 | **Parallelize review pipelines** | Reviews for different tasks run concurrently. Task A and Task B reviews don't wait for each other. Only sequential: spec review before code review for same task. | Original research |
+| 9 | **Parallel bd queries with indexed results** | 6x speedup on multi-query operations. Goroutines with pre-allocated result slice (no mutex needed). 32s → 5s inbox load in Gastown. | Gastown §3.5 |
+| 10 | **Structured agent IDs** | Validates task/bead IDs with parsing. Format: `<prefix>-<role>` or `<prefix>-<rig>-<role>-<name>`. Prevents silent failures from malformed IDs. | Gastown §2.1 |
+| 11 | **--fast mode for status commands** | 60% faster status checks. Skip non-essential operations. 5s → 2s. | Gastown §3.1 |
+| 12 | **Template rendering for prompts** | Consistent output formatting. Type-safe data injection. Reduces hallucination. Single source of truth for agent prompts. | Gastown §4.3 |
+| 13 | **Health checks (doctor command)** | Catches misconfigurations. Check for orphaned worktrees, prefix mismatches, stale agent beads, slow operations. Auto-fix common issues. | Gastown §2.2 |
+| 14 | **Completion evidence requirements** | Tasks can only close with proof. Commit hash, files changed, test results, coverage delta. `TaskCompleted` hook verifies before accepting. | Native hooks |
+| 15 | **File ownership declared in task definition** | Conflicts computed at dispatch time. Each task declares owned files in description. Orchestrator writes `.claude/file-locks.json` before spawning agents. | Hook-based |
+| 16 | **Artifact-specific rule-of-five variants** | Better quality for non-code. Code: Draft→Correctness→Clarity→Edge Cases→Excellence. Plans: Draft→Feasibility→Completeness→Risk→Optimality. Tests: Draft→Coverage→Independence→Speed→Maintainability. | Original research |
 
 ### LOWER IMPACT — Nice to have, future consideration
 
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
-| 20 | **DAG visualization** | Understand dependencies before starting. Tree view with status icons, tier view for parallel opportunities, critical path analysis. | Gastown §1.3 |
-| 21 | **Complexity scoring for tasks** | Better model routing. 0-1 scale with estimated duration and confidence. Enables SLA tracking. | claude-flow |
-| 22 | **Adversarial review for security code** | Try to break it. Test injection, auth bypass, privilege escalation, data leakage, DoS. Document attempted attacks and results. | loom |
-| 23 | **External verification (GPT 5.2-codex)** | Second opinion on critical code. Export to external tool, triage findings as true positive / false positive / enhancement. | Original research |
-| 24 | **Agent-agnostic zombie detection** | Support multiple AI backends. Read GT_AGENT env var, look up process names for Claude/Gemini/Codex/Cursor/etc. | Gastown §1.5 |
-| 25 | **Memorable agent identities** | Better audit trail. Adjective+noun names (GreenCastle, BlueLake). 4,278 unique combinations. Git commits show author. | Research |
-| 26 | **Git-backed context audit trail** | Every context change tracked. `.context/` directory with JSON files, git commits on each update, SQLite index for queries. | Research |
-| 27 | **Pre-planning file conflict analysis** | Compute waves during planning, not runtime. List all files, identify conflicts, pre-compute optimal groupings, surface in plan header. | Gastown, original research |
+| 17 | **DAG visualization** | Understand dependencies before starting. Tree view with status icons, tier view for parallel opportunities, critical path analysis. | Gastown §1.3 |
+| 18 | **Complexity scoring for tasks** | Better model routing. 0-1 scale with estimated duration and confidence. Enables SLA tracking. | claude-flow |
+| 19 | **Adversarial review for security code** | Try to break it. Test injection, auth bypass, privilege escalation, data leakage, DoS. Document attempted attacks and results. | loom |
+| 20 | **External verification (GPT 5.2-codex)** | Second opinion on critical code. Export to external tool, triage findings as true positive / false positive / enhancement. | Original research |
+| 21 | **Agent-agnostic zombie detection** | Support multiple AI backends. Read GT_AGENT env var, look up process names for Claude/Gemini/Codex/Cursor/etc. | Gastown §1.5 |
+| 22 | **Memorable agent identities** | Better audit trail. Adjective+noun names (GreenCastle, BlueLake). 4,278 unique combinations. Git commits show author. | Research |
+| 23 | **Git-backed context audit trail** | Every context change tracked. `.context/` directory with JSON files, git commits on each update, SQLite index for queries. | Research |
+| 24 | **Pre-planning file conflict analysis** | Compute waves during planning, not runtime. List all files, identify conflicts, pre-compute optimal groupings, surface in plan header. | Gastown, original research |
 
 ### From SWE-Agent Research
 
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
-| 28 | **Linter guards on all edits** | Prevents syntax errors from persisting. Run linter before accepting edit, reject + show error + retry if fail. Stops compounding errors. | SWE-agent ACI |
-| 29 | **Succinct search results (max 50)** | Prevents context overflow in subagents. If >50 matches, ask to refine query. Summarize rather than dump. | SWE-agent ACI |
-| 30 | **Integrated edit feedback** | Show file diff immediately after edit. Agent sees effect of action, catches mistakes faster. | SWE-agent ACI |
-| 31 | **100-line file chunks** | When reading files for context, chunk to 100 lines (empirically optimal). Prevents context overflow while maintaining orientation. | SWE-agent ACI |
-| 32 | **Specialized file viewer** | Build file viewer skill with scroll/search/line numbers. Better than raw cat for navigation. | SWE-agent |
+| 25 | **Linter guards on all edits** | Prevents syntax errors from persisting. Run linter before accepting edit, reject + show error + retry if fail. Stops compounding errors. | SWE-agent ACI |
+| 26 | **Succinct search results (max 50)** | Prevents context overflow in subagents. If >50 matches, ask to refine query. Summarize rather than dump. | SWE-agent ACI |
+| 27 | **Integrated edit feedback** | Show file diff immediately after edit. Agent sees effect of action, catches mistakes faster. | SWE-agent ACI |
+| 28 | **100-line file chunks** | When reading files for context, chunk to 100 lines (empirically optimal). Prevents context overflow while maintaining orientation. | SWE-agent ACI |
+| 29 | **Specialized file viewer** | Build file viewer skill with scroll/search/line numbers. Better than raw cat for navigation. | SWE-agent |
 
 ### From Gastown Deep Dive
 
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
-| 33 | **Atomic spawn (NewSessionWithCommand)** | Eliminates race conditions in subagent spawning. Command runs as pane's initial process, not sent after shell ready. Faster startup. | Gastown §15 |
-| 34 | **Validation tests for hook/skill configurations** | Prevents silent failures from misconfigured skills. Test that SessionStart hooks include `--hook` flag, registry covers all roles. | Gastown §11 |
-| 35 | **Batch lookups with SessionSet pattern** | O(1) repeated queries instead of N+1 subprocess calls. Single `ListSessions` → map lookup for each check. | Gastown §3.4 |
+| 30 | **Atomic spawn (NewSessionWithCommand)** | Eliminates race conditions in subagent spawning. Command runs as pane's initial process, not sent after shell ready. Faster startup. | Gastown §15 |
+| 31 | **Validation tests for hook/skill configurations** | Prevents silent failures from misconfigured skills. Test that SessionStart hooks include `--hook` flag, registry covers all roles. | Gastown §11 |
+| 32 | **Batch lookups with SessionSet pattern** | O(1) repeated queries instead of N+1 subprocess calls. Single `ListSessions` → map lookup for each check. | Gastown §3.4 |
 
 ### Opus 4.6 & Native Agent Teams (Released Feb 5, 2026)
 
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
-| 36 | **[FUTURE] Leverage 1M context for full-codebase awareness** | ⚠️ **BETA ONLY** — not available to general users yet. When available: load entire codebase into context. Monitor for GA release. | Opus 4.6 beta |
-| 37 | **Use 128K output for comprehensive deliverables** | Full implementation plans, complete code reviews, exhaustive test suites in single response. **Available now.** | Opus 4.6 release |
-| 38 | **Integrate native agent teams for parallel coordination** | Replace custom parallel dispatch with native TeammateTool for peer-to-peer messaging. Keep superpowers-bd for discipline. **Available now (research preview).** | Opus 4.6 agent teams |
-| 39 | **Map task type to effort level** | VERIFICATION → low effort (cheaper). IMPLEMENTATION → high effort (better quality). Use adaptive thinking API parameters. **Available now.** | Opus 4.6 adaptive thinking |
-| 40 | **Exploit ARC AGI 2 leap for novel problem-solving** | Route complex/novel problems to Opus 4.6 (68.8% ARC vs 37.6% before). Use Sonnet for routine tasks. **Available now.** | Opus 4.6 benchmarks |
+| 33 | **[FUTURE] Leverage 1M context for full-codebase awareness** | ⚠️ **BETA ONLY** — not available to general users yet. When available: load entire codebase into context. Monitor for GA release. | Opus 4.6 beta |
+| 34 | **Use 128K output for comprehensive deliverables** | Full implementation plans, complete code reviews, exhaustive test suites in single response. **Available now.** | Opus 4.6 release |
+| 35 | **Integrate native agent teams for parallel coordination** | Replace custom parallel dispatch with native TeammateTool for peer-to-peer messaging. Keep superpowers-bd for discipline. **Available now (research preview).** | Opus 4.6 agent teams |
+| 36 | **Map task type to effort level** | VERIFICATION → low effort (cheaper). IMPLEMENTATION → high effort (better quality). Use adaptive thinking API parameters (`output_config.effort`). **Note:** Claude Code's Task tool does not currently expose the effort parameter. Task type routing (prompt templates, model selection) is already implemented in SDD skill. This improvement adds effort-level control when Claude Code exposes it. | Opus 4.6 adaptive thinking |
+| 37 | **Exploit ARC AGI 2 leap for novel problem-solving** | Route complex/novel problems to Opus 4.6 (68.8% ARC vs 37.6% before). Use Sonnet for routine tasks. **Available now.** | Opus 4.6 benchmarks |
 
 ### Claude Code 2.1.33+ Features (Feb 6, 2026)
 
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
-| 41 | **Use `memory` frontmatter for persistent agent context** | Agents have persistent memory surviving across conversations. Scopes: `user`, `project`, `local`. Builds knowledge over time. | Claude Code v2.1.33 |
-| 42 | **Hook into TeammateIdle and TaskCompleted events** | Native hook events for multi-agent coordination. Event-driven, replaces polling-based detection. | Claude Code v2.1.33 |
-| 43 | **Restrict sub-agent spawning via `Task(agent_type)` syntax** | Control which sub-agents can be spawned from `tools` frontmatter. Prevents infinite nesting. | Claude Code v2.1.33 |
-| 44 | **Use native Task metrics for cost tracking** | Task results include token count, tool uses, duration. Native, accurate, no parsing required. | Claude Code v2.1.30 |
-| 45 | **Define hooks in agent/skill frontmatter** | Hooks scoped to specific agents. Per-agent validation, cleanup on finish. Cleaner than global config. | Claude Code v2.1.33 |
-| 46 | **Use --from-pr flag for PR-linked sessions** | Sessions auto-link to PRs. Resume with `--from-pr`. Better PR workflow integration. | Claude Code v2.1.27 |
-| 47 | **Leverage skill character budget scaling** | Skill content budget scales at 2% of context window. More room for comprehensive skill instructions with Opus 4.6. | Claude Code v2.1.32 |
+| 38 | **Use `memory` frontmatter for persistent agent context** | Agents have persistent memory surviving across conversations. Scopes: `user`, `project`, `local`. Builds knowledge over time. | Claude Code v2.1.33 |
+| 39 | **Hook into TeammateIdle and TaskCompleted events** | Native hook events for multi-agent coordination. Event-driven, replaces polling-based detection. | Claude Code v2.1.33 |
+| 40 | **Restrict sub-agent spawning via `Task(agent_type)` syntax** | Control which sub-agents can be spawned from `tools` frontmatter. Prevents infinite nesting. | Claude Code v2.1.33 |
+| 41 | **Use native Task metrics for cost tracking** | Task results include token count, tool uses, duration. Native, accurate, no parsing required. | Claude Code v2.1.30 |
+| 42 | **Define hooks in agent/skill frontmatter** | Hooks scoped to specific agents. Per-agent validation, cleanup on finish. Cleaner than global config. | Claude Code v2.1.33 |
+| 43 | **Use --from-pr flag for PR-linked sessions** | Sessions auto-link to PRs. Resume with `--from-pr`. Better PR workflow integration. | Claude Code v2.1.27 |
+| 44 | **Leverage skill character budget scaling** | Skill content budget scales at 2% of context window. More room for comprehensive skill instructions with Opus 4.6. | Claude Code v2.1.32 |
 
 ---
 
@@ -127,29 +127,20 @@ These features exist in Claude Code 2.1.33+. Just configure them.
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **1.1** | 3 | File ownership via `PreToolUse` hook | ~20 lines bash |
-| **1.2** | 42 | TeammateIdle/TaskCompleted hooks | Hook config |
-| **1.3** | 41 | `memory: project` on agent definitions | Frontmatter line |
-| **1.4** | 43 | Restrict sub-agent spawning | Frontmatter field |
-| **1.5** | 44 | Native Task metrics | Already available — just use them |
-| **1.6** | 45 | Hooks in agent frontmatter | Frontmatter field |
+| **1.1** | 3 | File ownership via `PreToolUse` hook | ⚠️ Blocked on [Issue #16126](https://github.com/anthropics/claude-code/issues/16126); design hook now, use prompt-based interim |
+| **1.2** | 39 | TeammateIdle/TaskCompleted hooks | Hook config |
+| **1.3** | 38 | `memory: project` on agent definitions | Frontmatter line |
+| **1.4** | 40 | Restrict sub-agent spawning | Frontmatter field |
+| **1.5** | 41 | Native Task metrics | Already available — just use them |
+| **1.6** | 42 | Hooks in agent frontmatter | Frontmatter field |
 
-**Rationale:** Zero code required. Can be done in a single session. Immediate value.
+**Rationale:** Zero code required (except #3 which is blocked). Can be done in a single session. Immediate value.
 
-**File ownership hook pattern (P1.1):**
-```bash
-#!/bin/bash
-# .claude/hooks/check-file-ownership.sh (PreToolUse on Edit|Write)
-INPUT=$(cat)
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
-AGENT=$(echo "$AGENT_NAME" 2>/dev/null)
-OWNER=$(jq -r --arg f "$FILE_PATH" '.[$f].agent // empty' .claude/file-locks.json 2>/dev/null)
-if [ -n "$OWNER" ] && [ "$OWNER" != "$AGENT" ]; then
-  echo "BLOCKED: $FILE_PATH is owned by $OWNER, not $AGENT" >&2
-  exit 2  # Blocks the edit and sends feedback to Claude
-fi
-exit 0
-```
+**File ownership — current status:**
+- **Hook mechanism works:** `PreToolUse` on `Edit|Write` is real, `tool_input.file_path` is correct, `permissionDecision: "deny"` blocks edits
+- **Agent identity missing:** No `$AGENT_NAME` env var, no agent identity in hook input JSON ([Issue #16126](https://github.com/anthropics/claude-code/issues/16126))
+- **Interim approach:** Orchestrator writes `file-locks.json` before dispatch. Each subagent prompt includes: "Before editing any file, check `.claude/file-locks.json`. Only edit files where your name matches the owner."
+- **When Issue #16126 ships:** Switch to hook-based enforcement with `permissionDecision: "deny"`
 
 ### Priority 2: Quality Gate Skills (High ROI — Prompt/Skill Changes)
 
@@ -157,17 +148,17 @@ Prompt engineering and skill updates. No infrastructure code needed.
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **2.1** | 1 | Structured verification (behavioral comparison) | Prompt rewrite for 3 files |
-| **2.2** | 6 | Simplification review pass | New skill |
-| **2.3** | 5 | Blocking quality gates (task dependencies) | Task config + hook |
-| **2.4** | 17 | Completion evidence requirements | Hook + prompt |
-| **2.5** | 19 | Artifact-specific rule-of-five | Skill variants |
-| **2.6** | 28 | Linter guards via PostToolUse hooks | Hook config |
-| **2.7** | 2 | Two-phase delayed dispatch | Skill update (depends on P1.1) |
+| **2.1** | 1 | Structured verification (Two-Phase Reflective hybrid) | Prompt rewrite for 3 files |
+| **2.2** | 6 | Strengthen simplification checks in existing skills + linter hooks | Prompt additions + hook config |
+| **2.3** | 5 | TaskCompleted hook for quality gates | Hook config |
+| **2.4** | 14 | Completion evidence requirements | Hook + prompt |
+| **2.5** | 16 | Artifact-specific rule-of-five | Skill variants |
+| **2.6** | 25 | Linter guards via PostToolUse hooks | Hook config |
+| **2.7** | 2 | Two-phase delayed dispatch | Skill update |
 
-**Rationale:** Highest ROI improvements. Quality gates are superpowers-bd's unique value. #1 (structured verification) is the single most impactful change — research-backed, addresses 6 identified gaps across 5 files.
+**Rationale:** Highest ROI improvements. Quality gates are superpowers-bd's unique value. #1 (structured verification) is the single most impactful change — research-backed, with 3 identified gaps across 3 files.
 
-**Structured verification method (P2.1) — the behavioral comparison pattern:**
+**Structured verification method (P2.1) — Two-Phase Reflective + behavioral comparison hybrid:**
 
 ```markdown
 ## Verification Method
@@ -175,99 +166,88 @@ Prompt engineering and skill updates. No infrastructure code needed.
 Do NOT read the implementer's report first. Instead:
 
 Step 1: Extract requirements from the spec. Create a numbered checklist.
-Step 2: Read actual code independently. Summarize what it does (not what spec says).
-Step 3: Compare requirements vs actual behavior point-by-point (file:line evidence).
-Step 4: Check for unlisted behavior not in the spec (scope creep).
-Step 5: THEN read the implementer's report. Note discrepancies.
+Step 2: Read actual code independently. Audit each requirement against code (file:line evidence).
+Step 3: Summarize unlisted behaviors not in the spec (scope creep check).
+Step 4: THEN read the implementer's report. Note discrepancies between your analysis and their claims.
 ```
 
+**Why this hybrid:** The Two-Phase Reflective prompt (extract requirements → audit code) outperforms pure behavioral comparison for Claude models (82.9% vs 78.0% RCRR on HumanEval, per arXiv 2508.12358). Adding step 3 (unlisted behaviors from behavioral comparison) and step 4 (delayed report reading) provides comprehensive coverage.
+
 **Files requiring changes for #1:**
-- `skills/subagent-driven-development/spec-reviewer-prompt.md` — add behavioral comparison; remove bias-inducing "suspiciously quickly"
-- `skills/requesting-code-review/code-reviewer.md` — add independent verification section
-- `skills/subagent-driven-development/code-quality-reviewer-prompt.md` — add anti-framing warning
-- `agents/code-reviewer.md` — add "verify claims, don't trust reports"
-- `skills/subagent-driven-development/SKILL.md` — add meta-verification of review verdicts
+- `agents/code-reviewer.md` — add independent verification instructions, anti-framing warning (currently has ZERO skepticism)
+- `skills/requesting-code-review/code-reviewer.md` — restructure to read code BEFORE implementer report; add requirement extraction step
+- `skills/subagent-driven-development/spec-reviewer-prompt.md` — remove bias-inducing "suspiciously quickly"; restructure to delay report reading (already has strong skepticism otherwise)
 
-### Priority 3: Foundation Code (Requires Implementation)
+### Priority 3: File Ownership (Full Implementation)
 
-| Order | # | Improvement | Effort |
-|-------|---|-------------|--------|
-| **3.1** | 7 | 5-step process termination | Bash code |
-
-**Rationale:** The only remaining item requiring actual code changes. Semaphore and retry were removed (already in beads v0.49.4). Two-phase dispatch moved to P2 (it's a skill change).
-
-### Priority 4: File Ownership (Full Implementation)
-
-Builds on the P1 hook with full conflict prevention.
+Builds on the P1 interim with full conflict prevention.
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **4.1** | 18 | File ownership declared in task definition | Skill update |
-| **4.2** | 27 | Pre-planning file conflict analysis | New skill |
-| **4.3** | 8 | Pre-commit quality guard | Git hook script |
+| **3.1** | 15 | File ownership declared in task definition | Skill update |
+| **3.2** | 24 | Pre-planning file conflict analysis | New skill |
 
-**Rationale:** P1 gives us the basic hook. P4 makes it systematic — ownership at dispatch time, conflict detection during planning, enforcement at commit.
+**Rationale:** P1 gives us prompt-based enforcement. P3 makes it systematic — ownership at dispatch time, conflict detection during planning.
 
-### Priority 5: Context & State (Beads Integration)
-
-| Order | # | Improvement | Effort |
-|-------|---|-------------|--------|
-| **5.1** | 4 | ZFC Philosophy | Skill update |
-| **5.2** | 13 | Structured agent IDs | Code |
-| **5.3** | 9 | Checkpoint classification | Skill update |
-| **5.4** | 10 | Task type classification | Skill update |
-
-**Rationale:** Native memory handles context; beads handles task state. Clear separation.
-
-### Priority 6: Execution Optimization (Performance)
+### Priority 4: Context & State (Beads Integration)
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **6.1** | 12 | Parallel bd queries | Go code |
-| **6.2** | 35 | Batch lookups (SessionSet pattern) | Code |
-| **6.3** | 14 | --fast mode for status | Code |
-| **6.4** | 11 | Parallelize review pipelines | Skill update |
+| **4.1** | 4 | Strict SSOT (codify as design principle) | Documentation |
+| **4.2** | 10 | Structured agent IDs | Code |
+
+**Rationale:** SDD skill already follows SSOT pattern. #4 codifies it as a skill-writing rule to prevent regressions. Native memory handles context; beads handles task state.
+
+### Priority 5: Execution Optimization (Performance)
+
+| Order | # | Improvement | Effort |
+|-------|---|-------------|--------|
+| **5.1** | 9 | Parallel bd queries | Go code |
+| **5.2** | 32 | Batch lookups (SessionSet pattern) | Code |
+| **5.3** | 11 | --fast mode for status | Code |
+| **5.4** | 8 | Parallelize review pipelines | Skill update |
 
 **Rationale:** After core system works, optimize for speed.
 
-### Priority 7: Tooling & Polish (Refinement)
+### Priority 6: Tooling & Polish (Refinement)
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **7.1** | 16 | Health checks (doctor) | Code |
-| **7.2** | 15 | Template prompts | Code |
-| **7.3** | 34 | Validation tests for configs | Tests |
-| **7.4** | 46 | Use --from-pr flag | Config |
-| **7.5** | 37 | Use 128K output | Prompt update |
-| **7.6** | 47 | Leverage skill budget scaling | Config |
-| **7.7** | 38 | Integrate native agent teams | Architecture |
-| **7.8** | 39 | Map task type to effort level | Skill update |
+| **6.1** | 13 | Health checks (doctor) | Code |
+| **6.2** | 12 | Template prompts | Code |
+| **6.3** | 31 | Validation tests for configs | Tests |
+| **6.4** | 43 | Use --from-pr flag | Config |
+| **6.5** | 34 | Use 128K output | Prompt update |
+| **6.6** | 44 | Leverage skill budget scaling | Config |
+| **6.7** | 35 | Integrate native agent teams | Architecture |
+| **6.8** | 36 | Map task type to effort level | Blocked: Task tool lacks effort param |
+| **6.9** | 7 | Checkpoint classification (binary flag) | Plan format update |
 
-### Priority 8: SWE-Agent Patterns (Agent Quality)
+### Priority 7: SWE-Agent Patterns (Agent Quality)
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **8.1** | 29 | Succinct search results (max 50) | Skill update |
-| **8.2** | 30 | Integrated edit feedback | Skill update |
-| **8.3** | 31 | 100-line file chunks | Skill update |
-| **8.4** | 32 | Specialized file viewer | New skill |
+| **7.1** | 26 | Succinct search results (max 50) | Skill update |
+| **7.2** | 27 | Integrated edit feedback | Skill update |
+| **7.3** | 28 | 100-line file chunks | Skill update |
+| **7.4** | 29 | Specialized file viewer | New skill |
 
 **Rationale:** Agent-Computer Interface improvements after core functionality works.
 
-### Priority 9: Advanced & Future (Do Last)
+### Priority 8: Advanced & Future (Do Last)
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **9.1** | 20 | DAG visualization | Code |
-| **9.2** | 22 | Adversarial security review | New skill |
-| **9.3** | 23 | External verification (GPT 5.2-codex) | Integration |
-| **9.4** | 25 | Memorable agent identities | Code |
-| **9.5** | 26 | Git-backed context audit trail | Code |
-| **9.6** | 33 | Atomic spawn | Code |
-| **9.7** | 24 | Agent-agnostic zombie detection | Code |
-| **9.8** | 21 | Complexity scoring | Code |
-| **9.9** | 40 | Exploit ARC AGI 2 leap | Prompt/routing |
-| **9.10** | 36 | [FUTURE] 1M context | When beta exits |
+| **8.1** | 17 | DAG visualization | Code |
+| **8.2** | 19 | Adversarial security review | New skill |
+| **8.3** | 20 | External verification (GPT 5.2-codex) | Integration |
+| **8.4** | 22 | Memorable agent identities | Code |
+| **8.5** | 23 | Git-backed context audit trail | Code |
+| **8.6** | 30 | Atomic spawn | Code |
+| **8.7** | 21 | Agent-agnostic zombie detection | Code |
+| **8.8** | 18 | Complexity scoring | Code |
+| **8.9** | 37 | Exploit ARC AGI 2 leap | Prompt/routing |
+| **8.10** | 33 | [FUTURE] 1M context | When beta exits |
 
 **Rationale:** These provide value but aren't critical. Do after core system works reliably.
 
@@ -285,7 +265,7 @@ Builds on the P1 hook with full conflict prevention.
 | **OSWorld (agentic)** | 66.3% | **72.7%** | ✅ GA |
 | **ARC AGI 2** | 37.6% | **68.8%** | ✅ GA |
 
-**Adaptive Thinking:** Model picks up contextual clues about how much to think. Less cost for simple tasks, automatic deep thinking for complex ones. Effort controls let developers tune the intelligence/speed/cost tradeoff.
+**Adaptive Thinking:** Model picks up contextual clues about how much to think. Less cost for simple tasks, automatic deep thinking for complex ones. Effort controls (`output_config.effort`: low/medium/high/max) let developers tune the intelligence/speed/cost tradeoff. **Note:** Claude Code's Task tool does not yet expose the effort parameter.
 
 **Agent Teams (Research Preview):** Multiple agents work in parallel with peer-to-peer coordination via TeammateTool (13 operations). Enabled via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. Not yet production-ready GA.
 
@@ -297,8 +277,7 @@ Builds on the P1 hook with full conflict prevention.
 | Peer-to-peer messaging | ✅ TeammateTool | ✅ (via native) |
 | Session resumption | ❌ | ✅ Beads persistence |
 | Quality gates | ❌ | ✅ Skills-based |
-| File ownership | ❌ | ✅ PreToolUse hooks |
-| Pre-commit guards | ❌ | ✅ Git hook + file-locks.json |
+| File ownership | ❌ (not native) | ⚠️ Prompt-based interim (hook blocked on #16126) |
 | Git-backed state | ❌ | ✅ Beads on Dolt |
 | Nested teams | ❌ | ✅ Subagent spawning |
 
@@ -315,6 +294,14 @@ Builds on the P1 hook with full conflict prevention.
 | **Skill budget scaling** | v2.1.32 | 2% of context window for skill content |
 
 **Agent-type hooks:** Hooks with `type: "agent"` get 50 turns with Read/Grep/Glob tools. This is a game-changer for quality gates — verification hooks can actually read and analyze code, not just run shell commands.
+
+**Hook environment variables available:**
+- `$CLAUDE_PROJECT_DIR` — project root directory
+- `$CLAUDE_PLUGIN_ROOT` — plugin's root directory (for plugin hooks)
+- `$CLAUDE_CODE_REMOTE` — set to "true" in remote environments
+- `$CLAUDE_ENV_FILE` — path for persisting env vars (SessionStart only)
+- `$CLAUDE_CODE_TEAM_NAME` — agent team name (for team members only)
+- ⚠️ `$AGENT_NAME` — **does NOT exist** ([Issue #16126](https://github.com/anthropics/claude-code/issues/16126))
 
 **Example patterns:**
 
@@ -363,6 +350,29 @@ Beads v0.49.4 uses **embedded Dolt** (in-process via `dolthub/driver`), NOT `dol
 
 **Note:** If superpowers-bd ever migrates to `dolt sql-server` mode for true multi-agent worktree sharing (see Q2), retry-with-verification would become relevant. But for current embedded mode, it is not needed.
 
+### 3.4 Claude Code Hooks API (Verified Feb 7, 2026)
+
+Key findings from research on the hooks system:
+
+**PreToolUse hooks:**
+- Matcher is regex: `Edit|Write` correctly matches both tools
+- Input via stdin as JSON: `tool_input.file_path` is correct for both Edit and Write
+- `exit 2` blocks the tool call (older pattern)
+- Preferred: return JSON with `permissionDecision: "deny"` and `permissionDecisionReason`
+- ⚠️ No agent identity in hook input ([Issue #16126](https://github.com/anthropics/claude-code/issues/16126))
+- ⚠️ Subagents share `session_id` with parent ([Issue #7881](https://github.com/anthropics/claude-code/issues/7881))
+
+**TaskCompleted hooks:**
+- `exit 2` blocks task completion (hard enforcement)
+- Receives: `task_id`, `task_subject`, `task_description`, `teammate_name`, `team_name`
+- Can use `type: "agent"` for 50-turn code analysis before allowing completion
+- Latency risk: agent-type hooks could take 60+ seconds per task
+
+**addBlockedBy (Task tool):**
+- Soft/prompt-based enforcement only — agents *choose* to respect it
+- No API-level rejection if agent marks blocked task as in_progress
+- Beads dependencies (`bd ready`/`bd blocked`) provide stronger enforcement (controls query results)
+
 ---
 
 ## 4. Open Questions — Answered
@@ -408,25 +418,17 @@ bd ready  # Uses shared server
 
 ### Q3: Can pre-commit guards work with existing hooks?
 
-**Answer: YES — Use the pre-commit framework for chaining**
+**Answer: ⚠️ REVISED — pre-commit.com is NOT compatible with beads.**
 
-Best approach: [pre-commit.com](https://pre-commit.com/) framework. Handles execution order, supports multiple hooks, any non-zero exit aborts commit.
+Previous recommendation to use pre-commit.com was incorrect. Research found:
 
-```yaml
-# .pre-commit-config.yaml
-repos:
-  - repo: local
-    hooks:
-      - id: file-ownership-guard
-        name: File Ownership Check
-        entry: .claude/hooks/check-file-ownership.sh
-        language: system
-        pass_filenames: false
-      - id: existing-linter
-        name: Your Existing Linter
-        entry: npm run lint
-        language: system
-```
+1. **pre-commit.com destroys existing hooks:** `pre-commit install` moves existing hook scripts to `.legacy` files ([Issue #3450](https://github.com/pre-commit/pre-commit/issues/3450), confirmed behavior for 10+ years). This would break beads' git hook shims (pre-commit, prepare-commit-msg, post-checkout, post-merge, pre-push).
+
+2. **Beads has its own hook chaining:** `bd hook --help` documents `chain_strategy` (before/after/replace) with configurable timeout. Use this instead.
+
+3. **Agent identity gap in git hooks:** Git pre-commit hooks receive no information about which Claude Code agent initiated the commit. `$AGENT_NAME` is not available. Git `user.name` is shared across all agents. This makes agent-specific commit guards impossible.
+
+**Updated recommendation:** If commit-time guards are needed, use beads' `chain_strategy: before` to add custom checks. However, this is largely redundant with PreToolUse enforcement (#3) — if agents can't edit unauthorized files, they can't commit them either.
 
 ---
 
@@ -466,12 +468,14 @@ Exception: If reservation TTL expires AND no heartbeat, auto-release the reserva
 
 **Answer: Moderate — Target cyclomatic complexity <10, flag but don't block on style**
 
-**Metrics to enforce:**
-- Cyclomatic complexity: Flag >10, block >15
+**Metrics to enforce (via PostToolUse linter hooks, not LLM review):**
+- Cyclomatic complexity: Flag >10, block >15 (matches McCabe/NIST standard)
 - Function length: Flag >50 lines, block >100
 - Duplication: Flag >10 lines duplicated, block >25
 
 **What NOT to block on:** Style preferences (linter handles), naming conventions, comment density.
+
+**Tools:** ESLint `complexity` rule, Lizard (multi-language), SonarQube (server-based).
 
 ---
 
@@ -526,7 +530,9 @@ Exception: If reservation TTL expires AND no heartbeat, auto-release the reserva
 | **Property-based testing for AI output** | How loom does adversarial input generation | Loom source code deep dive |
 | **Parallel execution at scale** | What breaks at 10+ subagents? 20+? | Testing with synthetic workloads |
 | **AI security review bypasses** | Ways to trick Claude Code security review | [Checkmarx LITL research](https://checkmarx.com/zero-post/bypassing-claude-code-how-easy-is-it-to-trick-an-ai-security-reviewer/) |
-| **Over-correction bias in LLM reviewers** | How to make reviewers skeptical without false positives | [arXiv 2508.12358](https://arxiv.org/html/2508.12358v1) behavioral comparison study |
+| **Over-correction bias in LLM reviewers** | How to calibrate skepticism without false positives | [arXiv 2508.12358](https://arxiv.org/html/2508.12358v1) — Claude shows less susceptibility than GPT-4o |
+| **Claude Code agent identity in hooks** | Track [Issue #16126](https://github.com/anthropics/claude-code/issues/16126) for `agent_name` in PreToolUse data | Monitor Claude Code releases |
+| **Multi-review aggregation** | Running multiple independent reviews and aggregating (up to 43.67% F1 improvement) | [arXiv 2509.01494 (SWR-Bench)](https://arxiv.org/html/2509.01494v1) |
 
 ### Patterns Worth Investigating
 
@@ -650,34 +656,34 @@ For superpowers-bd, this suggests:
 ### What Success Looks Like
 
 1. **No silent failures** — Beads v0.49.4 concurrency protections, structured IDs, health checks
-2. **No missed work** — Blocking quality gates, completion evidence, pre-commit guards
-3. **No conflicts** — File ownership via hooks, proactive detection, advisory locking
-4. **No state drift** — ZFC philosophy, persistent memory, structured storage
+2. **No missed work** — TaskCompleted hook quality gates, completion evidence
+3. **No conflicts** — File ownership via prompt-based interim → hook-based when Issue #16126 ships
+4. **No state drift** — Strict SSOT principle, persistent memory, structured storage
 5. **Maximum parallelism** — Native agent teams, two-phase dispatch, fan-out/gather
-6. **Quality at scale** — Structured verification (behavioral comparison), simplification pass, adversarial testing
+6. **Quality at scale** — Structured verification (Two-Phase Reflective hybrid), simplification via linters, multi-review aggregation
 7. **Comprehensive outputs** — 128K output means complete plans in single responses
 
 ### The Non-Negotiables
 
-1. **Hook-based file ownership** — `PreToolUse` hook enforces file ownership (zero dependencies)
-2. **Structured verification** — Behavioral comparison pattern for all reviewers (85.4% accuracy vs 52.4% unstructured)
-3. **Blocking quality gates** — Nothing proceeds without evidence-backed review
+1. **Structured verification** — Two-Phase Reflective + behavioral comparison hybrid for all reviewers (research-backed)
+2. **File ownership** — Prompt-based now, hook-based when agent identity ships (Issue #16126)
+3. **TaskCompleted hook** — Hard enforcement quality gate (the only non-advisory mechanism)
 4. **Opus 4.6 adoption** — 128K output, adaptive thinking, native agent teams
 
 ### The Order Matters
 
-**Config/hooks → Prompts → Code → Optimization → Polish**
+**Config/hooks → Prompts → Optimization → Polish**
 
-Don't write code when config works. Don't optimize before it works. Don't parallelize before conflicts are prevented. Don't rebuild what beads already provides.
+Don't write code when config works. Don't optimize before it works. Don't parallelize before conflicts are prevented. Don't rebuild what beads or Claude Code already provide.
 
 ### What Remains Unique to superpowers-bd
 
 Native agent teams can coordinate. superpowers-bd ensures they produce **quality work that persists**:
 
 - **Beads** for git-backed task persistence (Dolt backend with 6-layer concurrency protection)
-- **Structured verification** via behavioral comparison (research-backed, 85.4% accuracy)
-- **Hook-based file ownership** (zero-dependency conflict prevention)
-- **Pre-commit guards** via git hook + `.claude/file-locks.json`
+- **Structured verification** via Two-Phase Reflective hybrid (research-backed)
+- **TaskCompleted hooks** for hard enforcement quality gates
+- **File ownership** (prompt-based interim → hook-based when #16126 ships)
 - **Rule-of-five** quality gate skills
 
 **The playbook:** Use Claude Code's native features for coordination (memory, hooks, metrics, agent teams) + superpowers-bd for discipline (quality gates, persistence, file ownership). Don't rebuild what beads or Claude Code already provide.
@@ -700,10 +706,11 @@ Native agent teams can coordinate. superpowers-bd ensures they produce **quality
 | 2.2 | 2026-02-07 | Accuracy review: 7 factual corrections via web research. |
 | 3.0 | 2026-02-07 | Agent Mail deprioritized (beads Rust incompatible with Dolt). Hook-based file ownership replaces it. |
 | 4.0 | 2026-02-07 | Streamlined: removed completed/deprecated/obsolete content. Renumbered 49 items. Reordered priorities. |
-| 4.1 | 2026-02-07 | **Research-verified top 4.** Removed semaphore (#1) — already in beads v0.49.4 (6 layers of concurrency protection, 40 concurrent ops tested). Removed retry-with-verification (#2) — Gastown-specific pattern for sql-server mode, not needed in embedded mode. Reframed skeptical reviewers as "Structured verification via behavioral comparison" (85.4% accuracy per arXiv research). Downgraded two-phase dispatch from CRITICAL to HIGH (Gastown's tmux race doesn't apply to Claude Code Task tool). Added Section 3.3: Beads concurrency architecture. **47 active improvements remain.** |
+| 4.1 | 2026-02-07 | Research-verified top 4. Removed semaphore + retry (already in beads/Gastown-specific). Reframed skeptical reviewers. Downgraded two-phase dispatch. 47 items. |
+| 4.2 | 2026-02-07 | **Research-verified top 10 via 5 parallel Opus agents.** Removed 3 items: process termination (Gastown tmux-specific, not applicable), pre-commit guard (agent identity gap in git hooks, pre-commit.com destroys beads hooks), task type classification (already implemented in SDD). Corrected 7 items: arXiv paper misrepresentation fixed (#1 — Claude benefits from Two-Phase Reflective, not behavioral comparison; RCRR measures false-positive avoidance only); dependency direction reversed (#2 depends on nothing, #3 depends on #2); `$AGENT_NAME` confirmed non-existent (#3 — blocked on Issue #16126); "ZFC" label dropped (#4 — fabricated, not from Gastown or math; renamed to Strict SSOT); quality gates split (#5 — TaskCompleted hard enforcement kept, addBlockedBy soft enforcement already in SDD); simplification review reframed (#6 — fold into existing skills + linter hooks, don't create new skill); checkpoint classification simplified (#7 — binary flag, lowered to P6). Added Section 3.4: Claude Code Hooks API verification. Updated Q3: pre-commit.com incompatible with beads. P3 (Foundation Code) eliminated (empty). **44 active improvements remain.** |
 
 ---
 
-*This document synthesizes findings from: superpowers-bd, superpowers (original), get-shit-done, gastown (575 commits), loom, claude-flow, SWE-agent/mini-swe-agent, Dolt backend analysis, Opus 4.6 release analysis, Claude Code 2.1.33+ changelog analysis, and empirical beads v0.49.4 concurrency testing.*
+*This document synthesizes findings from: superpowers-bd, superpowers (original), get-shit-done, gastown (575 commits), loom, claude-flow, SWE-agent/mini-swe-agent, Dolt backend analysis, Opus 4.6 release analysis, Claude Code 2.1.33+ changelog analysis, empirical beads v0.49.4 concurrency testing, arXiv 2508.12358 (LLM verification), arXiv 2509.01494 (SWR-Bench multi-review), Claude Code hooks API verification (Issues #16126, #7881), and pre-commit.com compatibility testing.*
 
-***Version 4.1 Summary:** 47 active improvements, renumbered 1-47. Two Gastown-specific items removed after empirical verification (semaphore already in beads, retry not needed for embedded Dolt). #1 is now "Structured verification via behavioral comparison" — the single highest-impact improvement, research-backed at 85.4% accuracy. Priority order unchanged: config/hooks (P1) → quality gate prompts (P2) → foundation code (P3) → file ownership (P4) → context/state (P5) → performance (P6) → polish (P7) → SWE-agent patterns (P8) → future (P9). Zero external runtime dependencies.*
+***Version 4.2 Summary:** 44 active improvements, renumbered 1-44. Three items removed after deep research (process termination = wrong architecture, pre-commit guard = unfixable gaps, task type classification = already implemented). Seven items corrected with verified facts. #1 is now "Structured verification via Two-Phase Reflective hybrid" — optimized for Claude models per arXiv research. File ownership (#3) is blocked on Claude Code Issue #16126 (no agent identity in hooks); prompt-based interim recommended. P3 (Foundation Code) eliminated — no items require Go/bash code changes. Priority order: config (P1) → quality gate prompts (P2) → file ownership (P3) → context/state (P4) → performance (P5) → polish (P6) → SWE-agent (P7) → future (P8). Zero external runtime dependencies.*
