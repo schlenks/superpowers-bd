@@ -70,6 +70,9 @@ commands/                   # User-invocable slash commands
 
 hooks/                      # Session lifecycle hooks
   session-start.sh         # Runs on session start/resume/clear
+  link-plugin-components.sh  # Copies hooked components to .claude/ (#17688 workaround)
+  log-file-modification.sh   # PostToolUse audit logger for Write|Edit
+  task-completed.sh        # Quality gate on task completion
 
 tests/
   claude-code/             # Headless Claude Code integration tests
@@ -116,8 +119,24 @@ See `skills/writing-skills/SKILL.md` for complete guide.
 ## Plugin Configuration
 
 - **Plugin manifest**: `.claude-plugin/plugin.json`
-- **Session hooks**: `hooks/hooks.json` (runs `session-start.sh` on startup)
+- **Session hooks**: `hooks/hooks.json` (runs `session-start.sh` on startup, `link-plugin-components.sh` on first start)
+- **Quality gates**: `hooks/task-completed.sh` (TaskCompleted hook, interactive mode only)
+- **Audit logging**: `hooks/log-file-modification.sh` (PostToolUse hook via code-reviewer agent frontmatter)
 - **Beads config**: `.beads/metadata.json`
+
+## Known Workarounds
+
+### Plugin Frontmatter Hooks (#17688)
+
+Plugin-loaded frontmatter hooks are broken ([#17688](https://github.com/anthropics/claude-code/issues/17688)).
+`hooks/link-plugin-components.sh` copies hooked components to `.claude/` on SessionStart as a workaround.
+
+**When working on this codebase, check if #17688 has been resolved.** If fixed:
+1. Remove the `link-plugin-components.sh` SessionStart entry from `hooks/hooks.json`
+2. Delete `hooks/link-plugin-components.sh`
+3. Keep `hooks:` blocks in agent/skill frontmatter (they'll fire natively)
+4. Update `SUPERPOWERS-BD-COMPREHENSIVE-IMPROVEMENTS.md` — remove #17688 from Open Blockers
+5. Update this section in AGENTS.md
 
 ## Testing Requirements for Integration Tests
 

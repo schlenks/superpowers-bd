@@ -1,6 +1,6 @@
 # Superpowers-BD: Improvement Roadmap
 
-**Version:** 5.9 (February 8, 2026) | **Active items:** 41 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
+**Version:** 6.0 (February 8, 2026) | **Active items:** 40 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
 
 **Philosophy:** If Claude Code does it natively, use that. If beads already does it, don't rebuild it. Config before code.
 
@@ -8,7 +8,7 @@
 
 *Item numbers are stable IDs from the [archive](docs/IMPROVEMENTS-ARCHIVE.md), not priority ranks.*
 
-**Next up:** #42 — add hooks in agent/skill frontmatter (verified working)
+**Next up:** #41 — expose native Task metrics for cost tracking
 
 ---
 
@@ -18,7 +18,6 @@
 
 | # | What | Type | Goal |
 |---|------|------|------|
-| 42 | Add hooks in agent/skill frontmatter (verified working) | Frontmatter | C |
 | 41 | Expose native Task metrics for cost tracking | Config | DX |
 
 ### P1.5: Agent Modernization (Zero Cost Increase)
@@ -32,7 +31,7 @@
 | # | What | Type | Goal |
 |---|------|------|------|
 | 46 | Multi-review aggregation — N independent reviews | Skill/prompt | Q |
-| 25 | Linter guards via frontmatter PostToolUse (after #42) | Hook config | C |
+| 25 | Linter guards via frontmatter PostToolUse | Hook config | C |
 | 14 | Require completion evidence before closing (builds on #5) | Hook + prompt | Q |
 | 15 | Declare file ownership in task definitions | Skill update | C |
 | 6 | Add cyclomatic complexity checks to code-reviewer | Prompt | Q |
@@ -147,6 +146,7 @@ Known behaviors confirmed through testing. These inform design, not block it.
 |-------|--------|
 | [#21460](https://github.com/anthropics/claude-code/issues/21460) PreToolUse/PostToolUse don't fire for subagents | File ownership via hooks blocked |
 | [#16126](https://github.com/anthropics/claude-code/issues/16126) `$AGENT_NAME` unavailable for subagents | Can't identify agent in hooks |
+| [#17688](https://github.com/anthropics/claude-code/issues/17688) Plugin frontmatter hooks don't fire | Workaround: `link-plugin-components.sh` copies to `.claude/` |
 
 ## Removed Items
 
@@ -157,3 +157,4 @@ Rejected, merged, or made obsolete. Completed items move to the [archive](docs/I
 - **#5** (TaskCompleted hook for quality gates) — Done (2026-02-08). Verification evidence check + audit logging.
 - **#29** (chunked file reads) — Redundant with native Read + Grep tools
 - **#38** (add `memory: project` to agent definitions) — Done (2026-02-08)
+- **#42** (add hooks in agent/skill frontmatter) — Done (2026-02-08). PostToolUse audit hook on code-reviewer. Plugin hooks workaround via `link-plugin-components.sh` (#17688).
