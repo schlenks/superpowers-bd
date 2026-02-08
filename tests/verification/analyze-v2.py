@@ -393,6 +393,18 @@ def analyze_reflective(csv_path, session_results_path=None):
     fn_key = "fn" if "fn" in rows[0] else None  # may not exist in v1
     score_key = "score"
 
+    # Validate required columns exist
+    first_row = rows[0]
+    missing = []
+    for key, label in [(cycle_key, "cycle/run"), ("method", "method"),
+                       (score_key, "score"), (tp_key, "tp/true_positives"),
+                       (fp_key, "fp/false_positives")]:
+        if key not in first_row:
+            missing.append(label)
+    if missing:
+        return {"error": f"Missing required columns: {', '.join(missing)}",
+                "csv_path": csv_path}
+
     # Detect parse status column
     parse_key = None
     if "parse_ok" in rows[0]:
@@ -433,16 +445,23 @@ def analyze_reflective(csv_path, session_results_path=None):
             parse_ok = row[parse_key].lower() in ("false", "0", "no")
         if not parse_ok:
             total_parse_failures += 1
+            # Skip data extraction for failed parses — values may be empty/invalid
+            by_cycle[cycle][method] = {"parse_ok": False}
+            continue
 
-        by_cycle[cycle][method] = {
-            "score": float(row[score_key]),
-            "tp": float(row[tp_key]),
-            "fp": float(row[fp_key]),
-            "fn": float(row.get(fn_key, 0)) if fn_key and row.get(fn_key) else 0,
-            "precision": float(row["precision"]) if "precision" in row and row["precision"] else None,
-            "recall": float(row["recall"]) if "recall" in row and row["recall"] else None,
-            "parse_ok": parse_ok,
-        }
+        try:
+            by_cycle[cycle][method] = {
+                "score": float(row[score_key]),
+                "tp": float(row[tp_key]),
+                "fp": float(row[fp_key]),
+                "fn": float(row.get(fn_key, 0)) if fn_key and row.get(fn_key) else 0,
+                "precision": float(row["precision"]) if "precision" in row and row["precision"] else None,
+                "recall": float(row["recall"]) if "recall" in row and row["recall"] else None,
+                "parse_ok": True,
+            }
+        except (ValueError, KeyError):
+            total_parse_failures += 1
+            by_cycle[cycle][method] = {"parse_ok": False}
 
     parse_rate = total_parse_failures / total_runs if total_runs > 0 else 0
 
