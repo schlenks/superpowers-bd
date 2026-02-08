@@ -1,0 +1,11 @@
+method,run,true_positives,false_positives,score,parse_failed
+current,1,5,0,5,false
+twophase,1,5,0,5,false
+twophase,2,5,0,5,false
+current,2,5,1,4,false
+current,3,5,0,5,false
+twophase,3,5,0,5,false
+twophase,4,5,0,5,false
+current,4,5,0,5,false
+current,5,5,0,5,false
+twophase,5,5,0,5,false

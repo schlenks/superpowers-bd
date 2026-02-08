@@ -1,6 +1,6 @@
 # Superpowers-BD: Comprehensive Improvement Report
 
-**Date:** February 7, 2026 (v4.3 — Stable skill modernization P1.5, experimental deferred, 45 active)
+**Date:** February 7, 2026 (v5.1 — Empirical verification of top 3 assumptions, 44 active)
 **Purpose:** Dramatically improve superpowers-bd by leveraging native Claude Code features + adding unique value (quality gates, persistence, file ownership)
 **Philosophy:** If it's worth doing, do it. If Claude Code does it natively, use that instead. If beads already does it, don't rebuild it.
 
@@ -8,7 +8,7 @@
 
 ## How to Read This Document
 
-1. **Section 1:** All **45 ACTIVE** improvements ranked by impact
+1. **Section 1:** All **44 ACTIVE** improvements ranked by impact
 2. **Section 2:** **PRIORITIZED** implementation order — easy wins first, code changes later
 3. **Section 3:** Reference info (Opus 4.6, Claude Code 2.1.33+, Beads v0.49.4)
 4. **Section 4:** Open questions — answered with research
@@ -36,16 +36,16 @@
 
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
-| 1 | **Structured verification via Two-Phase Reflective + behavioral comparison** | Catches issues current reviews miss. Research ([arXiv 2508.12358](https://arxiv.org/html/2508.12358v1)) shows asking LLMs to explain-and-fix introduces over-correction bias (up to 89% false-positive rate for GPT-4o). The Two-Phase Reflective prompt outperforms behavioral comparison **for Claude specifically** (82.9% vs 78.0% RCRR on HumanEval). Hybrid approach: extract requirements → read code independently → compare point-by-point → check for unlisted behavior → THEN read implementer's report. **Note:** RCRR measures false-positive avoidance on correct code, not bug-catching ability. Spec reviewer already has strong skepticism; gaps are in `agents/code-reviewer.md` and `skills/requesting-code-review/code-reviewer.md`. | superpowers original + [arXiv 2508.12358](https://arxiv.org/html/2508.12358v1) |
+| 1 | **Structured verification via Two-Phase Reflective + behavioral comparison** | Catches issues current reviews miss. Research ([arXiv 2508.12358](https://arxiv.org/html/2508.12358v1)) shows asking LLMs to explain-and-fix introduces over-correction bias (up to 89% false-positive rate for GPT-4o). The Two-Phase Reflective prompt outperforms behavioral comparison **for Claude specifically** (82.9% vs 78.0% RCRR on HumanEval). Hybrid approach: extract requirements → read code independently → compare point-by-point → check for unlisted behavior → THEN read implementer's report. **Note:** RCRR measures false-positive avoidance on correct code, not bug-catching ability. Spec reviewer already has strong skepticism; gaps are in `agents/code-reviewer.md` and `skills/requesting-code-review/code-reviewer.md`. **Empirical test (2026-02-07, VERIFIED, PARTIAL):** On synthetic spec-vs-implementation review (5 planted bugs + 3 decoys, n=5 paired cycles), Two-Phase Reflective scored +0.2 higher (5.0 vs 4.8). Both methods detected all 5 bugs. Key difference: Two-Phase had **zero false positives** (stdev 0.0) vs current method's 0.2 avg FP (stdev 0.4). Marginal improvement on obvious bugs, but more precise and stable. Adopt for structural consistency and FP reduction, not for dramatic detection improvement. | superpowers original + [arXiv 2508.12358](https://arxiv.org/html/2508.12358v1) |
 
 ### HIGH IMPACT — Significant quality or efficiency gains
 
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
-| 2 | **Two-phase delayed dispatch** | Ensures ALL preparatory work (beads status, file-locks.json) completes before ANY subagent spawns in a wave. The SDD skill already conceptually does this (conflict verification tasks block dispatch via `addBlockedBy`). This formalizes it: add explicit `file-locks.json` generation between conflict detection and dispatch. **#3 depends on this** (lock file must exist before first subagent edit). ~30 min skill/prompt change. | Gastown §1.4 (adapted) |
-| 3 | **File ownership enforcement via hooks** | Proactive conflict prevention. `PreToolUse` hook on `Edit\|Write` checks `.claude/file-locks.json` and blocks edits to files owned by other agents. **⚠️ BLOCKED:** `$AGENT_NAME` does not exist in Claude Code for regular subagents. [Issue #16126](https://github.com/anthropics/claude-code/issues/16126) is an open feature request. **Interim:** prompt-based enforcement (instruct subagents to check file-locks.json before editing). Hook input JSON correctly provides `tool_input.file_path`. Use `permissionDecision: "deny"` pattern (not `exit 2`). Requires `jq`. **Note:** `CLAUDE_CODE_AGENT_NAME` exists for agent team members, but agent teams are deferred due to ~7x token cost. | Hook-based |
+| 2 | ~~**Two-phase delayed dispatch**~~ | **MERGED into #15.** The SDD skill already implements the two-phase pattern (conflict verification task blocks wave dispatch via `addBlockedBy`). The remaining value — formal `file-locks.json` generation — is exactly what #15 delivers. Keeping as separate item was redundant. | Gastown §1.4 (adapted) |
+| 3 | **File ownership enforcement via hooks** | Proactive conflict prevention. `PreToolUse` hook on `Edit\|Write` checks `.claude/file-locks.json` and blocks edits to files owned by other agents. **⚠️ BLOCKED on TWO issues:** (1) `$AGENT_NAME` does not exist for regular subagents ([Issue #16126](https://github.com/anthropics/claude-code/issues/16126)), (2) PreToolUse hooks **do not fire for subagent tool calls** ([Issue #21460](https://github.com/anthropics/claude-code/issues/21460)). Six related hook enforcement issues span Aug 2025–Jan 2026 with zero Anthropic resolution. **Primary approach is now prompt-based (#15)**, validated by Anthropic's own C compiler project at production scale. Hook enforcement is a future defense-in-depth layer. **Moved to P5 (deferred).** | Hook-based |
 | 4 | **Strict SSOT: Query, Don't Track** | Prevents state drift bugs. Instead of caching task state in skills, always query beads for truth. Reality is authoritative; derived state cannot diverge. **Note:** The SDD skill already follows this pattern (queries `bd ready` at every loop iteration). This is a **design principle to codify**, not a code change. "Skills MUST NOT cache beads query results across wave boundaries." | Distributed systems SSOT principle |
-| 5 | **TaskCompleted hook for quality gates** | Hard enforcement at task completion. `TaskCompleted` hook exits with code 2 to block task completion if quality criteria not met. Genuinely enforced by Claude Code (not advisory). Can use `type: "agent"` for 50-turn code analysis hooks. **Note:** `addBlockedBy` for task sequencing is already in SDD skill and provides soft (prompt-based) enforcement only. | Native hooks |
+| 5 | **TaskCompleted hook for quality gates** | Hard enforcement at task completion. `TaskCompleted` hook exits with code 2 to block task completion if quality criteria not met. Genuinely enforced by Claude Code (not advisory). Can use `type: "agent"` for 50-turn code analysis hooks. **The only hard enforcement mechanism that works for subagents** — PreToolUse/PostToolUse hooks do NOT fire for subagent tool calls ([Issue #21460](https://github.com/anthropics/claude-code/issues/21460)). GA since v2.1.33, pure config. **Promoted to P1.2.** | Native hooks |
 | 6 | **Strengthen existing simplification checks + linter hooks** | Reduces code complexity. The qualitative review ("dead code? duplication? over-engineering?") is already covered by 5+ existing skills (rule-of-five Clarity pass, spec-reviewer over-engineering check, epic-verifier YAGNI, code-reviewer DRY, TDD REFACTOR phase). **Do NOT create a new skill.** Instead: (a) add quantitative checklist items to existing code-reviewer.md, (b) implement cyclomatic complexity enforcement via PostToolUse linter hooks (#25). Thresholds: flag >10, block >15 (matches McCabe/NIST). | Industry standard (SonarQube, ESLint, NIST) |
 
 ### MEDIUM IMPACT — Meaningful improvements to workflow
@@ -53,14 +53,14 @@
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
 | 7 | **Checkpoint classification in plans** | Binary flag: `requires_human: true/false` on plan steps. Current system already batches automated work and pauses at batch boundaries. This formalizes the annotation. Original three-way taxonomy (AUTOMATED/HUMAN_DECISION/HUMAN_ACTION) is over-specified — the HUMAN_DECISION vs HUMAN_ACTION distinction rarely matters in practice. | Inspired by get-shit-done (simplified) |
-| 8 | **Parallelize review pipelines** | Reviews for different tasks run concurrently. Task A and Task B reviews don't wait for each other. Only sequential: spec review before code review for same task. | Original research |
+| 8 | **Parallelize review pipelines** | Reviews for different tasks run concurrently. Task A and Task B reviews don't wait for each other. Only sequential: spec review before code review for same task. **Note:** This is throughput parallelism, distinct from multi-review aggregation (#46). | Original research |
 | 9 | **Parallel bd queries with indexed results** | 6x speedup on multi-query operations. Goroutines with pre-allocated result slice (no mutex needed). 32s → 5s inbox load in Gastown. | Gastown §3.5 |
 | 10 | **Structured agent IDs** | Validates task/bead IDs with parsing. Format: `<prefix>-<role>` or `<prefix>-<rig>-<role>-<name>`. Prevents silent failures from malformed IDs. | Gastown §2.1 |
 | 11 | **--fast mode for status commands** | 60% faster status checks. Skip non-essential operations. 5s → 2s. | Gastown §3.1 |
 | 12 | **Template rendering for prompts** | Consistent output formatting. Type-safe data injection. Reduces hallucination. Single source of truth for agent prompts. | Gastown §4.3 |
 | 13 | **Health checks (doctor command)** | Catches misconfigurations. Check for orphaned worktrees, prefix mismatches, stale agent beads, slow operations. Auto-fix common issues. | Gastown §2.2 |
 | 14 | **Completion evidence requirements** | Tasks can only close with proof. Commit hash, files changed, test results, coverage delta. `TaskCompleted` hook verifies before accepting. | Native hooks |
-| 15 | **File ownership declared in task definition** | Conflicts computed at dispatch time. Each task declares owned files in description. Orchestrator writes `.claude/file-locks.json` before spawning agents. | Hook-based |
+| 15 | **File ownership declared in task definition** | Conflicts computed at dispatch time. Each task declares owned files in description. Orchestrator writes `.claude/file-locks.json` before spawning agents. Subagent prompt includes: "check file-locks.json before editing." **Absorbs #2** (file-locks.json generation IS the formalized two-phase). Prompt-based enforcement is the proven primary mechanism — validated by [Anthropic's C compiler project](https://www.anthropic.com/engineering/building-c-compiler) at production scale. **Promoted to P2.** | Hook-based + Anthropic engineering |
 | 16 | **Artifact-specific rule-of-five variants** | Better quality for non-code. Code: Draft→Correctness→Clarity→Edge Cases→Excellence. Plans: Draft→Feasibility→Completeness→Risk→Optimality. Tests: Draft→Coverage→Independence→Speed→Maintainability. | Original research |
 
 ### LOWER IMPACT — Nice to have, future consideration
@@ -80,11 +80,11 @@
 
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
-| 25 | **Linter guards on all edits** | Prevents syntax errors from persisting. Run linter before accepting edit, reject + show error + retry if fail. Stops compounding errors. | SWE-agent ACI |
+| 25 | **Linter guards on all edits** | Prevents syntax errors from persisting. Run linter after edit (PostToolUse hook), surface error to Claude, prompt retry. Stops compounding errors. SWE-agent ablation: 3 percentage point improvement (15.0% → 18.0%). **✅ #42 VERIFIED (2026-02-07):** Frontmatter hooks fire for subagent tool calls. Promotes to P2.2. | SWE-agent ACI |
 | 26 | **Succinct search results (max 50)** | Prevents context overflow in subagents. If >50 matches, ask to refine query. Summarize rather than dump. | SWE-agent ACI |
 | 27 | **Integrated edit feedback** | Show file diff immediately after edit. Agent sees effect of action, catches mistakes faster. | SWE-agent ACI |
-| 28 | **100-line file chunks** | When reading files for context, chunk to 100 lines (empirically optimal). Prevents context overflow while maintaining orientation. | SWE-agent ACI |
-| 29 | **Specialized file viewer** | Build file viewer skill with scroll/search/line numbers. Better than raw cat for navigation. | SWE-agent |
+| 28 | **100-line file chunks** | When reading files for context, chunk to 100 lines (empirically optimal). **Mostly redundant:** Claude Code's Read tool now supports `offset`/`limit` parameters natively, defaulting to 2000 lines. At most, add a prompt instruction to SDD subagent templates to prefer 100-line chunks. **Demoted to P8.** | SWE-agent ACI |
+| 29 | ~~**Specialized file viewer**~~ | **REMOVED.** Fully redundant with Claude Code's native tools: Read (offset/limit for scrolling, cat -n line numbers) + Grep (-A/-B/-C context, output_mode content with line numbers). Building a custom file viewer would duplicate native tooling with no measurable benefit. | SWE-agent |
 
 ### From Gastown Deep Dive
 
@@ -109,10 +109,10 @@
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
 | 38 | **Use `memory` frontmatter for persistent agent context** | Agents have persistent memory surviving across conversations. Scopes: `user`, `project`, `local`. Builds knowledge over time. | Claude Code v2.1.33 |
-| 39 | **Hook into TeammateIdle and TaskCompleted events** | Native hook events for multi-agent coordination. Event-driven, replaces polling-based detection. | Claude Code v2.1.33 |
-| 40 | **Restrict sub-agent spawning via `Task(agent_type)` syntax** | Control which sub-agents can be spawned from `tools` frontmatter. Prevents infinite nesting. | Claude Code v2.1.33 |
+| 39 | **Hook into TeammateIdle and TaskCompleted events** | **SPLIT:** `TaskCompleted` is GA, works for subagents, and is the only hard enforcement mechanism — **promoted to P1.2**. `TeammateIdle` only relevant with agent teams (deferred due to ~7x cost) — **moved to P8**. | Claude Code v2.1.33 |
+| 40 | ~~**Restrict sub-agent spawning via `Task(agent_type)` syntax**~~ | **MOVED to P8.** Per [official docs](https://code.claude.com/docs/en/sub-agents): "This restriction only applies to agents running as the main thread with `claude --agent`. Subagents cannot spawn other subagents, so `Task(agent_type)` has no effect in subagent definitions." No-op for superpowers-bd's current Task-tool-based architecture. Only relevant if architecture migrates to `--agent` mode. | Claude Code v2.1.33 |
 | 41 | **Use native Task metrics for cost tracking** | Task results include token count, tool uses, duration. Native, accurate, no parsing required. | Claude Code v2.1.30 |
-| 42 | **Define hooks in agent/skill frontmatter** | Hooks scoped to specific agents. Per-agent validation, cleanup on finish. Cleaner than global config. | Claude Code v2.1.33 |
+| 42 | **Define hooks in agent/skill frontmatter** | Hooks scoped to specific agents. Per-agent validation, cleanup on finish. **Critical finding:** the only viable path to per-agent PreToolUse/PostToolUse enforcement, bypassing [Issue #21460](https://github.com/anthropics/claude-code/issues/21460) (global hooks don't fire for subagents). **VERIFIED (2026-02-07, Claude Code 2.1.37):** Frontmatter PostToolUse hooks DO fire for subagent tool calls via `--agents`. 3/3 experiment runs confirmed with transcript proof. Foundation for #25 (linter guards) and eventually #3 (file ownership). **Promoted to P1.3.** | Claude Code v2.1.33 |
 | 43 | **Use --from-pr flag for PR-linked sessions** | Sessions auto-link to PRs. Resume with `--from-pr`. Better PR workflow integration. | Claude Code v2.1.27 |
 | 44 | **Leverage skill character budget scaling** | Skill content budget scales at 2% of context window. More room for comprehensive skill instructions with Opus 4.6. | Claude Code v2.1.32 |
 
@@ -120,9 +120,17 @@
 
 | # | Improvement | What It Achieves | Source |
 |---|-------------|------------------|--------|
-| 45 | **Modernize all skill/agent frontmatter** | Update all 17 skills + 2 agents with modern frontmatter: `memory: project` for persistent context, `max_turns` to prevent cost runaway, `tools` restrictions (e.g., `Task(code-reviewer)`), parameterized `model` instead of hardcoded strings. Update `writing-skills` guide (currently says "only name and description" — wrong since v2.1.33). Fix `plan2beads` missing frontmatter. | Codebase audit |
+| 45 | **Modernize agent frontmatter + fix writing-skills guide** | **⚠️ SCOPE CORRECTED:** `memory`, `maxTurns`, and `tools` (with `Task()` syntax) are **agent-only** fields per [official docs](https://code.claude.com/docs/en/sub-agents) — they do NOT apply to skills. Actual scope: (1) Add `memory: project` + `maxTurns` to 2 agent definitions (`code-reviewer.md`, `epic-verifier.md`), (2) Fix `plan2beads.md` missing frontmatter, (3) Update `writing-skills` guide (says "only name and description" — skills actually support 10 fields), (4) Consider `allowed-tools` on select skills for read-only enforcement. ~1.5 hours, zero risk. | Codebase audit + [official docs](https://code.claude.com/docs/en/skills) |
 
-**Removed from active list (deferred due to ~7x agent teams token cost):**
+### New: Multi-Review Aggregation (Feb 7, 2026)
+
+| # | Improvement | What It Achieves | Source |
+|---|-------------|------------------|--------|
+| 46 | **Multi-review aggregation (N independent reviews)** | Run N independent reviews of the same code and aggregate findings. [SWR-Bench (arXiv 2509.01494)](https://arxiv.org/html/2509.01494v1) shows Self-Agg (n=10) achieves **43.67% F1 improvement** and **118.83% recall improvement** over single reviews. Distinct from #8 (which is throughput parallelism for different tasks). Self-Agg (same model N times) performs comparably to Multi-Agg (different models), so running Claude N times may be as effective as Claude + GPT. | [arXiv 2509.01494](https://arxiv.org/html/2509.01494v1) (SWR-Bench) |
+
+**Removed from active list:**
+- ~~#2~~ — Merged into #15 (SDD already implements two-phase; remaining value = file-locks.json = #15)
+- ~~#29~~ — Redundant with native Claude Code Read + Grep tools
 - ~~#45 (was) SessionStart feature detection + config file~~ — Not needed without agent teams opt-in
 - ~~#46 (was) Two-mode SDD: Task vs Agent Teams~~ — Agent teams impractical for Max subscribers
 
@@ -130,62 +138,61 @@
 
 ## 2. PRIORITIZED Implementation Order
 
-**Strategy:** Easy wins first (config/hooks), then prompt changes, then code changes. Get value immediately.
+**Strategy:** Work with what works today. Config/hooks first, then quality gate prompts, then file ownership via proven prompt-based patterns. Don't wait for upstream fixes with no timeline.
 
-### Priority 1: Use What's Already There (This Week — Config Only)
+### Priority 1: Config & Hooks (This Week — Zero Code)
 
-These features exist in Claude Code 2.1.33+. Just configure them.
+GA features in Claude Code 2.1.33+. Just configure them.
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **1.1** | 3 | File ownership via `PreToolUse` hook | ⚠️ Blocked on [Issue #16126](https://github.com/anthropics/claude-code/issues/16126); design hook now, use prompt-based interim |
-| **1.2** | 39 | TeammateIdle/TaskCompleted hooks | Hook config |
-| **1.3** | 38 | `memory: project` on agent definitions | Frontmatter line |
-| **1.4** | 40 | Restrict sub-agent spawning | Frontmatter field |
-| **1.5** | 41 | Native Task metrics | Already available — just use them |
-| **1.6** | 42 | Hooks in agent frontmatter | Frontmatter field |
+| **1.1** | 38 | `memory: project` on agent definitions | Frontmatter line |
+| **1.2** | 5 | TaskCompleted hook for quality gates | Hook config — **only hard enforcement that works for subagents** |
+| **1.3** | 42 | Hooks in agent/skill frontmatter | Frontmatter — **✅ VERIFIED:** Frontmatter hooks fire for subagent tool calls |
+| **1.4** | 41 | Native Task metrics | Already available — just use them |
 
-**Rationale:** Zero code required (except #3 which is blocked). Can be done in a single session. Immediate value.
+**Rationale:** Zero code required. TaskCompleted (#5) is the highest-value hook — GA, genuinely blocks task completion, and critically is the **only** enforcement that works for subagents (PreToolUse/PostToolUse don't fire for subagent tool calls per [Issue #21460](https://github.com/anthropics/claude-code/issues/21460)). Frontmatter hooks (#42) verified (2026-02-07) — confirmed as the path to per-agent hook enforcement, unlocking #25 (linter guards) and eventually #3 (file ownership).
 
-**File ownership — current status:**
-- **Hook mechanism works:** `PreToolUse` on `Edit|Write` is real, `tool_input.file_path` is correct, `permissionDecision: "deny"` blocks edits
-- **Agent identity missing:** No `$AGENT_NAME` env var for regular subagents ([Issue #16126](https://github.com/anthropics/claude-code/issues/16126)). Note: `CLAUDE_CODE_AGENT_NAME` exists for agent team members, but agent teams are deferred (~7x token cost).
-- **Interim approach:** Orchestrator writes `file-locks.json` before dispatch. Each subagent prompt includes: "Before editing any file, check `.claude/file-locks.json`. Only edit files where your name matches the owner."
-- **When Issue #16126 ships:** Switch to hook-based enforcement with `permissionDecision: "deny"`
+**Items removed from P1 (v4.3 → v5.0):**
+- ~~#3 (P1.1 in v4.3)~~ → **P5 (deferred).** Blocked on TWO upstream issues (#16126 + #21460). Prompt-based (#15) is the proven primary mechanism.
+- ~~#40 (P1.4 in v4.3)~~ → **P8.** `Task(agent_type)` is a no-op for subagent architecture.
+- ~~#39 TeammateIdle~~ → **P8.** Only relevant with agent teams (deferred). TaskCompleted portion promoted to P1.2.
 
 ### Priority 1.5: Stable Skill Modernization (This Week — Zero Cost Increase)
 
-Modernize all skills/agents with stable Claude Code 2.1.33+ features. Zero token cost increase. Immediate value.
+Modernize agents with stable Claude Code 2.1.33+ features. Zero token cost increase.
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **1.5.1** | 45 | Modernize all skill/agent frontmatter | 2 hours (17 skills + 2 agents + writing-skills guide) |
+| **1.5.1** | 45 | Modernize agent frontmatter + fix writing-skills guide | 1.5 hours (2 agents + 1 command + writing-skills guide) |
 
-**Rationale:** All 17 skills and 2 agents are built on outdated assumptions (wrong frontmatter guide, zero max_turns, no memory, hardcoded models). These are stable, GA features that cost nothing extra to use.
+**Rationale:** Two agent definitions lack memory/maxTurns, one command lacks frontmatter, and the writing-skills guide is factually wrong about available fields.
 
-**Modernization checklist:**
-- [ ] Add `memory: project` to all agent definitions (`agents/code-reviewer.md`, `agents/epic-verifier.md`)
-- [ ] Add `max_turns` to all subagent prompts (prevent cost runaway — currently unlimited)
-- [ ] Replace hardcoded `model: "opus"` / `model: "sonnet"` with budget tier variables in SDD prompts
+**Modernization checklist (scope corrected — agent-only fields):**
+- [ ] Add `memory: project` to `agents/code-reviewer.md` and `agents/epic-verifier.md`
+- [ ] Add `maxTurns` to both agents (test to find right values — no documented recommendations)
 - [ ] Add YAML frontmatter to `commands/plan2beads.md` (only command missing it)
-- [ ] Update `skills/writing-skills/SKILL.md` line 98: expand from "only name and description" to full frontmatter field reference (memory, tools, hooks, model, context, agent, allowed-tools, argument-hint, skills)
-- [ ] Add `tools` restrictions where appropriate (e.g., `Task(code-reviewer)` in SDD)
+- [ ] Update `skills/writing-skills/SKILL.md`: expand from "only name and description" to full 10-field reference (name, description, argument-hint, disable-model-invocation, user-invocable, allowed-tools, model, context, agent, hooks)
+- [ ] Consider `allowed-tools` on select skills for read-only enforcement (e.g., brainstorming, epic-verifier, verification-before-completion)
+- [ ] Replace hardcoded `model: "opus"` / `model: "sonnet"` with parameterized model in SDD prompts
 
-### Priority 2: Quality Gate Skills (High ROI — Prompt/Skill Changes)
+**⚠️ Scope correction from v4.3:** `memory`, `maxTurns`, `tools` (with `Task()` syntax) are **agent-only** frontmatter fields per [official docs](https://code.claude.com/docs/en/sub-agents). They do NOT apply to skills. Skills use `allowed-tools` (different field, no `Task()` syntax). The v4.3 claim of "17 skills + 2 agents" was incorrect — the agent-specific work is 2 files, not 19.
 
-Prompt engineering and skill updates. No infrastructure code needed.
+### Priority 2: Quality Gates & File Ownership (High ROI — Prompt/Skill Changes)
+
+Prompt engineering, skill updates, and proven prompt-based file coordination. No infrastructure code needed.
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **2.1** | 1 | Structured verification (Two-Phase Reflective hybrid) | Prompt rewrite for 3 files |
-| **2.2** | 6 | Strengthen simplification checks in existing skills + linter hooks | Prompt additions + hook config |
-| **2.3** | 5 | TaskCompleted hook for quality gates | Hook config |
-| **2.4** | 14 | Completion evidence requirements | Hook + prompt |
-| **2.5** | 16 | Artifact-specific rule-of-five | Skill variants |
-| **2.6** | 25 | Linter guards via PostToolUse hooks | Hook config |
-| **2.7** | 2 | Two-phase delayed dispatch | Skill update |
+| **2.1** | 1 | Structured verification (Two-Phase Reflective hybrid) | Prompt rewrite for 3 files — **tested: marginal improvement, zero FP advantage** |
+| **2.2** | 25 | Linter guards via PostToolUse hooks | Hook config — **✅ P1.3 verified** — frontmatter hooks work for subagents |
+| **2.3** | 14 | Completion evidence requirements | Hook + prompt — companion to #5 |
+| **2.4** | 15 | File ownership declared in task definition (absorbs #2) | Skill update — proven pattern |
+| **2.5** | 6 | Strengthen simplification checks in existing skills | Prompt additions (linter hook part conditional on P1.3) |
+| **2.6** | 16 | Artifact-specific rule-of-five | Skill variants |
+| **2.7** | 24 | Pre-planning file conflict analysis | New analysis step in planning skills |
 
-**Rationale:** Highest ROI improvements. Quality gates are superpowers-bd's unique value. #1 (structured verification) is the single most impactful change — research-backed, with 3 identified gaps across 3 files.
+**Rationale:** Quality gates are superpowers-bd's unique value. #1 (structured verification) is the single most impactful change — research-backed, with 3 identified gaps across 3 files. #15 (file ownership via prompt-based coordination) is now the **primary** mechanism, not an "interim" — validated by Anthropic's own C compiler project at production scale.
 
 **Structured verification method (P2.1) — Two-Phase Reflective + behavioral comparison hybrid:**
 
@@ -207,16 +214,20 @@ Step 4: THEN read the implementer's report. Note discrepancies between your anal
 - `skills/requesting-code-review/code-reviewer.md` — restructure to read code BEFORE implementer report; add requirement extraction step
 - `skills/subagent-driven-development/spec-reviewer-prompt.md` — remove bias-inducing "suspiciously quickly"; restructure to delay report reading (already has strong skepticism otherwise)
 
-### Priority 3: File Ownership (Full Implementation)
+**File ownership — updated status (v5.0):**
+- **Prompt-based is the PRIMARY mechanism**, not an interim. Anthropic's [C compiler project](https://www.anthropic.com/engineering/building-c-compiler) used advisory file locks (text files as claims) with cooperative agents at production scale.
+- **Orchestrator writes `file-locks.json` before dispatch.** Each subagent prompt includes: "Before editing any file, check `.claude/file-locks.json`. Only edit files where your task ID matches the owner."
+- **Cursor's experience validates this approach:** Traditional file locking bottlenecked 20-agent runs to 2-3 effective agents. Advisory coordination scales better.
+- **Hook-based enforcement is defense-in-depth (P5)**, contingent on TWO upstream fixes (#16126 + #21460).
 
-Builds on the P1 interim with full conflict prevention.
+### Priority 3: Multi-Review & Scaling (Quality at Scale)
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **3.1** | 15 | File ownership declared in task definition | Skill update |
-| **3.2** | 24 | Pre-planning file conflict analysis | New skill |
+| **3.1** | 46 | Multi-review aggregation (N independent reviews) | Skill/prompt |
+| **3.2** | 7 | Checkpoint classification (binary flag) | Plan format update |
 
-**Rationale:** P1 gives us prompt-based enforcement. P3 makes it systematic — ownership at dispatch time, conflict detection during planning.
+**Rationale:** Multi-review aggregation (#46) delivers a 43.67% F1 improvement (SWR-Bench). Becomes trivial to implement after #1 (structured verification) is in place. Checkpoint classification (#7) is low-effort and formalizes existing batch boundary behavior.
 
 ### Priority 4: Context & State (Beads Integration)
 
@@ -227,16 +238,17 @@ Builds on the P1 interim with full conflict prevention.
 
 **Rationale:** SDD skill already follows SSOT pattern. #4 codifies it as a skill-writing rule to prevent regressions. Native memory handles context; beads handles task state.
 
-### Priority 5: Execution Optimization (Performance)
+### Priority 5: Deferred Enforcement & Performance
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **5.1** | 9 | Parallel bd queries | Go code |
-| **5.2** | 32 | Batch lookups (SessionSet pattern) | Code |
-| **5.3** | 11 | --fast mode for status | Code |
-| **5.4** | 8 | Parallelize review pipelines | Skill update |
+| **5.1** | 3 | File ownership via PreToolUse hooks | ⚠️ Blocked on [#16126](https://github.com/anthropics/claude-code/issues/16126) + [#21460](https://github.com/anthropics/claude-code/issues/21460). Defense-in-depth when upstream fixes. |
+| **5.2** | 9 | Parallel bd queries | Go code |
+| **5.3** | 32 | Batch lookups (SessionSet pattern) | Code |
+| **5.4** | 11 | --fast mode for status | Code |
+| **5.5** | 8 | Parallelize review pipelines (throughput) | Skill update |
 
-**Rationale:** After core system works, optimize for speed.
+**Rationale:** #3 moves here from P1 — blocked on 6 open upstream issues spanning 6+ months with zero Anthropic engagement. Performance items (#9, #32, #11, #8) activate after core system works.
 
 ### Priority 6: Tooling & Polish (Refinement)
 
@@ -248,20 +260,16 @@ Builds on the P1 interim with full conflict prevention.
 | **6.4** | 43 | Use --from-pr flag | Config |
 | **6.5** | 34 | Use 128K output | Prompt update |
 | **6.6** | 44 | Leverage skill budget scaling | Config |
-| **6.7** | 35 | ~~Integrate native agent teams~~ | **MOVED to P8** — ~7x token cost impractical for Max subscribers |
-| **6.8** | 36 | Map task type to effort level | Blocked: Task tool lacks effort param |
-| **6.9** | 7 | Checkpoint classification (binary flag) | Plan format update |
+| **6.7** | 36 | Map task type to effort level | Blocked: Task tool lacks effort param |
 
 ### Priority 7: SWE-Agent Patterns (Agent Quality)
 
 | Order | # | Improvement | Effort |
 |-------|---|-------------|--------|
-| **7.1** | 26 | Succinct search results (max 50) | Skill update |
-| **7.2** | 27 | Integrated edit feedback | Skill update |
-| **7.3** | 28 | 100-line file chunks | Skill update |
-| **7.4** | 29 | Specialized file viewer | New skill |
+| **7.1** | 26 | Succinct search results (max 50) | Prompt instruction |
+| **7.2** | 27 | Integrated edit feedback | Prompt instruction (mostly native in IDE mode) |
 
-**Rationale:** Agent-Computer Interface improvements after core functionality works.
+**Rationale:** Reduced from 4 items to 2. #28 (100-line chunks) demoted to P8 (native Read offset/limit). #29 (file viewer) removed (redundant). Remaining items are minor prompt instructions, not feature builds.
 
 ### Priority 8: Advanced & Future (Do Last)
 
@@ -269,7 +277,7 @@ Builds on the P1 interim with full conflict prevention.
 |-------|---|-------------|--------|
 | **8.1** | 17 | DAG visualization | Code |
 | **8.2** | 19 | Adversarial security review | New skill |
-| **8.3** | 20 | External verification (GPT 5.2-codex) | Integration |
+| **8.3** | 20 | External verification (GPT 5.2-codex) | Integration — Self-Agg may be as effective (SWR-Bench) |
 | **8.4** | 22 | Memorable agent identities | Code |
 | **8.5** | 23 | Git-backed context audit trail | Code |
 | **8.6** | 30 | Atomic spawn | Code |
@@ -277,8 +285,12 @@ Builds on the P1 interim with full conflict prevention.
 | **8.8** | 18 | Complexity scoring | Code |
 | **8.9** | 37 | Exploit ARC AGI 2 leap | Prompt/routing |
 | **8.10** | 33 | [FUTURE] 1M context | When beta exits |
+| **8.11** | 35 | Integrate native agent teams | ~7x token cost impractical for Max subscribers |
+| **8.12** | 40 | Restrict sub-agent spawning | No-op for current subagent architecture |
+| **8.13** | 39 | TeammateIdle hooks | Only relevant with agent teams |
+| **8.14** | 28 | 100-line file chunks | Mostly redundant with native Read offset/limit |
 
-**Rationale:** These provide value but aren't critical. Do after core system works reliably.
+**Rationale:** These provide value but aren't critical. #40, #39 (TeammateIdle), and #28 newly added from higher tiers after research found them irrelevant or redundant for current architecture.
 
 ---
 
@@ -383,23 +395,49 @@ Beads v0.49.4 uses **embedded Dolt** (in-process via `dolthub/driver`), NOT `dol
 
 **Note:** If superpowers-bd ever migrates to `dolt sql-server` mode for true multi-agent worktree sharing (see Q2), retry-with-verification would become relevant. But for current embedded mode, it is not needed.
 
-### 3.4 Claude Code Hooks API (Verified Feb 7, 2026)
+### 3.4 Claude Code Hooks API (Verified Feb 7, 2026 — Updated v5.0)
 
-Key findings from research on the hooks system:
+Key findings from research on the hooks system. **14 hook events** officially documented as of v2.1.33.
 
-**PreToolUse hooks:**
+**⚠️ CRITICAL: Subagent Hook Enforcement Gap ([Issue #21460](https://github.com/anthropics/claude-code/issues/21460))**
+
+PreToolUse and PostToolUse hooks configured in global settings **do NOT fire for subagent tool calls**. This is the most impactful finding from v5.0 research. Six related issues span Aug 2025–Jan 2026 with zero resolution:
+- [#21460](https://github.com/anthropics/claude-code/issues/21460) — PreToolUse hooks not enforced on subagent tool calls (**OPEN**, security bug)
+- [#16126](https://github.com/anthropics/claude-code/issues/16126) — Add agent identity to PreToolUse hook data (**OPEN**, no Anthropic engagement)
+- [#6305](https://github.com/anthropics/claude-code/issues/6305) — Post/PreToolUse hooks not executing (Aug 2025)
+- [#18950](https://github.com/anthropics/claude-code/issues/18950) — Subagents don't inherit user-level permissions
+- [#20946](https://github.com/anthropics/claude-code/issues/20946) — PreToolUse hooks don't block in bypass mode
+- [#14859](https://github.com/anthropics/claude-code/issues/14859) — Agent hierarchy in hook events
+
+**Implications:** File ownership via PreToolUse (#3), linter guards via PostToolUse (#25), and simplification hooks (#6) all require subagent tool call hooks to be useful in SDD workflows. Global settings hooks remain broken for subagents, but **frontmatter-defined hooks (#42) provide a verified workaround** (confirmed 2026-02-07, 3/3 runs). Linter guards (#25) can proceed via frontmatter PostToolUse hooks. File ownership (#3) has a viable path via frontmatter PreToolUse hooks, though still blocked on agent identity (#16126).
+
+**Hooks that DO work for subagents:**
+- `TaskCompleted` — exit code 2 blocks task completion (GA, hard enforcement)
+- `SubagentStop` — can block subagent from finishing
+- `TeammateIdle` — for agent teams only
+
+**PreToolUse hooks (main agent only):**
 - Matcher is regex: `Edit|Write` correctly matches both tools
 - Input via stdin as JSON: `tool_input.file_path` is correct for both Edit and Write
 - `exit 2` blocks the tool call (older pattern)
 - Preferred: return JSON with `permissionDecision: "deny"` and `permissionDecisionReason`
+- Can also **modify tool input** via `updatedInput` (transparent sandboxing)
 - ⚠️ No agent identity in hook input ([Issue #16126](https://github.com/anthropics/claude-code/issues/16126))
 - ⚠️ Subagents share `session_id` with parent ([Issue #7881](https://github.com/anthropics/claude-code/issues/7881))
 
-**TaskCompleted hooks:**
+**TaskCompleted hooks (works for all agents):**
 - `exit 2` blocks task completion (hard enforcement)
 - Receives: `task_id`, `task_subject`, `task_description`, `teammate_name`, `team_name`
 - Can use `type: "agent"` for 50-turn code analysis before allowing completion
+- Can use `type: "prompt"` for lightweight single-turn LLM evaluation (Haiku default)
 - Latency risk: agent-type hooks could take 60+ seconds per task
+- **Latency benchmarking (2026-02-07, tested, inconclusive):** 20 sessions (5x4 types: none, command, prompt, agent) all succeeded but command hook markers never created in headless `claude -p` mode with TaskCreate/TaskUpdate workflow. Cannot determine per-type overhead — hooks may not fire for native task tool completions in headless mode. Retest needed with interactive sessions or alternative trigger method.
+
+**Frontmatter hooks (VERIFIED):**
+- Docs say hooks in skill/agent frontmatter are "scoped to the component's lifecycle and only run when that component is active"
+- All hook events are supported; `Stop` hooks auto-convert to `SubagentStop` for subagents
+- `once` field (boolean, skills only) makes a hook run only once per session
+- **VERIFIED (2026-02-07, Claude Code 2.1.37):** Frontmatter PostToolUse hooks DO fire for subagent tool calls when defined via `--agents` flag. Experiment: 3/3 runs confirmed (positive control 3/3, all first-pass, transcript proof of Task tool invocation). This unlocks #25 (linter guards via frontmatter PostToolUse) and provides a path for #3 (file ownership via frontmatter PreToolUse).
 
 **addBlockedBy (Task tool):**
 - Soft/prompt-based enforcement only — agents *choose* to respect it
@@ -689,27 +727,27 @@ For superpowers-bd, this suggests:
 ### What Success Looks Like
 
 1. **No silent failures** — Beads v0.49.4 concurrency protections, structured IDs, health checks
-2. **No missed work** — TaskCompleted hook quality gates, completion evidence
-3. **No conflicts** — File ownership via prompt-based interim → hook-based when Issue #16126 ships
+2. **No missed work** — TaskCompleted hook quality gates (P1.2), completion evidence (P2.3)
+3. **No conflicts** — File ownership via prompt-based coordination (#15, P2.4) — proven by Anthropic's C compiler project. Hook-based defense-in-depth when upstream fixes (P5).
 4. **No state drift** — Strict SSOT principle, persistent memory, structured storage
 5. **Maximum parallelism** — Task tool subagents with wave-based dispatch, cost-efficient
-6. **Quality at scale** — Structured verification (Two-Phase Reflective hybrid), simplification via linters, multi-review aggregation
+6. **Quality at scale** — Structured verification (Two-Phase Reflective hybrid), multi-review aggregation (#46), linter guards (#42 verified — frontmatter hooks work for subagents)
 7. **Comprehensive outputs** — 128K output means complete plans in single responses
-8. **Modern skills** — All 17 skills + 2 agents use current stable frontmatter fields (memory, tools, max_turns)
+8. **Modern agents** — 2 agent definitions use current stable frontmatter fields (memory, maxTurns); writing-skills guide corrected
 
 ### The Non-Negotiables
 
-1. **Structured verification** — Two-Phase Reflective + behavioral comparison hybrid for all reviewers (research-backed)
-2. **File ownership** — Prompt-based now, hook-based when agent identity ships (Issue #16126)
-3. **TaskCompleted hook** — Hard enforcement quality gate (the only non-advisory mechanism)
-4. **Stable features first** — Use proven GA features only. Agent teams deferred (~7x token cost impractical for Max subscribers).
-5. **Opus 4.6 adoption** — 128K output, adaptive thinking (agent teams deferred)
+1. **Structured verification** — Two-Phase Reflective + behavioral comparison hybrid for all reviewers (research-backed, arXiv 2508.12358)
+2. **TaskCompleted hook** — The only hard enforcement mechanism that works for subagents. Promoted to P1.2.
+3. **Prompt-based file ownership** — Primary mechanism, not interim. Validated at production scale. Hook-based is defense-in-depth (P5).
+4. **Stable features first** — Use proven GA features only. Agent teams deferred (~7x token cost). Experimental features deferred.
+5. **Verify before assuming** — Frontmatter hooks (#42) verified — ready to build linter guards (#25) and file ownership (#3) on this foundation. Don't rank improvements based on unverified assumptions.
 
 ### The Order Matters
 
-**Config/hooks → Stable skill modernization → Prompts → Optimization → Polish**
+**Config/hooks → Agent modernization → Quality gate prompts → File ownership (prompt-based) → Performance → Polish**
 
-Don't write code when config works. Don't optimize before it works. Don't parallelize before conflicts are prevented. Don't rebuild what beads or Claude Code already provide. Don't use experimental features that could wipe user quotas.
+Don't write code when config works. Don't optimize before it works. Don't wait for upstream fixes with no timeline — use proven patterns now. Don't rebuild what beads or Claude Code already provide. Don't use experimental features that could wipe user quotas.
 
 ### What Remains Unique to superpowers-bd
 
@@ -717,12 +755,13 @@ Native Claude Code provides coordination. superpowers-bd ensures **quality work 
 
 - **Beads** for git-backed task persistence (Dolt backend with 6-layer concurrency protection)
 - **Structured verification** via Two-Phase Reflective hybrid (research-backed)
-- **TaskCompleted hooks** for hard enforcement quality gates
-- **File ownership** (prompt-based interim → hook-based when #16126 ships)
+- **TaskCompleted hooks** for hard enforcement quality gates (the only mechanism that works for subagents)
+- **Prompt-based file ownership** — proven at production scale, not dependent on upstream fixes
+- **Multi-review aggregation** — 43.67% F1 improvement via N independent reviews (SWR-Bench)
 - **Rule-of-five** quality gate skills
-- **Modern frontmatter** — memory, max_turns, tools restrictions on all skills/agents
+- **Modern agent frontmatter** — memory, maxTurns on agent definitions
 
-**The playbook:** Use Claude Code's stable GA features for coordination (memory, hooks, metrics) + superpowers-bd for discipline (quality gates, persistence, file ownership). Don't rebuild what beads or Claude Code already provide. Don't use features that could wipe user quotas.
+**The playbook:** Use Claude Code's stable GA features for coordination (memory, hooks, metrics) + superpowers-bd for discipline (quality gates, persistence, file ownership). Work with what works today — don't block on upstream fixes. Don't rebuild what beads or Claude Code already provide.
 
 ---
 
@@ -745,9 +784,11 @@ Native Claude Code provides coordination. superpowers-bd ensures **quality work 
 | 4.1 | 2026-02-07 | Research-verified top 4. Removed semaphore + retry (already in beads/Gastown-specific). Reframed skeptical reviewers. Downgraded two-phase dispatch. 47 items. |
 | 4.2 | 2026-02-07 | **Research-verified top 10 via 5 parallel Opus agents.** Removed 3 items: process termination (Gastown tmux-specific, not applicable), pre-commit guard (agent identity gap in git hooks, pre-commit.com destroys beads hooks), task type classification (already implemented in SDD). Corrected 7 items: arXiv paper misrepresentation fixed (#1 — Claude benefits from Two-Phase Reflective, not behavioral comparison; RCRR measures false-positive avoidance only); dependency direction reversed (#2 depends on nothing, #3 depends on #2); `$AGENT_NAME` confirmed non-existent (#3 — blocked on Issue #16126); "ZFC" label dropped (#4 — fabricated, not from Gastown or math; renamed to Strict SSOT); quality gates split (#5 — TaskCompleted hard enforcement kept, addBlockedBy soft enforcement already in SDD); simplification review reframed (#6 — fold into existing skills + linter hooks, don't create new skill); checkpoint classification simplified (#7 — binary flag, lowered to P6). Added Section 3.4: Claude Code Hooks API verification. Updated Q3: pre-commit.com incompatible with beads. P3 (Foundation Code) eliminated (empty). **44 active improvements remain.** |
 | 4.3 | 2026-02-07 | **Agent teams research + stable-only pivot.** Via 2 parallel Opus research agents: discovered `CLAUDE_CODE_AGENT_NAME` exists for team members (unblocks file ownership in theory), documented all 13 TeammateTool operations, corrected token cost to ~7x (official docs). **However:** ~7x token cost makes agent teams impractical for Max 20x subscribers — could wipe daily/weekly quota in a single session. **Decision: defer all experimental features, focus on stable only.** Removed 2 items (#45 feature detection, #46 two-mode SDD). Kept #45 (renumbered) as stable frontmatter modernization. P1.5 is now "Stable Skill Modernization" (~2 hours, zero token cost increase). #35 moved from P6 to P8 (future). Agent teams research preserved in Section 3.1 for future reference. **45 active improvements.** |
+| 5.0 | 2026-02-07 | **Research-verified full re-ranking via 5 parallel Opus agents.** Five agents researched: (1) Claude Code hooks API, (2) AI code review/verification, (3) skill/agent frontmatter, (4) parallel execution/file ownership, (5) SWE-agent ACI patterns. **Critical discovery: [Issue #21460](https://github.com/anthropics/claude-code/issues/21460) — PreToolUse/PostToolUse hooks do NOT fire for subagent tool calls.** This fundamentally changes the file ownership strategy. Six related hook issues span Aug 2025–Jan 2026 with zero resolution. **Major priority changes:** #5 (TaskCompleted hook) promoted P2.3→P1.2 (only hard enforcement for subagents); #3 (PreToolUse file ownership) demoted P1.1→P5 (blocked on TWO issues); #15 (prompt-based file ownership) promoted P3.1→P2.4 (proven primary mechanism — Anthropic C compiler); #42 (frontmatter hooks) promoted P1.6→P1.3 (potential workaround for #21460, needs verification); #25 (linter guards) conditionally promoted to P2.2 (depends on #42 verification). **Scope corrections:** #45 corrected — `memory`, `maxTurns`, `tools` are agent-only fields, not skill fields (scope reduced from 19 files to 4); #40 moved to P8 (`Task(agent_type)` is no-op for subagent architecture). **Items changed:** #2 merged into #15; #29 removed (redundant with native tools); #46 added (multi-review aggregation, 43.67% F1 improvement from SWR-Bench). #8 promotion rejected on self-audit (SWR-Bench evidence supports new #46, not #8 which is throughput). Section 3.4 expanded with 6 open hook issues. **44 active improvements.** |
+| 5.1 | 2026-02-07 | **Empirical verification of top 3 assumptions.** #42 frontmatter hooks: CONFIRMED/VERIFIED — PostToolUse hooks fire for subagent tool calls via `--agents` (3/3 runs, Claude Code 2.1.37). Promotes #25 linter guards to unconditional P2.2. #5 TaskCompleted latency: INCONCLUSIVE — 20 sessions succeeded but command hook markers never created in headless mode. No priority changes. #1 Two-Phase Reflective: PARTIAL/VERIFIED — +0.2 score improvement (5.0 vs 4.8), zero FP advantage (0.0 vs 0.2), both methods detect 5/5 bugs. Adopt for precision, not detection improvement. |
 
 ---
 
-*This document synthesizes findings from: superpowers-bd, superpowers (original), get-shit-done, gastown (575 commits), loom, claude-flow, SWE-agent/mini-swe-agent, Dolt backend analysis, Opus 4.6 release analysis, Claude Code 2.1.33+ changelog analysis, empirical beads v0.49.4 concurrency testing, arXiv 2508.12358 (LLM verification), arXiv 2509.01494 (SWR-Bench multi-review), Claude Code hooks API verification (Issues #16126, #7881), pre-commit.com compatibility testing, Claude Code agent teams docs (code.claude.com), and experimental feature detection research (paddo.dev, kieranklaassen gist, claudefa.st).*
+*This document synthesizes findings from: superpowers-bd, superpowers (original), get-shit-done, gastown (575 commits), loom, claude-flow, SWE-agent/mini-swe-agent, Dolt backend analysis, Opus 4.6 release analysis, Claude Code 2.1.33+ changelog analysis, empirical beads v0.49.4 concurrency testing, arXiv 2508.12358 (LLM verification), arXiv 2509.01494 (SWR-Bench multi-review), Claude Code hooks API verification (Issues #16126, #7881, #21460, #6305, #18950, #20946, #14859), pre-commit.com compatibility testing, Claude Code agent teams docs (code.claude.com), experimental feature detection research (paddo.dev, kieranklaassen gist, claudefa.st), Anthropic C compiler engineering blog, Cursor worktree isolation docs, and official Claude Code skills/sub-agents/hooks documentation (code.claude.com).*
 
-***Version 4.3 Summary:** 45 active improvements. Agent teams thoroughly researched (13 TeammateTool operations, env vars, delegate mode) but DEFERRED — ~7x token cost impractical for Max subscribers. Two experimental items removed (#45 feature detection, #46 two-mode SDD). P1.5 is now "Stable Skill Modernization" only: update all 17 skills + 2 agents with memory, max_turns, tools restrictions, fix writing-skills guide (~2 hours, zero cost increase). File ownership (#3) remains blocked on Issue #16126 (prompt-based interim). Priority order: config (P1) → **stable skill modernization (P1.5)** → quality gate prompts (P2) → file ownership (P3) → context/state (P4) → performance (P5) → polish (P6) → SWE-agent (P7) → future incl. agent teams (P8). Zero external runtime dependencies.*
+***Version 5.1 Summary:** 44 active improvements. Empirical verification of top 3 assumptions. #42 frontmatter hooks CONFIRMED/VERIFIED (3/3 runs, Claude Code 2.1.37) — PostToolUse hooks DO fire for subagent tool calls via `--agents`, unblocking #25 linter guards (now unconditional P2.2) and providing a path for #3 file ownership. #5 TaskCompleted latency INCONCLUSIVE (20 sessions succeeded, command hook markers never created in headless mode — no priority changes). #1 Two-Phase Reflective PARTIAL/VERIFIED (+0.2 score, zero FP advantage, both methods detect 5/5 bugs — adopt for precision, not detection improvement). Priority order: config/hooks (P1) → **agent modernization (P1.5)** → quality gates + prompt-based file ownership (P2) → multi-review scaling (P3) → context/state (P4) → deferred enforcement + performance (P5) → polish (P6) → SWE-agent (P7) → future (P8). Zero external runtime dependencies.*

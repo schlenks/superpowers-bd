@@ -17,9 +17,9 @@ Import a Superpowers plan (Markdown) or a Shortcut story into Beads as an epic w
 ## Usage
 
 ```
-/plan2beads <path-to-plan.md>
-/plan2beads SC-1234
-/plan2beads 1234
+/superpowers-bd:plan2beads <path-to-plan.md>
+/superpowers-bd:plan2beads SC-1234
+/superpowers-bd:plan2beads 1234
 ```
 
 ## Conversion Task Enforcement

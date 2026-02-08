@@ -316,7 +316,7 @@ After saving the plan and human approval:
 **REQUIRED:** Use plan2beads to convert the approved plan to a beads epic with properly linked issues:
 
 ```
-/plan2beads docs/plans/YYYY-MM-DD-feature-name.md
+/superpowers-bd:plan2beads docs/plans/YYYY-MM-DD-feature-name.md
 ```
 
 This creates:
