@@ -45,11 +45,11 @@ Before dispatching, determine model selection strategy.
 
 **Model matrix by tier:**
 
-| Tier | Implementer | Spec Reviewer | Code Reviewer | Epic Verifier |
-|------|-------------|---------------|---------------|---------------|
-| max-20x | opus | sonnet | sonnet | opus |
-| max-5x | sonnet | haiku | sonnet | sonnet |
-| pro/api | sonnet | haiku | haiku | sonnet |
+| Tier | Implementer | Spec Reviewer | Code Reviewer | N Reviews | Epic Verifier |
+|------|-------------|---------------|---------------|-----------|---------------|
+| max-20x | opus | sonnet | sonnet | 3 | opus |
+| max-5x | sonnet | haiku | sonnet | 3 | sonnet |
+| pro/api | sonnet | haiku | haiku | 1 | sonnet |
 
 Note: Epic Verifier uses sonnet minimum (opus for max-20x) because verification is comprehensive and must catch subtle issues. See `skills/epic-verifier/SKILL.md`.
 
@@ -66,13 +66,16 @@ duration_ms: 39153</usage>
 
 Maintain these structures throughout the epic:
 
-**Per-task metrics** — keyed by `"{issue_id}.{role}"` (e.g., `"hub-abc.1.impl"`, `"hub-abc.1.spec"`, `"hub-abc.1.code"`):
+**Per-task metrics** — keyed by `"{issue_id}.{role}"` (e.g., `"hub-abc.1.impl"`, `"hub-abc.1.spec"`, `"hub-abc.1.code"`). For multi-review (N>1), key each reviewer separately and add aggregation:
 ```python
-task_metrics[f"{issue_id}.{role}"] = {
-    "total_tokens": result.usage.total_tokens,
-    "tool_uses": result.usage.tool_uses,
-    "duration_ms": result.usage.duration_ms
-}
+# Single review (N=1):
+task_metrics[f"{issue_id}.code"] = {...}
+
+# Multi-review (N>1):
+task_metrics[f"{issue_id}.code.1"] = {...}  # Reviewer 1
+task_metrics[f"{issue_id}.code.2"] = {...}  # Reviewer 2
+task_metrics[f"{issue_id}.code.3"] = {...}  # Reviewer 3
+task_metrics[f"{issue_id}.agg"] = {...}     # Aggregation step (if not fast-pathed)
 ```
 
 **Per-wave aggregates** — computed at wave end:
@@ -473,13 +476,13 @@ while task_ids:
 Reviews for DIFFERENT tasks can run in parallel:
 
 ```
-Timeline (3 tasks, max parallelism):
-─────────────────────────────────────────────────────────────────
-Task A: [implement]────[spec-A]────[code-A]────→ close
-Task B:    [implement]────[spec-B]────[code-B]────→ close
-Task C:       [implement]────[spec-C]────[code-C]──→ close
-                       ↑         ↑
-                       └─parallel─┘
+Timeline (3 tasks, N=3 reviews, max parallelism):
+─────────────────────────────────────────────────────────────────────────
+Task A: [implement]────[spec-A]────[code-A×3]────[agg-A]────→ close
+Task B:    [implement]────[spec-B]────[code-B×3]────[agg-B]────→ close
+Task C:       [implement]────[spec-C]────[code-C×3]──[agg-C]──→ close
+                       ↑         ↑            ↑
+                       └─parallel─┘    (agg skipped if fast path)
 ```
 
 **Rules:**
@@ -500,15 +503,37 @@ on_implementer_complete(task_id, result):
     pending_spec_reviews.add(spec_task)
 
 on_spec_review_pass(task_id, result):
-    # Immediately dispatch code review (background)
-    code_task = Task(
-        subagent_type="general-purpose",
-        model=tier_code_model,
-        run_in_background=True,
-        prompt=code_reviewer_prompt,  # from ./code-quality-reviewer-prompt.md
-        ...
-    )
-    pending_code_reviews.add(code_task)
+    n_reviews = tier_n_reviews  # 3 for max-20x/max-5x, 1 for pro/api
+
+    if n_reviews > 1:
+        # Dispatch N independent code reviews in parallel
+        # See superpowers:multi-review-aggregation for full algorithm
+        reviewer_tasks = []
+        for i in range(n_reviews):
+            code_task = Task(
+                subagent_type="general-purpose",
+                model=tier_code_model,
+                run_in_background=True,
+                description=f"Code review {i+1}/{n_reviews}: {task_id}",
+                prompt=code_reviewer_prompt + f"\nYou are Reviewer {i+1} of {n_reviews}. "
+                    "Review independently — do not reference other reviewers."
+            )
+            reviewer_tasks.append(code_task)
+
+        # When all N complete: check fast path (all approve, 0 Critical/Important)
+        # If fast path: skip aggregation, proceed to close
+        # Otherwise: dispatch aggregator (haiku) per aggregator-prompt.md
+        pending_multi_reviews[task_id] = reviewer_tasks
+    else:
+        # Single review (pro/api) — unchanged
+        code_task = Task(
+            subagent_type="general-purpose",
+            model=tier_code_model,
+            run_in_background=True,
+            prompt=code_reviewer_prompt,  # from ./code-quality-reviewer-prompt.md
+            ...
+        )
+        pending_code_reviews.add(code_task)
 ```
 
 ### Verification Gap Closure
@@ -618,8 +643,8 @@ TaskUpdate(taskId=summary_task.id, metadata={
 bd comments add <epic-id> "Wave N complete:
 - Closed: hub-abc.1, hub-abc.2
 - Cost: [wave_tokens] tokens (~$[cost]) | [tool_calls] tool calls | [duration]s
-  - hub-abc.1: impl=[tok]/[calls]/[dur]s, spec=[tok], code=[tok]
-  - hub-abc.2: impl=[tok]/[calls]/[dur]s, spec=[tok], code=[tok]
+  - hub-abc.1: impl=[tok]/[calls]/[dur]s, spec=[tok], code=[tok]×N+agg=[tok]
+  - hub-abc.2: impl=[tok]/[calls]/[dur]s, spec=[tok], code=[tok]×N+agg=[tok]
 - Running total: [epic_tokens] tokens (~$[epic_cost]) across [N] waves
 - Conventions established:
   - [Pattern/convention implementers chose]
@@ -705,8 +730,8 @@ Code reviewer: ✅ Approved
 bd comments add hub-abc "Wave 1 complete:
 - Closed: hub-abc.1 (User model), hub-abc.2 (JWT utils)
 - Cost: 156,200 tokens (~$1.41) | 42 tool calls | 89s
-  - hub-abc.1: impl=52,300/15/45s, spec=12,100, code=18,400
-  - hub-abc.2: impl=41,800/12/38s, spec=11,200, code=20,400
+  - hub-abc.1: impl=52,300/15/45s, spec=12,100, code=18,400×3+agg=7,800
+  - hub-abc.2: impl=41,800/12/38s, spec=11,200, code=20,400×3+agg=8,100
 - Running total: 156,200 tokens (~$1.41) across 1 wave
 - Conventions: Using uuid v4 for IDs, camelCase for all JSON fields
 - Notes: JWT expiry set to 24h per Key Decisions"
@@ -745,7 +770,7 @@ Wave 3: Task 4 is ready
 ║  Epic hub-abc complete                       ║
 ╠══════════════════════════════════════════════╣
 ║  Waves:    3                                 ║
-║  Tasks:    4 (4 impl + 4 spec + 4 code)      ║
+║  Tasks:    4 (4 impl + 4 spec + 12 code + 4 agg) ║
 ║  Tokens:   312,400 total                     ║
 ║  Cost:     ~$2.81 (blended $9/M)             ║
 ║  Duration: 4m 12s wall clock                 ║
@@ -852,7 +877,7 @@ At the COMPLETE state (all epic children closed), before transitioning to `finis
 ║  Epic {epic_id} complete                     ║
 ╠══════════════════════════════════════════════╣
 ║  Waves:    {wave_count}                      ║
-║  Tasks:    {task_count} ({impl} impl + {spec} spec + {code} code) ║
+║  Tasks:    {task_count} ({impl} impl + {spec} spec + {code} code + {agg} agg) ║
 ║  Tokens:   {epic_tokens:,} total             ║
 ║  Cost:     ~${epic_cost:.2f} (blended $9/M)  ║
 ║  Duration: {wall_clock} wall clock           ║
@@ -863,7 +888,7 @@ At the COMPLETE state (all epic children closed), before transitioning to `finis
 ```bash
 bd comments add <epic-id> "Epic complete:
 - Total: {epic_tokens:,} tokens (~${epic_cost:.2f}) across {wave_count} waves
-- Tasks: {task_count} ({impl} impl, {spec} spec reviews, {code} code reviews)
+- Tasks: {task_count} ({impl} impl, {spec} spec reviews, {code} code reviews, {agg} aggregations)
 - Wall clock: {wall_clock}
 - Per-wave breakdown in wave summary comments above
 - For precise input/output split: analyze-token-usage.py <session>.jsonl"

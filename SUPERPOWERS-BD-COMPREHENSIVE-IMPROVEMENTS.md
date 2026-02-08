@@ -8,7 +8,7 @@
 
 *Item numbers are stable IDs from the [archive](docs/IMPROVEMENTS-ARCHIVE.md), not priority ranks.*
 
-**Next up:** #46 — multi-review aggregation
+**Next up:** #25 — linter guards via frontmatter PostToolUse
 
 ---
 
@@ -24,7 +24,7 @@
 
 | # | What | Type | Goal |
 |---|------|------|------|
-| 46 | Multi-review aggregation — N independent reviews | Skill/prompt | Q |
+| ~~46~~ | ~~Multi-review aggregation — N independent reviews~~ | ~~Skill/prompt~~ | ~~DONE~~ |
 | 25 | Linter guards via frontmatter PostToolUse | Hook config | C |
 | 14 | Require completion evidence before closing (builds on #5) | Hook + prompt | Q |
 | 15 | Declare file ownership in task definitions | Skill update | C |
@@ -111,9 +111,9 @@ Tracked to prevent re-raising. Revisit only when the blocking condition changes.
 - **Rule-of-five** — 5-pass quality gate skills
 - **12 workflow skills** — TDD, debugging, verification, brainstorming, etc.
 - **TaskCompleted hooks** (#5) — hard enforcement quality gates (interactive mode)
+- **Multi-review aggregation** (#46) — N=3 independent reviews, union+severity consensus, 43.67% F1 improvement
 
 **Planned (in roadmap):**
-- **Multi-review aggregation** (#46) — N independent reviews, 43.67% F1 improvement
 - **Prompt-based file ownership** (#15) — proven pattern, no upstream dependency
 - **Modern agent frontmatter** (#45) — DONE (memory, maxTurns, disallowedTools, command frontmatter, reference docs)
 
@@ -153,3 +153,4 @@ Rejected, merged, or made obsolete. Completed items move to the [archive](docs/I
 - **#38** (add `memory: project` to agent definitions) — Done (2026-02-08)
 - **#41** (expose native Task metrics for cost tracking) — Done (2026-02-08). Per-task/wave/epic metrics in SDD skill, wave summary costs, epic completion report.
 - **#42** (add hooks in agent/skill frontmatter) — Done (2026-02-08). PostToolUse audit hook on code-reviewer. Plugin hooks workaround via `link-plugin-components.sh` (#17688).
+- **#46** (multi-review aggregation) — Done (2026-02-08). N=3 independent reviews for max-20x/max-5x tiers with union+severity consensus aggregation. New skill + SDD integration.

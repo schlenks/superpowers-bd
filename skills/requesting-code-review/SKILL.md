@@ -46,6 +46,20 @@ Use Task tool with superpowers:code-reviewer type, fill template at `code-review
 - Note Minor issues for later
 - Push back if reviewer is wrong (with reasoning)
 
+## Multi-Review Mode
+
+For critical changes, dispatch N=3 independent reviews and aggregate findings. This catches rare bugs that a single reviewer misses (118% recall improvement per SWR-Bench research).
+
+**When to use manually:**
+- Changes >200 lines
+- Security-sensitive code
+- Pre-merge to main
+- Complex refactoring
+
+**How:** Dispatch 3 independent code-reviewer subagents with `run_in_background: true`, each with the same template plus `"You are Reviewer {i} of 3. Review independently."` Then aggregate per `superpowers:multi-review-aggregation`.
+
+Single review remains the default for ad-hoc manual requests. Multi-review is automatic in SDD for max-20x and max-5x tiers.
+
 ## Example
 
 ```

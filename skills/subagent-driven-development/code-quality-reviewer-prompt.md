@@ -30,3 +30,5 @@ Task tool:
 - Example output
 
 **Code reviewer returns:** Strengths, Issues (Critical/Important/Minor), Assessment (Ready to merge: Yes/No/With fixes)
+
+**Multi-review mode (N>1):** For tiers with multi-review (max-20x, max-5x), each reviewer is dispatched independently with this same template plus a reviewer number suffix. Reviews are aggregated afterward. See `superpowers:multi-review-aggregation` for the full algorithm.
