@@ -26,6 +26,14 @@
 #   - m2_only: boolean if only interactive mode fires
 set -euo pipefail
 
+# Preflight: required tools
+for cmd in python3 claude; do
+    if ! command -v "$cmd" &>/dev/null; then
+        echo "FATAL: $cmd not found in PATH" >&2
+        exit 1
+    fi
+done
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/test-helpers.sh"
 
@@ -45,6 +53,7 @@ TIMEOUT_SECS=180
 # --- Setup ---
 TEST_DIR=$(mktemp -d)
 verify_no_spaces "$TEST_DIR"
+trap 'rm -rf "$TEST_DIR"' EXIT
 export TEST_DIR
 
 RESULTS_FILE="$TEST_DIR/results.csv"
@@ -328,8 +337,10 @@ send "/exit\r"
 expect eof
 EXPECT_TEMPLATE
 
-    # Replace timeout placeholder
-    sed -i '' "s/TIMEOUT_PLACEHOLDER/${TIMEOUT_SECS}/" "$expect_script"
+    # Replace timeout placeholder (portable: write to temp then move)
+    local tmp_script="${expect_script}.tmp"
+    sed "s/TIMEOUT_PLACEHOLDER/${TIMEOUT_SECS}/" "$expect_script" > "$tmp_script"
+    mv "$tmp_script" "$expect_script"
     chmod +x "$expect_script"
 
     # Remove old markers
@@ -710,9 +721,6 @@ PYEOF
 
 # Save results CSV alongside script
 cp "$RESULTS_FILE" "$SCRIPT_DIR/taskcompleted-trigger-matrix-results.csv" 2>/dev/null || true
-
-# Cleanup
-rm -rf "$TEST_DIR"
 
 echo ""
 echo "Results CSV saved to: tests/verification/taskcompleted-trigger-matrix-results.csv"
