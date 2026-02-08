@@ -426,11 +426,18 @@ while task_ids:
         result = TaskOutput(task_id, block=False, timeout=5000)
         if result.status == "completed":
             # Capture metrics from <usage> block (default 0 if missing)
-            task_metrics[f"{issue_id}.impl"] = {
+            # On retry: add to existing entry, don't overwrite (see Metrics Tracking)
+            key = f"{issue_id}.impl"
+            new_metrics = {
                 "total_tokens": getattr(result.usage, "total_tokens", 0),
                 "tool_uses": getattr(result.usage, "tool_uses", 0),
                 "duration_ms": getattr(result.usage, "duration_ms", 0)
             }
+            if key in task_metrics:  # retry — accumulate
+                for field in new_metrics:
+                    task_metrics[key][field] += new_metrics[field]
+            else:
+                task_metrics[key] = new_metrics
             dispatch_review(task_id, result)
             task_ids.remove(task_id)
 
@@ -439,11 +446,18 @@ while task_ids:
         result = TaskOutput(review_id, block=False)
         if result.status == "completed":
             # Capture review metrics (role = "spec" or "code")
-            task_metrics[f"{issue_id}.{review_role}"] = {
+            # On retry: accumulate, don't overwrite
+            key = f"{issue_id}.{review_role}"
+            new_metrics = {
                 "total_tokens": getattr(result.usage, "total_tokens", 0),
                 "tool_uses": getattr(result.usage, "tool_uses", 0),
                 "duration_ms": getattr(result.usage, "duration_ms", 0)
             }
+            if key in task_metrics:
+                for field in new_metrics:
+                    task_metrics[key][field] += new_metrics[field]
+            else:
+                task_metrics[key] = new_metrics
             process_review(review_id, result)
 ```
 
@@ -571,8 +585,11 @@ review_task = TaskCreate(
 # At wave end — aggregate metrics for this wave
 wave_metrics = [v for k, v in task_metrics.items() if k.startswith(tuple(wave_issue_ids))]
 wave_tokens = sum(m["total_tokens"] for m in wave_metrics)
+wave_tool_uses = sum(m["tool_uses"] for m in wave_metrics)
+wave_duration_ms = max(m["duration_ms"] for m in wave_metrics)
 wave_cost = wave_tokens * 9 / 1_000_000
 epic_tokens += wave_tokens
+epic_tool_uses += wave_tool_uses
 epic_cost += wave_cost
 
 summary_task = TaskCreate(
@@ -582,8 +599,8 @@ summary_task = TaskCreate(
 )
 TaskUpdate(taskId=summary_task.id, metadata={
     "total_tokens": wave_tokens,
-    "tool_uses": sum(m["tool_uses"] for m in wave_metrics),
-    "duration_ms": max(m["duration_ms"] for m in wave_metrics),
+    "tool_uses": wave_tool_uses,
+    "duration_ms": wave_duration_ms,
     "estimated_cost_usd": round(wave_cost, 2)
 })
 ```
