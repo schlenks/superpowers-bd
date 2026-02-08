@@ -1,0 +1,201 @@
+{
+  "fixture_version": "2.0",
+  "created": "2026-02-08",
+  "purpose": "Scoring reference for Two-Phase Reflective experiment (Experiment C). NOT shown to model under review.",
+  "total_areas": 14,
+  "total_bugs": 6,
+  "total_decoys": 8,
+  "scoring": {
+    "TP": "Model correctly identifies a bug (is_bug=true area marked as found)",
+    "FP": "Model incorrectly flags a decoy as a bug (is_bug=false area marked as found)",
+    "FN": "Model misses a real bug (is_bug=true area not marked as found)",
+    "score": "TP - FP",
+    "precision": "TP / (TP + FP)",
+    "recall": "TP / 6"
+  },
+  "areas": {
+    "B1": {
+      "id": "B1",
+      "is_bug": true,
+      "category": "cross-section mismatch",
+      "summary": "PATCH does not clear closed_at when reopening a task from done status",
+      "difficulty": "medium",
+      "location": "api-v2.ts, PATCH /tasks/:id handler, status update block",
+      "spec_reference": "spec-v2.md Section 3.3: 'When reopening (status changes from done to todo or in_progress), clear closed_at to null'",
+      "code_behavior": "The PATCH handler sets closed_at when status transitions to done, but does NOT clear closed_at when status transitions away from done. The code only has the 'if status === done' branch, missing the reopen branch.",
+      "cross_file_notes": "The spec explicitly requires clearing closed_at on reopen. The impl-v2.md report does not mention this behavior. Test #33 claims to test this scenario and passes, but the test is testing the implementation (which is buggy) — it would need to assert that closed_at becomes null to catch this.",
+      "adjacent_decoys": ["D4", "D7"]
+    },
+    "B2": {
+      "id": "B2",
+      "is_bug": true,
+      "category": "off-by-one/range boundary",
+      "summary": "No future-date validation for due_date despite spec requirement",
+      "difficulty": "easy-medium",
+      "location": "validation-v2.ts, validateDueDate function",
+      "spec_reference": "spec-v2.md Section 4.3: 'Must be in the future (after current server time)' and 'Past dates return 400 with message due_date must be in the future'",
+      "code_behavior": "The validateDueDate function checks ISO-8601 format and year range (2000-2100) but explicitly does NOT check whether the date is in the future. A comment in the code says 'no future-date check here' with a rationalization about historical task imports.",
+      "impl_report_notes": "impl-v2.md says 'we validate format but do not enforce future-date constraint at the validation layer' — this contradicts the spec.",
+      "adjacent_decoys": ["D3"]
+    },
+    "B3": {
+      "id": "B3",
+      "is_bug": true,
+      "category": "ambiguous requirement resolved incorrectly",
+      "summary": "DELETE uses soft-delete instead of permanent delete as specified",
+      "difficulty": "medium",
+      "location": "api-v2.ts, DELETE /tasks/:id handler",
+      "spec_reference": "spec-v2.md Section 3.4: 'Permanently deletes a task. The task is removed from the database and cannot be recovered.'",
+      "code_behavior": "Implementation sets deleted_at timestamp instead of removing the task from the store. The response matches the spec ({ deleted: true }) but the actual behavior differs.",
+      "impl_report_notes": "impl-v2.md openly states 'We chose soft-delete for safety' with a rationale. This is a deliberate deviation from spec, which makes it a judgment call — but the spec is unambiguous ('permanently', 'cannot be recovered').",
+      "difficulty_notes": "This is the most arguable bug. The implementation report provides a reasonable rationale, and soft-delete is a common best practice. A reviewer must decide whether the spec's explicit 'permanently' overrides the developer's safety argument.",
+      "adjacent_decoys": []
+    },
+    "B4": {
+      "id": "B4",
+      "is_bug": true,
+      "category": "scope creep / unrequested behavior",
+      "summary": "Email notification on task creation is not in the spec",
+      "difficulty": "easy",
+      "location": "api-v2.ts, POST /tasks handler and sendTaskCreatedEmail function",
+      "spec_reference": "No mention of email, notifications, or external integrations anywhere in spec-v2.md",
+      "code_behavior": "POST /tasks calls sendTaskCreatedEmail() after creating the task. This adds an external dependency (email service), potential latency, and behavior not agreed upon in the spec.",
+      "impl_report_notes": "impl-v2.md openly states 'We added email notifications on task creation to improve team awareness'. This is acknowledged scope creep.",
+      "adjacent_decoys": ["D1"]
+    },
+    "B5": {
+      "id": "B5",
+      "is_bug": true,
+      "category": "missing input validation",
+      "summary": "GET /tasks does not validate the status query parameter",
+      "difficulty": "medium",
+      "location": "api-v2.ts, GET /tasks handler, status filter block",
+      "spec_reference": "spec-v2.md Section 3.1: 'Must be one of: todo, in_progress, done. Returns 400 for unrecognized values.' Also Section 4.4: 'Applied consistently on both GET filter and POST/PATCH body'",
+      "code_behavior": "The GET handler reads req.query.status and passes it directly to the filter without calling validateStatus(). If status=xyz is passed, it silently returns an empty list instead of a 400 error. POST and PATCH both validate status correctly.",
+      "difficulty_notes": "Requires noticing that GET does not call validateStatus while POST and PATCH do. The comment in the code says 'pass through to query without validation'.",
+      "adjacent_decoys": []
+    },
+    "B6": {
+      "id": "B6",
+      "is_bug": true,
+      "category": "test-suite blind spot",
+      "summary": "No test for due_date future-date validation",
+      "difficulty": "medium-hard",
+      "location": "tests-v2.md, POST and PATCH test sections",
+      "spec_reference": "spec-v2.md Section 4.3 requires due_date to be in the future",
+      "code_behavior": "The test suite has 47 tests but none test that a past due_date is rejected. Test #25 tests 'invalid due_date format' but not past dates. This blind spot means the B2 bug (missing future-date check) goes undetected by tests.",
+      "difficulty_notes": "Requires the reviewer to notice what's MISSING from the test suite, not what's wrong with existing tests. Must cross-reference the spec's due_date requirements against the test list.",
+      "adjacent_decoys": []
+    },
+
+    "D1": {
+      "id": "D1",
+      "is_bug": false,
+      "category": "correct implementation (auth)",
+      "summary": "Authentication middleware is correctly implemented per spec",
+      "adjacent_to_bug": "B4",
+      "why_it_looks_suspicious": "The auth middleware is adjacent to the email notification code. A reviewer might wonder if token validation is too lenient (10-char minimum) or if the expired-token check is hardcoded. But the spec only requires presence/format validation, which is correctly implemented.",
+      "why_its_correct": "Token validation checks presence, format, and expiry. Error codes match spec (TOKEN_EXPIRED, TOKEN_INVALID). The 10-char minimum and hardcoded expired-token are reasonable test doubles for an in-memory implementation."
+    },
+    "D2": {
+      "id": "D2",
+      "is_bug": false,
+      "category": "correct implementation (rate limiting)",
+      "summary": "Rate limiting is correctly implemented per spec",
+      "adjacent_to_bug": null,
+      "why_it_looks_suspicious": "Rate limiting uses an in-memory store with simple counter logic. A reviewer might question whether the window calculation is correct or whether the 120 req/min matches the spec.",
+      "why_its_correct": "The spec says 120 requests per minute. The implementation uses a 60-second window with max 120 requests. Headers match spec requirements (X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset). 429 response includes Retry-After."
+    },
+    "D3": {
+      "id": "D3",
+      "is_bug": false,
+      "category": "correct implementation (priority validation)",
+      "summary": "Priority validation correctly enforces 1-5 integer range",
+      "adjacent_to_bug": "B2",
+      "why_it_looks_suspicious": "Located in the same validation file as the buggy validateDueDate. A reviewer who finds the due_date issue might over-scrutinize priority validation looking for similar boundary errors. The range check (< 1 || > 5) might look like it could be off-by-one.",
+      "why_its_correct": "validatePriority correctly checks Number.isInteger() and range 1-5 inclusive. The boundary conditions are correct: priority=1 and priority=5 both pass, priority=0 and priority=6 both fail."
+    },
+    "D4": {
+      "id": "D4",
+      "is_bug": false,
+      "category": "correct implementation (task ordering)",
+      "summary": "Task sorting by createdAt is correctly implemented",
+      "adjacent_to_bug": "B1",
+      "why_it_looks_suspicious": "The sort logic in GET /tasks uses dynamic property access with (a as any)[sortKey]. A reviewer might think the sortKey mapping is wrong (e.g., 'createdAt' maps to 'created_at'). The ordering direction logic could appear inverted.",
+      "why_its_correct": "The sort key mapping correctly converts camelCase API parameters to snake_case database fields. The order comparison is correct: desc returns bTime - aTime (larger timestamps first), asc returns aTime - bTime."
+    },
+    "D5": {
+      "id": "D5",
+      "is_bug": false,
+      "category": "correct implementation (title whitespace)",
+      "summary": "Title whitespace trimming works correctly",
+      "adjacent_to_bug": null,
+      "why_it_looks_suspicious": "A reviewer might wonder whether trim() is applied before or after the length check, which could create an off-by-one. The validateTitle function trims first, then checks length — which is the correct order per spec ('1-200 characters after trimming').",
+      "why_its_correct": "validateTitle trims first with title.trim(), then checks trimmed.length === 0 and trimmed.length > 200. This matches spec Section 4.1: 'Must be 1-200 characters after trimming leading/trailing whitespace'."
+    },
+    "D6": {
+      "id": "D6",
+      "is_bug": false,
+      "category": "correct implementation (body size limit)",
+      "summary": "10KB request body limit is an intentional hardening measure",
+      "adjacent_to_bug": null,
+      "why_it_looks_suspicious": "The spec doesn't explicitly mention a 10KB body limit, so a reviewer might flag this as unrequested behavior (similar to B4's email notification). The 413 PAYLOAD_TOO_LARGE error code is in the spec's error table, suggesting body limits were anticipated.",
+      "why_its_correct": "The spec includes 413 PAYLOAD_TOO_LARGE in its error table (Section 5), implying body size limits are expected. The impl-v2.md explains the rationale (DoS protection). The limit is generous enough to accommodate max payload (200-char title + 2000-char description is well under 10KB). This is defensive coding, not scope creep."
+    },
+    "D7": {
+      "id": "D7",
+      "is_bug": false,
+      "category": "correct implementation (partial updates)",
+      "summary": "PATCH correctly handles partial field updates",
+      "adjacent_to_bug": "B1",
+      "why_it_looks_suspicious": "The PATCH handler checks each field individually with 'if (field !== undefined)'. A reviewer might think this creates bugs when only some fields are updated. Since B1 (closed_at not cleared) is nearby, a reviewer might over-extend and think all field updates are broken.",
+      "why_its_correct": "Partial updates work correctly for all fields except the closed_at clearing on reopen (which is B1). Title, description, priority, due_date, and status individual updates all work as expected. Test #28-30 verify individual field updates."
+    },
+    "D8": {
+      "id": "D8",
+      "is_bug": false,
+      "category": "correct implementation (duplicate titles)",
+      "summary": "No uniqueness constraint on task titles is correct per spec",
+      "adjacent_to_bug": null,
+      "why_it_looks_suspicious": "A reviewer might expect task titles to be unique and flag the lack of a uniqueness check as a bug. Multiple tasks with the same title are allowed.",
+      "why_its_correct": "The spec does not mention any uniqueness constraint on titles. POST /tasks has no duplicate-checking logic, which is correct — the spec only requires title to be 1-200 characters. Duplicate titles are a valid use case (e.g., recurring tasks)."
+    }
+  },
+
+  "difficulty_calibration": {
+    "easy": ["B4"],
+    "easy-medium": ["B2"],
+    "medium": ["B1", "B3", "B5"],
+    "medium-hard": ["B6"],
+    "notes": "B4 is the easiest because the impl report openly mentions it and it's clearly not in the spec. B6 is the hardest because it requires noticing what's ABSENT from the test suite rather than what's WRONG in existing code."
+  },
+
+  "adjacency_map": {
+    "B1": { "adjacent_decoys": ["D4", "D7"], "notes": "D4 (ordering) and D7 (partial updates) are in the same PATCH/GET code area as the closed_at clearing bug" },
+    "B2": { "adjacent_decoys": ["D3"], "notes": "D3 (priority validation) is in the same validation file, same pattern of range checking" },
+    "B3": { "adjacent_decoys": [], "notes": "Standalone — the soft-delete rationale in impl-v2.md is the main context" },
+    "B4": { "adjacent_decoys": ["D1"], "notes": "D1 (auth) is adjacent middleware code in the same file" },
+    "B5": { "adjacent_decoys": [], "notes": "Requires cross-referencing GET handler with POST/PATCH validation patterns" },
+    "B6": { "adjacent_decoys": [], "notes": "Requires cross-referencing test suite against spec requirements" }
+  },
+
+  "validation_checklist": {
+    "total_is_bug_true": 6,
+    "total_is_bug_false": 8,
+    "bugs_with_adjacent_decoys": 3,
+    "minimum_adjacent_decoys_required": 3,
+    "bug_categories": [
+      "cross-section mismatch",
+      "off-by-one/range boundary",
+      "ambiguous requirement resolved incorrectly",
+      "scope creep / unrequested behavior",
+      "missing input validation",
+      "test-suite blind spot"
+    ],
+    "files_containing_bugs": [
+      "api-v2.ts (B1, B3, B4, B5)",
+      "validation-v2.ts (B2)",
+      "tests-v2.md (B6)"
+    ]
+  }
+}
