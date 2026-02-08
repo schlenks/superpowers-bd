@@ -1,0 +1,67 @@
+{
+  "csv_path": "tests/verification/taskcompleted-latency-results.csv",
+  "total_runs": 20,
+  "failed_runs": 0,
+  "failure_rate": 0.0,
+  "baseline": {
+    "variant": "none",
+    "n": 5,
+    "median_ms": 11878.0,
+    "bootstrap_ci": {
+      "point_estimate": 11878.0,
+      "ci_lower": 5476.0,
+      "ci_upper": 15499.0,
+      "ci_level": 0.95,
+      "n": 5,
+      "n_resamples": 10000
+    }
+  },
+  "variants": {
+    "agent": {
+      "n": 5,
+      "median_ms": 14272.0,
+      "overhead_ms": 2394.0,
+      "classification": "FAST",
+      "proof_level": "OBSERVED",
+      "bootstrap_ci_overhead": {
+        "point_estimate": 2394.0,
+        "ci_lower": -1579.0,
+        "ci_upper": 8796.0,
+        "ci_level": 0.95,
+        "n": 5,
+        "n_resamples": 10000
+      }
+    },
+    "command": {
+      "n": 5,
+      "median_ms": 14338.0,
+      "overhead_ms": 2460.0,
+      "classification": "FAST",
+      "proof_level": "OBSERVED",
+      "bootstrap_ci_overhead": {
+        "point_estimate": 2460.0,
+        "ci_lower": -6818.0,
+        "ci_upper": 8862.0,
+        "ci_level": 0.95,
+        "n": 5,
+        "n_resamples": 10000
+      }
+    },
+    "prompt": {
+      "n": 5,
+      "median_ms": 13388.0,
+      "overhead_ms": 1510.0,
+      "classification": "FAST",
+      "proof_level": "OBSERVED",
+      "bootstrap_ci_overhead": {
+        "point_estimate": 1510.0,
+        "ci_lower": -6984.0,
+        "ci_upper": 7912.0,
+        "ci_level": 0.95,
+        "n": 5,
+        "n_resamples": 10000
+      }
+    }
+  },
+  "decision_class": "OBSERVED"
+}
