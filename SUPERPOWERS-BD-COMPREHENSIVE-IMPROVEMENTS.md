@@ -1,6 +1,6 @@
 # Superpowers-BD: Improvement Roadmap
 
-**Version:** 6.1 (February 8, 2026) | **Active items:** 39 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
+**Version:** 6.2 (February 8, 2026) | **Active items:** 38 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
 
 **Philosophy:** If Claude Code does it natively, use that. If beads already does it, don't rebuild it. Config before code.
 
@@ -8,17 +8,17 @@
 
 *Item numbers are stable IDs from the [archive](docs/IMPROVEMENTS-ARCHIVE.md), not priority ranks.*
 
-**Next up:** #45 — modernize agents + command + writing-skills guide
+**Next up:** #46 — multi-review aggregation
 
 ---
 
 ## Roadmap
 
-### P1.5: Agent Modernization (Zero Cost Increase)
+### ~~P1.5: Agent Modernization (Zero Cost Increase)~~ DONE
 
-| # | What | Type | Goal |
-|---|------|------|------|
-| 45 | Modernize 2 agents + 1 command + writing-skills guide — 6 sub-tasks (after #38; [checklist](docs/IMPROVEMENTS-ARCHIVE.md)) | Frontmatter + docs | DX |
+| # | What | Type | Status |
+|---|------|------|--------|
+| 45 | Modernize 2 agents + 1 command + writing-skills guide | Frontmatter + docs | DONE |
 
 ### P2: Quality Gates & File Ownership (Prompt/Skill Changes)
 
@@ -115,7 +115,7 @@ Tracked to prevent re-raising. Revisit only when the blocking condition changes.
 **Planned (in roadmap):**
 - **Multi-review aggregation** (#46) — N independent reviews, 43.67% F1 improvement
 - **Prompt-based file ownership** (#15) — proven pattern, no upstream dependency
-- **Modern agent frontmatter** (#45) — memory, maxTurns
+- **Modern agent frontmatter** (#45) — DONE (memory, maxTurns, disallowedTools, command frontmatter, reference docs)
 
 **The playbook:** Claude Code stable GA for coordination + superpowers-bd for discipline.
 

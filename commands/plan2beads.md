@@ -1,3 +1,7 @@
+---
+description: "Import a Superpowers plan (Markdown) or Shortcut story into Beads as an epic with dependency-aware child tasks"
+---
+
 # plan2beads
 
 Import a Superpowers plan (Markdown) or a Shortcut story into Beads as an epic with child tasks. Supports both phase-based and task-level dependencies.

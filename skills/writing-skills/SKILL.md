@@ -95,7 +95,7 @@ skills/
 ## SKILL.md Structure
 
 **Frontmatter (YAML):**
-- Only two fields supported: `name` and `description`
+- Skills support only two fields: `name` and `description` (agents and commands have more — see Component Frontmatter Reference below)
 - Max 1024 characters total
 - `name`: Use letters, numbers, and hyphens only (no parentheses, special chars)
 - `description`: Third-person, describes ONLY when to use (NOT what it does)
@@ -138,6 +138,42 @@ What goes wrong + fixes
 Concrete results
 ```
 
+
+## Component Frontmatter Reference
+
+Claude Code plugins have three component types, each with different frontmatter fields:
+
+### Skills (`skills/*/SKILL.md`)
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | yes | Skill name (letters, numbers, hyphens only) |
+| `description` | yes | "Use when..." triggering conditions (max ~500 chars) |
+
+Max 1024 characters total frontmatter.
+
+### Agents (`agents/*.md`)
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | yes | Agent name |
+| `description` | yes | When to dispatch this agent (with `<example>` blocks) |
+| `model` | no | `inherit`, `opus`, `sonnet`, `haiku` |
+| `memory` | no | `project` to load CLAUDE.md + memory files |
+| `maxTurns` | no | Max API round-trips before stopping |
+| `tools` | no | Restrict to specific tools (allowlist) |
+| `disallowedTools` | no | Block specific tools (denylist) |
+| `permissionMode` | no | `default`, `plan`, `bypassPermissions` |
+| `skills` | no | Skills to load into agent context |
+| `mcpServers` | no | MCP servers available to this agent |
+| `hooks` | no | PostToolUse/PreToolUse hooks (requires #17688 workaround) |
+
+### Commands (`commands/*.md`)
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `description` | no | What the command does (shown in command list) |
+| `disable-model-invocation` | no | `true` to inject text without model call |
 
 ## Claude Search Optimization (CSO)
 
