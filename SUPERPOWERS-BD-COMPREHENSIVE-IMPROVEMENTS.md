@@ -1,6 +1,6 @@
 # Superpowers-BD: Improvement Roadmap
 
-**Version:** 6.0 (February 8, 2026) | **Active items:** 40 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
+**Version:** 6.1 (February 8, 2026) | **Active items:** 39 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
 
 **Philosophy:** If Claude Code does it natively, use that. If beads already does it, don't rebuild it. Config before code.
 
@@ -8,17 +8,11 @@
 
 *Item numbers are stable IDs from the [archive](docs/IMPROVEMENTS-ARCHIVE.md), not priority ranks.*
 
-**Next up:** #41 — expose native Task metrics for cost tracking
+**Next up:** #45 — modernize agents + command + writing-skills guide
 
 ---
 
 ## Roadmap
-
-### P1: Config & Hooks (Zero Code)
-
-| # | What | Type | Goal |
-|---|------|------|------|
-| 41 | Expose native Task metrics for cost tracking | Config | DX |
 
 ### P1.5: Agent Modernization (Zero Cost Increase)
 
@@ -157,4 +151,5 @@ Rejected, merged, or made obsolete. Completed items move to the [archive](docs/I
 - **#5** (TaskCompleted hook for quality gates) — Done (2026-02-08). Verification evidence check + audit logging.
 - **#29** (chunked file reads) — Redundant with native Read + Grep tools
 - **#38** (add `memory: project` to agent definitions) — Done (2026-02-08)
+- **#41** (expose native Task metrics for cost tracking) — Done (2026-02-08). Per-task/wave/epic metrics in SDD skill, wave summary costs, epic completion report.
 - **#42** (add hooks in agent/skill frontmatter) — Done (2026-02-08). PostToolUse audit hook on code-reviewer. Plugin hooks workaround via `link-plugin-components.sh` (#17688).

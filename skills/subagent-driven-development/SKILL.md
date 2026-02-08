@@ -55,6 +55,47 @@ Note: Epic Verifier uses sonnet minimum (opus for max-20x) because verification 
 
 **Store selection** for the session - don't ask again per wave.
 
+## Metrics Tracking
+
+The Task tool returns a `<usage>` block with every result:
+```
+<usage>total_tokens: 81397
+tool_uses: 20
+duration_ms: 39153</usage>
+```
+
+Maintain these structures throughout the epic:
+
+**Per-task metrics** — keyed by `"{issue_id}.{role}"` (e.g., `"hub-abc.1.impl"`, `"hub-abc.1.spec"`, `"hub-abc.1.code"`):
+```python
+task_metrics[f"{issue_id}.{role}"] = {
+    "total_tokens": result.usage.total_tokens,
+    "tool_uses": result.usage.tool_uses,
+    "duration_ms": result.usage.duration_ms
+}
+```
+
+**Per-wave aggregates** — computed at wave end:
+```python
+wave_tokens = sum(m["total_tokens"] for m in wave_task_metrics)
+wave_tool_uses = sum(m["tool_uses"] for m in wave_task_metrics)
+wave_duration_ms = max(m["duration_ms"] for m in wave_task_metrics)  # parallel = wall clock is longest
+wave_cost = wave_tokens * 9 / 1_000_000  # $9/M blended rate
+```
+
+**Epic accumulator** — running totals across all waves:
+```python
+epic_tokens += wave_tokens
+epic_tool_uses += wave_tool_uses
+epic_cost += wave_cost
+```
+
+**Cost formula:** `$9/M tokens` (blended input/output rate). The Task `<usage>` block doesn't split input vs output tokens. For precise cost breakdown, use `analyze-token-usage.py` on the session JSONL post-hoc.
+
+**Missing `<usage>` block:** If an agent crashes or no usage data is returned, default all metrics to 0. Don't let missing data block the workflow.
+
+**Review retries:** Accumulate across attempts (sum, not overwrite). If a review fails and is re-dispatched, add the retry's metrics to the existing entry.
+
 ## Context Loading
 
 Before dispatching implementers, load rich context to help them understand "why":
@@ -384,6 +425,12 @@ while task_ids:
     for task_id in list(task_ids):
         result = TaskOutput(task_id, block=False, timeout=5000)
         if result.status == "completed":
+            # Capture metrics from <usage> block (default 0 if missing)
+            task_metrics[f"{issue_id}.impl"] = {
+                "total_tokens": getattr(result.usage, "total_tokens", 0),
+                "tool_uses": getattr(result.usage, "tool_uses", 0),
+                "duration_ms": getattr(result.usage, "duration_ms", 0)
+            }
             dispatch_review(task_id, result)
             task_ids.remove(task_id)
 
@@ -391,6 +438,12 @@ while task_ids:
     for review_id in list(pending_reviews):
         result = TaskOutput(review_id, block=False)
         if result.status == "completed":
+            # Capture review metrics (role = "spec" or "code")
+            task_metrics[f"{issue_id}.{review_role}"] = {
+                "total_tokens": getattr(result.usage, "total_tokens", 0),
+                "tool_uses": getattr(result.usage, "tool_uses", 0),
+                "duration_ms": getattr(result.usage, "duration_ms", 0)
+            }
             process_review(review_id, result)
 ```
 
@@ -515,12 +568,24 @@ review_task = TaskCreate(
     addBlockedBy=[impl_task.id]
 )
 
-# At wave end
+# At wave end — aggregate metrics for this wave
+wave_metrics = [v for k, v in task_metrics.items() if k.startswith(tuple(wave_issue_ids))]
+wave_tokens = sum(m["total_tokens"] for m in wave_metrics)
+wave_cost = wave_tokens * 9 / 1_000_000
+epic_tokens += wave_tokens
+epic_cost += wave_cost
+
 summary_task = TaskCreate(
-    subject="Wave 1 summary",
+    subject=f"Wave 1 summary ({wave_tokens:,} tokens, ~${wave_cost:.2f})",
     activeForm="Summarizing wave 1",
     addBlockedBy=[all_review_task_ids]
 )
+TaskUpdate(taskId=summary_task.id, metadata={
+    "total_tokens": wave_tokens,
+    "tool_uses": sum(m["tool_uses"] for m in wave_metrics),
+    "duration_ms": max(m["duration_ms"] for m in wave_metrics),
+    "estimated_cost_usd": round(wave_cost, 2)
+})
 ```
 
 **Benefits:**
@@ -535,6 +600,10 @@ summary_task = TaskCreate(
 ```bash
 bd comments add <epic-id> "Wave N complete:
 - Closed: hub-abc.1, hub-abc.2
+- Cost: [wave_tokens] tokens (~$[cost]) | [tool_calls] tool calls | [duration]s
+  - hub-abc.1: impl=[tok]/[calls]/[dur]s, spec=[tok], code=[tok]
+  - hub-abc.2: impl=[tok]/[calls]/[dur]s, spec=[tok], code=[tok]
+- Running total: [epic_tokens] tokens (~$[epic_cost]) across [N] waves
 - Conventions established:
   - [Pattern/convention implementers chose]
   - [Naming convention used]
@@ -547,14 +616,16 @@ bd comments add <epic-id> "Wave N complete:
 - Wave 2 implementers can see what conventions Wave 1 established
 - Prevents inconsistent naming, patterns, or style choices
 - Creates audit trail of implementation decisions
+- Cost visibility enables budget decisions mid-epic
 
 **What to capture:**
+- Cost data (always include — tokens, tool calls, duration, running total)
 - File naming patterns chosen
 - Code style decisions (async/await vs promises, etc.)
 - Interface shapes that future tasks will consume
 - Any surprises or deviations from the plan
 
-**When to skip:** If the wave established no new conventions (e.g., single-task wave, or tasks followed existing patterns without decisions), a minimal summary is fine: "Wave N complete: Closed hub-abc.1. No new conventions."
+**When to skip conventions (not cost):** If the wave established no new conventions (e.g., single-task wave, or tasks followed existing patterns without decisions), a minimal summary is fine — but always include cost: "Wave N complete: Closed hub-abc.1. Cost: 45,000 tokens (~$0.41). Running total: 120,000 tokens (~$1.08). No new conventions."
 
 ## Prompt Templates
 
@@ -616,6 +687,10 @@ Code reviewer: ✅ Approved
 [Post wave summary]
 bd comments add hub-abc "Wave 1 complete:
 - Closed: hub-abc.1 (User model), hub-abc.2 (JWT utils)
+- Cost: 156,200 tokens (~$1.41) | 42 tool calls | 89s
+  - hub-abc.1: impl=52,300/15/45s, spec=12,100, code=18,400
+  - hub-abc.2: impl=41,800/12/38s, spec=11,200, code=20,400
+- Running total: 156,200 tokens (~$1.41) across 1 wave
 - Conventions: Using uuid v4 for IDs, camelCase for all JSON fields
 - Notes: JWT expiry set to 24h per Key Decisions"
 
@@ -647,6 +722,19 @@ Wave 3: Task 4 is ready
 [bd close hub-abc.4]
 
 [All issues closed]
+
+[Epic Completion Report]
+╔══════════════════════════════════════════════╗
+║  Epic hub-abc complete                       ║
+╠══════════════════════════════════════════════╣
+║  Waves:    3                                 ║
+║  Tasks:    4 (4 impl + 4 spec + 4 code)      ║
+║  Tokens:   312,400 total                     ║
+║  Cost:     ~$2.81 (blended $9/M)             ║
+║  Duration: 4m 12s wall clock                 ║
+╚══════════════════════════════════════════════╝
+For precise cost breakdown: analyze-token-usage.py <session>.jsonl
+
 [Use superpowers:finishing-a-development-branch]
 
 Done!
@@ -720,7 +808,7 @@ If `bd ready` shows nothing for your epic BUT issues remain open, check for:
 │ MONITOR  │ Poll background tasks, route completions         │
 │ REVIEW   │ Dispatch spec/code reviewers as tasks complete   │
 │ CLOSE    │ bd close passed tasks, post wave summary         │
-│ COMPLETE │ All epic children closed → finishing-branch      │
+│ COMPLETE │ Cost report → finishing-branch                    │
 └──────────┴──────────────────────────────────────────────────┘
 
 Transitions:
@@ -736,6 +824,35 @@ Transitions:
   REVIEW → PENDING_HUMAN (verification failed >3 attempts)
   CLOSE → LOADING (re-check ready after closes)
 ```
+
+## Epic Completion Report
+
+At the COMPLETE state (all epic children closed), before transitioning to `finishing-a-development-branch`:
+
+**1. Print cost summary to user:**
+```
+╔══════════════════════════════════════════════╗
+║  Epic {epic_id} complete                     ║
+╠══════════════════════════════════════════════╣
+║  Waves:    {wave_count}                      ║
+║  Tasks:    {task_count} ({impl} impl + {spec} spec + {code} code) ║
+║  Tokens:   {epic_tokens:,} total             ║
+║  Cost:     ~${epic_cost:.2f} (blended $9/M)  ║
+║  Duration: {wall_clock} wall clock           ║
+╚══════════════════════════════════════════════╝
+```
+
+**2. Post total to epic comments:**
+```bash
+bd comments add <epic-id> "Epic complete:
+- Total: {epic_tokens:,} tokens (~${epic_cost:.2f}) across {wave_count} waves
+- Tasks: {task_count} ({impl} impl, {spec} spec reviews, {code} code reviews)
+- Wall clock: {wall_clock}
+- Per-wave breakdown in wave summary comments above
+- For precise input/output split: analyze-token-usage.py <session>.jsonl"
+```
+
+**3. Reference post-hoc analysis:** The blended $9/M rate is an estimate. For precise input vs output token costs, run `analyze-token-usage.py` on the session JSONL after completion.
 
 ## Failure Recovery
 
