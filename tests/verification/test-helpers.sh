@@ -170,3 +170,130 @@ with open('$session_file') as f:
     sys.exit(1)
 "
 }
+
+# Check a session transcript for ANY tool_use event matching a given tool name.
+# Unlike verify_task_tool_used (which checks for Task tool + specific agent),
+# this searches for tool_use events where the "name" field matches TOOL_NAME.
+#
+# Usage: verify_tool_used SESSION_FILE TOOL_NAME
+# Returns: 0 if found, 1 if not found
+verify_tool_used() {
+    local session_file="$1"
+    local tool_name="$2"
+
+    if [ -z "$session_file" ] || [ ! -f "$session_file" ]; then
+        return 1
+    fi
+
+    python3 -c "
+import json, sys
+
+tool_name = sys.argv[1]
+with open(sys.argv[2]) as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        blocks = [event]
+        if isinstance(event.get('content'), list):
+            blocks.extend(event['content'])
+        msg = event.get('message', {})
+        if isinstance(msg.get('content'), list):
+            blocks.extend(msg['content'])
+        for block in blocks:
+            if block.get('type') == 'tool_use' and block.get('name') == tool_name:
+                sys.exit(0)
+sys.exit(1)
+" "$tool_name" "$session_file"
+}
+
+# Check a session transcript for a Bash tool_use whose command contains a real
+# 'bd close' invocation (not just echoed/quoted text).
+#
+# The regex requires 'bd close' at command-start or after a shell operator
+# (&&, ||, ;, |), which filters out false positives like:
+#   echo "bd close 123"   — bd appears inside quotes, preceded by echo
+#   # bd close            — comment
+#
+# Usage: verify_bd_close_used SESSION_FILE
+# Returns: 0 if found, 1 if not found
+verify_bd_close_used() {
+    local session_file="$1"
+
+    if [ -z "$session_file" ] || [ ! -f "$session_file" ]; then
+        return 1
+    fi
+
+    python3 -c "
+import json, re, sys
+
+pattern = re.compile(r'(?:^|&&|\|\||[;|])\s*bd\s+close\b')
+with open(sys.argv[1]) as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        blocks = [event]
+        if isinstance(event.get('content'), list):
+            blocks.extend(event['content'])
+        msg = event.get('message', {})
+        if isinstance(msg.get('content'), list):
+            blocks.extend(msg['content'])
+        for block in blocks:
+            if block.get('type') == 'tool_use' and block.get('name') == 'Bash':
+                cmd = block.get('input', {}).get('command', '')
+                if pattern.search(cmd):
+                    sys.exit(0)
+sys.exit(1)
+" "$session_file"
+}
+
+# Check a session transcript for a Bash tool_use whose command contains a real
+# 'bd create' invocation (not just echoed/quoted text).
+#
+# Same false-positive resistance as verify_bd_close_used.
+#
+# Usage: verify_bd_create_used SESSION_FILE
+# Returns: 0 if found, 1 if not found
+verify_bd_create_used() {
+    local session_file="$1"
+
+    if [ -z "$session_file" ] || [ ! -f "$session_file" ]; then
+        return 1
+    fi
+
+    python3 -c "
+import json, re, sys
+
+pattern = re.compile(r'(?:^|&&|\|\||[;|])\s*bd\s+create\b')
+with open(sys.argv[1]) as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        blocks = [event]
+        if isinstance(event.get('content'), list):
+            blocks.extend(event['content'])
+        msg = event.get('message', {})
+        if isinstance(msg.get('content'), list):
+            blocks.extend(msg['content'])
+        for block in blocks:
+            if block.get('type') == 'tool_use' and block.get('name') == 'Bash':
+                cmd = block.get('input', {}).get('command', '')
+                if pattern.search(cmd):
+                    sys.exit(0)
+sys.exit(1)
+" "$session_file"
+}
