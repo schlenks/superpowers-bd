@@ -1,0 +1,47 @@
+{
+  "csv_path": "/var/folders/44/qhkx18mj30524j5dtflq00lm0000gn/T/tmp.0FyApGFo9N/scores.csv",
+  "method_a": "current",
+  "method_b": "twophase",
+  "n_paired": 20,
+  "total_runs": 40,
+  "parse_failures": 0,
+  "parse_rate": 0.0,
+  "scores": {
+    "mean_a": 5.95,
+    "mean_b": 5.25,
+    "mean_delta": -0.7,
+    "stdev_a": 0.2236,
+    "stdev_b": 0.4443,
+    "stdev_ratio": 0.0793
+  },
+  "secondary": {
+    "mean_tp_a": 6.0,
+    "mean_tp_b": 6.0,
+    "mean_fp_a": 0.05,
+    "mean_fp_b": 0.75,
+    "delta_fp": 0.7,
+    "mean_recall_a": 1.0,
+    "mean_recall_b": 1.0,
+    "delta_recall": 0.0
+  },
+  "wilcoxon": {
+    "T_plus": 0.0,
+    "T_minus": 105.0,
+    "T_stat": 0.0,
+    "n_nonzero": 14,
+    "z_stat": -3.7417,
+    "p_value": 0.000183,
+    "sufficient": true,
+    "method": "normal_approximation"
+  },
+  "bootstrap_ci_delta": {
+    "point_estimate": -0.7,
+    "ci_lower": -0.9,
+    "ci_upper": -0.5,
+    "ci_level": 0.95,
+    "n": 20,
+    "n_resamples": 10000
+  },
+  "verdict": "DENIED",
+  "decision_class": "VERIFIED"
+}

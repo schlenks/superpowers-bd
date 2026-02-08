@@ -1,0 +1,65 @@
+{
+  "recommended_latency_cell": null,
+  "m2_only": false,
+  "cell_verdicts": {
+    "a1xm1": {
+      "verdict": "UNSTABLE",
+      "info": {
+        "n_total": 5,
+        "n_succeeded": 5,
+        "n_failed": 0,
+        "tc_hits": 0,
+        "ctrl_hits": 0,
+        "proof_action_hits": 0,
+        "proof_complete_hits": 0
+      },
+      "reason": "tc marker in 0/5, failures=0"
+    },
+    "a2xm1": {
+      "verdict": "UNSTABLE",
+      "info": {
+        "n_total": 5,
+        "n_succeeded": 5,
+        "n_failed": 0,
+        "tc_hits": 0,
+        "ctrl_hits": 5,
+        "proof_action_hits": 0,
+        "proof_complete_hits": 0
+      },
+      "reason": "tc marker in 0/5, failures=0"
+    },
+    "a1xm2": {
+      "verdict": "UNSTABLE",
+      "info": {
+        "n_total": 3,
+        "n_succeeded": 0,
+        "n_failed": 3,
+        "tc_hits": 0,
+        "ctrl_hits": 0,
+        "proof_action_hits": 0,
+        "proof_complete_hits": 0
+      },
+      "reason": "all runs failed"
+    },
+    "a2xm2": {
+      "verdict": "UNSTABLE",
+      "info": {
+        "n_total": 3,
+        "n_succeeded": 0,
+        "n_failed": 3,
+        "tc_hits": 0,
+        "ctrl_hits": 0,
+        "proof_action_hits": 0,
+        "proof_complete_hits": 0
+      },
+      "reason": "all runs failed"
+    }
+  },
+  "overall_verdict": "INCONCLUSIVE",
+  "decision_class": "INCONCLUSIVE",
+  "decision_reason": "required cells unstable, 6 failed runs",
+  "total_runs": 16,
+  "total_succeeded": 10,
+  "total_failed": 6,
+  "total_retries": 0
+}
