@@ -1,6 +1,6 @@
 # Superpowers-BD: Improvement Roadmap
 
-**Version:** 5.7 (February 8, 2026) | **Active items:** 43 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
+**Version:** 5.8 (February 8, 2026) | **Active items:** 42 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
 
 **Philosophy:** If Claude Code does it natively, use that. If beads already does it, don't rebuild it. Config before code.
 
@@ -8,7 +8,7 @@
 
 *Item numbers are stable IDs from the [archive](docs/IMPROVEMENTS-ARCHIVE.md), not priority ranks.*
 
-**Next up:** #38 — add `memory: project` to agent definitions
+**Next up:** #5 — wire TaskCompleted hook for quality gates (interactive mode only)
 
 ---
 
@@ -18,7 +18,6 @@
 
 | # | What | Type | Goal |
 |---|------|------|------|
-| 38 | Add `memory: project` to agent definitions | Frontmatter | DX |
 | 5 | Wire TaskCompleted hook for quality gates (interactive mode only) | Hook config | Q |
 | 42 | Add hooks in agent/skill frontmatter (verified working) | Frontmatter | C |
 | 41 | Expose native Task metrics for cost tracking | Config | DX |
@@ -157,3 +156,4 @@ Rejected, merged, or made obsolete. Completed items move to the [archive](docs/I
 - **#1** (two-phase reflective review) — V2 DENIED (p=0.000183). 15x more FP, same recall.
 - **#2** (file-locks.json generation) — Merged into #15
 - **#29** (chunked file reads) — Redundant with native Read + Grep tools
+- **#38** (add `memory: project` to agent definitions) — Done (2026-02-08)
