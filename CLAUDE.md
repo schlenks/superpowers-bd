@@ -70,6 +70,7 @@ commands/                   # User-invocable slash commands
 
 hooks/                      # Session lifecycle hooks
   session-start.sh         # Runs on session start/resume/clear
+  task-completed.sh        # Quality gate on task completion
 
 tests/
   claude-code/             # Headless Claude Code integration tests
@@ -117,6 +118,7 @@ See `skills/writing-skills/SKILL.md` for complete guide.
 
 - **Plugin manifest**: `.claude-plugin/plugin.json`
 - **Session hooks**: `hooks/hooks.json` (runs `session-start.sh` on startup)
+- **Quality gates**: `hooks/task-completed.sh` (TaskCompleted hook, interactive mode only)
 - **Beads config**: `.beads/metadata.json`
 
 ## Testing Requirements for Integration Tests

@@ -1,6 +1,6 @@
 # Superpowers-BD: Improvement Roadmap
 
-**Version:** 5.8 (February 8, 2026) | **Active items:** 42 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
+**Version:** 5.9 (February 8, 2026) | **Active items:** 41 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
 
 **Philosophy:** If Claude Code does it natively, use that. If beads already does it, don't rebuild it. Config before code.
 
@@ -8,7 +8,7 @@
 
 *Item numbers are stable IDs from the [archive](docs/IMPROVEMENTS-ARCHIVE.md), not priority ranks.*
 
-**Next up:** #5 — wire TaskCompleted hook for quality gates (interactive mode only)
+**Next up:** #42 — add hooks in agent/skill frontmatter (verified working)
 
 ---
 
@@ -18,7 +18,6 @@
 
 | # | What | Type | Goal |
 |---|------|------|------|
-| 5 | Wire TaskCompleted hook for quality gates (interactive mode only) | Hook config | Q |
 | 42 | Add hooks in agent/skill frontmatter (verified working) | Frontmatter | C |
 | 41 | Expose native Task metrics for cost tracking | Config | DX |
 
@@ -34,7 +33,7 @@
 |---|------|------|------|
 | 46 | Multi-review aggregation — N independent reviews | Skill/prompt | Q |
 | 25 | Linter guards via frontmatter PostToolUse (after #42) | Hook config | C |
-| 14 | Require completion evidence before closing (after #5) | Hook + prompt | Q |
+| 14 | Require completion evidence before closing (builds on #5) | Hook + prompt | Q |
 | 15 | Declare file ownership in task definitions | Skill update | C |
 | 6 | Add cyclomatic complexity checks to code-reviewer | Prompt | Q |
 | 16 | Create artifact-specific rule-of-five variants | Skill variant | Q |
@@ -118,10 +117,10 @@ Tracked to prevent re-raising. Revisit only when the blocking condition changes.
 - **Beads** — git-backed task persistence (Dolt, 6-layer concurrency)
 - **Rule-of-five** — 5-pass quality gate skills
 - **12 workflow skills** — TDD, debugging, verification, brainstorming, etc.
+- **TaskCompleted hooks** (#5) — hard enforcement quality gates (interactive mode)
 
 **Planned (in roadmap):**
 - **Multi-review aggregation** (#46) — N independent reviews, 43.67% F1 improvement
-- **TaskCompleted hooks** (#5) — hard enforcement quality gates
 - **Prompt-based file ownership** (#15) — proven pattern, no upstream dependency
 - **Modern agent frontmatter** (#45) — memory, maxTurns
 
@@ -155,5 +154,6 @@ Rejected, merged, or made obsolete. Completed items move to the [archive](docs/I
 
 - **#1** (two-phase reflective review) — V2 DENIED (p=0.000183). 15x more FP, same recall.
 - **#2** (file-locks.json generation) — Merged into #15
+- **#5** (TaskCompleted hook for quality gates) — Done (2026-02-08). Verification evidence check + audit logging.
 - **#29** (chunked file reads) — Redundant with native Read + Grep tools
 - **#38** (add `memory: project` to agent definitions) — Done (2026-02-08)
