@@ -64,6 +64,31 @@ fix_plugin_root_paths() {
   fi
 }
 
+# Compute md5 hash of a single file (portable: macOS md5 -q / Linux md5sum)
+hash_file() {
+  local file="$1"
+  if md5 -q /dev/null &>/dev/null; then
+    md5 -q "$file"
+  else
+    md5sum "$file" | cut -d' ' -f1
+  fi
+}
+
+# Compute md5 hash of a skill directory's contents.
+# Uses length-framed records (path<TAB>byte_count<NL>content) so record boundaries
+# are unambiguous regardless of file content. Assumes filenames contain no tabs or
+# newlines (valid for plugin skill trees).
+hash_skill_dir() {
+  local dir="$1"
+  if md5 -q /dev/null &>/dev/null; then
+    (cd "$dir" && LC_ALL=C find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sh -c \
+      'for f; do sz=$(wc -c < "$f"); printf "%s\t%d\n" "$f" "$sz"; cat "$f"; done' _ | md5 -q)
+  else
+    (cd "$dir" && LC_ALL=C find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sh -c \
+      'for f; do sz=$(wc -c < "$f"); printf "%s\t%d\n" "$f" "$sz"; cat "$f"; done' _ | md5sum | cut -d' ' -f1)
+  fi
+}
+
 process_plugin() {
   local plugin_dir="$1"
 
@@ -98,14 +123,27 @@ process_plugin() {
       local prefixed_name="$plugin_name:$skill_name"
       local target="$project_dir/.claude/skills/$prefixed_name"
 
-      if [[ -d "$target" ]]; then
-        continue
+      local source_hash
+      source_hash=$(hash_skill_dir "$skill_dir")
+      local hash_file="$target/.source-hash"
+      if [[ -d "$target" && -f "$hash_file" ]]; then
+        local stored_hash
+        stored_hash=$(cat "$hash_file")
+        if [[ "$source_hash" == "$stored_hash" ]]; then
+          continue  # Source unchanged, skip
+        fi
+        rm -rf "$target"  # Remove stale copy to avoid cp -r nesting
+      elif [[ -d "$target" ]]; then
+        # Legacy target from before hash tracking — treat as stale
+        rm -rf "$target"
       fi
 
       mkdir -p "$project_dir/.claude/skills"
       cp -r "$skill_dir" "$target"
       update_name_field "$target/SKILL.md" "$skill_name" "$prefixed_name"
       fix_plugin_root_paths "$target/SKILL.md" "$plugin_dir"
+      mkdir -p "$target"
+      echo "$source_hash" > "$hash_file"
 
       copied_skills+=("$prefixed_name")
     done
@@ -126,9 +164,20 @@ process_plugin() {
       local prefixed_name="$plugin_name:$original_name"
       local target="$project_dir/.claude/agents/$prefixed_name.md"
 
-      if [[ -f "$target" ]]; then
-        continue
+      local source_hash
+      source_hash=$(hash_file "$agent_file")
+      local hash_sidecar="${target}.source-hash"
+      if [[ -f "$target" && -f "$hash_sidecar" ]]; then
+        local stored_hash
+        stored_hash=$(cat "$hash_sidecar")
+        if [[ "$source_hash" == "$stored_hash" ]]; then
+          continue  # Source unchanged, skip
+        fi
+        # Source changed — will re-copy below
       fi
+      # Note: if target exists but hash_sidecar doesn't (legacy install), fall through
+      # to re-copy. For agents (single files), cp overwrites safely. Hash file
+      # gets created after copy, completing the migration.
 
       mkdir -p "$project_dir/.claude/agents"
       cp "$agent_file" "$target"
@@ -137,9 +186,43 @@ process_plugin() {
       base_name=$(basename "$agent_file" .md)
       update_name_field "$target" "$base_name" "$prefixed_name"
       fix_plugin_root_paths "$target" "$plugin_dir"
+      echo "$source_hash" > "$hash_sidecar"
 
       copied_agents+=("$prefixed_name")
     done < <(find "$agents_dir" -name "*.md" -type f -print0)
+  fi
+
+  # Prune orphaned agent copies
+  local agents_target_dir="$project_dir/.claude/agents"
+  if [[ -d "$agents_target_dir" ]]; then
+    for target_file in "$agents_target_dir/${plugin_name}:"*.md; do
+      [[ -f "$target_file" ]] || continue
+      local target_basename
+      target_basename=$(basename "$target_file" .md)
+      local original_name="${target_basename#${plugin_name}:}"
+      local original_path="${original_name//:/\/}"
+      local source_file="$agents_dir/${original_path}.md"
+      if [[ ! -f "$source_file" ]] || ! has_hooks "$source_file"; then
+        rm -f "$target_file" "${target_file}.source-hash"
+      fi
+    done
+  fi
+
+  # Prune orphaned skill copies
+  local skills_target_dir="$project_dir/.claude/skills"
+  if [[ -d "$skills_target_dir" ]]; then
+    for target_dir in "$skills_target_dir/${plugin_name}:"*/; do
+      [[ -d "$target_dir" ]] || continue
+      local target_basename
+      target_basename=$(basename "$target_dir")
+      local original_name="${target_basename#${plugin_name}:}"
+      local original_path="${original_name//:/\/}"
+      local source_dir="$skills_dir/$original_path"
+      local source_file="$source_dir/SKILL.md"
+      if [[ ! -f "$source_file" ]] || ! has_hooks "$source_file"; then
+        rm -rf "$target_dir"
+      fi
+    done
   fi
 }
 
