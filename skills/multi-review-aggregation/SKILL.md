@@ -49,13 +49,13 @@ on_spec_review_pass(issue_id, result):
         if all_approve_no_issues(results):
             # Skip aggregation — unanimous clean approval
             record_metrics(results, role="code")
-            proceed_to_close(task_id)
+            proceed_to_close(issue_id)
         else:
             # Dispatch aggregator
-            dispatch_aggregator(results, task_id)
+            dispatch_aggregator(results, issue_id)
     else:
         # Single review (pro/api) — unchanged
-        dispatch_single_code_review(task_id)
+        dispatch_single_code_review(issue_id)
 ```
 
 ## Aggregation Algorithm
@@ -124,6 +124,8 @@ Use the aggregator prompt template at `./aggregator-prompt.md`.
 
 **Malformed reviewer output:** If a reviewer returns output that can't be parsed (no severity categories, no verdict), treat all its findings as Important and its verdict as "No". The aggregator should still process what it can extract.
 
+**Reviewer timeout/crash:** If one reviewer fails and the others succeed, aggregate with the available results (N-1). The lone-finding threshold adjusts to the actual number of successful reviews. If <2 reviewers succeed, fall back to the single successful review or retry per SDD's "Reviewer Agent Failure" recovery.
+
 ## Output Format
 
 The aggregated report follows the same structure as a single code review, with provenance annotations:
@@ -144,7 +146,9 @@ The aggregated report follows the same structure as a single code review, with p
 
 ### Minor
 - Magic number 30 should be named constant [Reviewer: 2, downgraded from Important] — src/retry.ts:15
-- Inconsistent error message format [Reviewer: 3] — src/api.ts:67
+
+### Suggestion
+- Inconsistent error message format [Reviewer: 3, downgraded from Minor] — src/api.ts:67
 
 ## Assessment
 Ready to merge: With fixes
@@ -152,10 +156,9 @@ Reviewers: 2/3 approved, 1 requested changes
 ```
 
 **Provenance rules:**
-- `[Reviewers: 1, 2]` — found by multiple reviewers
-- `[Reviewer: 2]` — lone finding, downgraded one severity level
-- `[Reviewer: 1, security]` — lone finding, NOT downgraded (security exemption)
-- `[Reviewer: 2, downgraded from Important]` — shows original severity
+- `[Reviewers: 1, 2]` — found by multiple reviewers (no downgrade)
+- `[Reviewer: 2, downgraded from Important]` — lone finding, shows original severity
+- `[Reviewer: 1, security]` — lone finding, NOT downgraded (security/data-loss exemption)
 
 ## Metrics
 

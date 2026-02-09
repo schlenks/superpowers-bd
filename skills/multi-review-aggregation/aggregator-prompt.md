@@ -32,7 +32,8 @@ Task tool:
     - All reviewers agree → keep that severity
     - Reviewers disagree → use the HIGHEST severity
     - Lone finding (only 1 reviewer found it) → downgrade one level:
-      Critical → Important, Important → Minor, Minor → Suggestion
+      Critical → Important, Important → Minor, Minor → Suggestion.
+      Suggestion is the floor — lone Suggestions stay at Suggestion.
     - EXCEPTION: Do NOT downgrade lone findings about security vulnerabilities
       or data loss. Keep original severity and annotate with "security".
 
@@ -65,6 +66,10 @@ Task tool:
     ### Minor
     - [issue description] [Reviewer: X, downgraded from Important] — file:line
     (or "(none)" if no minor issues)
+
+    ### Suggestion
+    - [issue description] [Reviewer: X, downgraded from Minor] — file:line
+    (or "(none)" if no suggestions)
 
     ## Assessment
     Ready to merge: [Yes/With fixes/No]
