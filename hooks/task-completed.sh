@@ -77,9 +77,10 @@ if echo "$subject_lower" | grep -qE '(implement|close evidence)'; then
   if [ -z "$task_description" ]; then
     missing+=("commit hash" "files changed" "test results")
   else
+    # Case-insensitive version for keyword matching (test results)
     desc_lower=$(echo "$task_description" | tr '[:upper:]' '[:lower:]')
 
-    # Commit hash: 7-40 hex chars or "commit:" label
+    # Commit hash: 7-40 hex chars or "commit:" label (case-sensitive: hex is lowercase)
     if ! echo "$task_description" | grep -qE '([0-9a-f]{7,40}|[Cc]ommit:)'; then
       missing+=("commit hash")
     fi
