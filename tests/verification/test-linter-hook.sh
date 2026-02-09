@@ -5,8 +5,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HOOK="$SCRIPT_DIR/../../hooks/run-linter.sh"
-TMPDIR=$(mktemp -d)
-trap 'rm -rf "$TMPDIR"' EXIT
+TEST_DIR=$(mktemp -d)
+trap 'rm -rf "$TEST_DIR"' EXIT
 
 pass=0
 fail=0
@@ -17,7 +17,7 @@ run_test() {
   local expected_exit="$3"
   local expected_stderr_pattern="${4:-}"
 
-  local stderr_file="$TMPDIR/stderr"
+  local stderr_file="$TEST_DIR/stderr"
   local actual_exit=0
   echo "$input" | "$HOOK" 2>"$stderr_file" || actual_exit=$?
 
@@ -46,29 +46,29 @@ run_test() {
 # --- Test fixtures ---
 
 # Valid shell script
-cat > "$TMPDIR/valid.sh" << 'SHELL'
+cat > "$TEST_DIR/valid.sh" << 'SHELL'
 #!/usr/bin/env bash
 set -euo pipefail
 echo "hello"
 SHELL
-chmod +x "$TMPDIR/valid.sh"
+chmod +x "$TEST_DIR/valid.sh"
 
 # Invalid shell script (unquoted variable)
-cat > "$TMPDIR/invalid.sh" << 'SHELL'
+cat > "$TEST_DIR/invalid.sh" << 'SHELL'
 #!/usr/bin/env bash
 echo $unquoted_var
 files=$(ls *.txt)
 SHELL
-chmod +x "$TMPDIR/invalid.sh"
+chmod +x "$TEST_DIR/invalid.sh"
 
 # Valid JSON
-echo '{"key": "value", "list": [1, 2, 3]}' > "$TMPDIR/valid.json"
+echo '{"key": "value", "list": [1, 2, 3]}' > "$TEST_DIR/valid.json"
 
 # Invalid JSON (missing closing brace)
-echo '{"key": "value"' > "$TMPDIR/invalid.json"
+echo '{"key": "value"' > "$TEST_DIR/invalid.json"
 
 # Python file (no linter configured)
-echo 'print("hello")' > "$TMPDIR/script.py"
+echo 'print("hello")' > "$TEST_DIR/script.py"
 
 # --- Tests ---
 
@@ -77,29 +77,29 @@ echo ""
 
 # 1. Valid .sh file
 run_test "Valid .sh file" \
-  "{\"tool_input\":{\"file_path\":\"$TMPDIR/valid.sh\"}}" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/valid.sh\"}}" \
   0
 
 # 2. Invalid .sh file
 run_test "Invalid .sh file (shellcheck errors)" \
-  "{\"tool_input\":{\"file_path\":\"$TMPDIR/invalid.sh\"}}" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/invalid.sh\"}}" \
   2 \
   "LINTER ERROR"
 
 # 3. Valid .json file
 run_test "Valid .json file" \
-  "{\"tool_input\":{\"file_path\":\"$TMPDIR/valid.json\"}}" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/valid.json\"}}" \
   0
 
 # 4. Invalid .json file
 run_test "Invalid .json file (missing brace)" \
-  "{\"tool_input\":{\"file_path\":\"$TMPDIR/invalid.json\"}}" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/invalid.json\"}}" \
   2 \
   "LINTER ERROR"
 
 # 5. .py file (no linter)
 run_test ".py file (no linter configured)" \
-  "{\"tool_input\":{\"file_path\":\"$TMPDIR/script.py\"}}" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/script.py\"}}" \
   0
 
 # 6. Missing file_path field
@@ -114,7 +114,7 @@ run_test "Empty JSON input" \
 
 # 8. Non-existent .json file
 run_test "Non-existent .json file" \
-  "{\"tool_input\":{\"file_path\":\"$TMPDIR/does-not-exist.json\"}}" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/does-not-exist.json\"}}" \
   2 \
   "LINTER ERROR"
 
