@@ -28,6 +28,15 @@ go install github.com/steveyegge/beads/cmd/bd@latest
 
 Without beads, the core workflow (`plan2beads`, `executing-plans`, `subagent-driven-development`) will not function.
 
+### Optional Dependencies
+
+These tools enhance linting and complexity checks but are **not required** — hooks gracefully degrade without them.
+
+| Tool | Purpose | Install |
+|------|---------|---------|
+| [shellcheck](https://www.shellcheck.net/) | Shell script linting | `brew install shellcheck` |
+| [lizard](https://github.com/terryyin/lizard) | Cyclomatic complexity checking | `pip install lizard` |
+
 ## Key Features
 
 ### Two-Layer Task System (v4.0.7)

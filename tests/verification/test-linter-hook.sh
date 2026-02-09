@@ -67,8 +67,208 @@ echo '{"key": "value", "list": [1, 2, 3]}' > "$TEST_DIR/valid.json"
 # Invalid JSON (missing closing brace)
 echo '{"key": "value"' > "$TEST_DIR/invalid.json"
 
-# Python file (no linter configured)
+# Python file (simple, no functions)
 echo 'print("hello")' > "$TEST_DIR/script.py"
+
+# Python file with low complexity (CC=4, well below threshold)
+cat > "$TEST_DIR/cc_low.py" << 'PYEOF'
+def simple_check(x, y, z):
+    if x > 0:
+        print("positive")
+    elif y > 0:
+        print("y positive")
+    elif z > 0:
+        print("z positive")
+    else:
+        print("all non-positive")
+    return x + y + z
+PYEOF
+
+# Python file with medium complexity (CC=12, warn but not block)
+cat > "$TEST_DIR/cc_warn.py" << 'PYEOF'
+def complex_validator(data, mode, strict):
+    result = []
+    if not data:
+        return result
+    if mode == "alpha":
+        if strict:
+            result.append("strict_alpha")
+        else:
+            result.append("alpha")
+    elif mode == "beta":
+        if strict:
+            result.append("strict_beta")
+        else:
+            result.append("beta")
+    elif mode == "gamma":
+        result.append("gamma")
+    elif mode == "delta":
+        result.append("delta")
+    for item in data:
+        if item > 100:
+            result.append("large")
+        elif item > 50:
+            result.append("medium")
+        elif item > 10:
+            result.append("small")
+        else:
+            result.append("tiny")
+    return result
+PYEOF
+
+# Python file with high complexity (CC=18, must block)
+cat > "$TEST_DIR/cc_block.py" << 'PYEOF'
+def overly_complex(data, mode, level, strict, verbose):
+    result = []
+    if not data:
+        return result
+    if mode == "alpha":
+        if strict:
+            if level > 5:
+                result.append("high_strict_alpha")
+            else:
+                result.append("low_strict_alpha")
+        else:
+            result.append("alpha")
+    elif mode == "beta":
+        if strict:
+            result.append("strict_beta")
+        elif verbose:
+            result.append("verbose_beta")
+        else:
+            result.append("beta")
+    elif mode == "gamma":
+        if level > 10:
+            result.append("high_gamma")
+        else:
+            result.append("low_gamma")
+    elif mode == "delta":
+        result.append("delta")
+    for item in data:
+        if item > 100:
+            if verbose:
+                result.append("very_large")
+            else:
+                result.append("large")
+        elif item > 50:
+            result.append("medium")
+        elif item > 25:
+            result.append("small")
+        else:
+            result.append("tiny")
+    if strict and verbose:
+        result.append("audit")
+    return result
+PYEOF
+
+# Python file with very long function (105 NLOC, CC=1)
+cat > "$TEST_DIR/long_func.py" << 'PYEOF'
+def very_long_function(x):
+    a = x + 1
+    b = x + 2
+    c = x + 3
+    d = x + 4
+    e = x + 5
+    f = x + 6
+    g = x + 7
+    h = x + 8
+    i = x + 9
+    j = x + 10
+    k = x + 11
+    l = x + 12
+    m = x + 13
+    n = x + 14
+    o = x + 15
+    p = x + 16
+    q = x + 17
+    r = x + 18
+    s = x + 19
+    t = x + 20
+    u = x + 21
+    v = x + 22
+    w = x + 23
+    y = x + 24
+    z = x + 25
+    aa = x + 26
+    ab = x + 27
+    ac = x + 28
+    ad = x + 29
+    ae = x + 30
+    af = x + 31
+    ag = x + 32
+    ah = x + 33
+    ai = x + 34
+    aj = x + 35
+    ak = x + 36
+    al = x + 37
+    am = x + 38
+    an = x + 39
+    ao = x + 40
+    ap = x + 41
+    aq = x + 42
+    ar = x + 43
+    as_ = x + 44
+    at = x + 45
+    au = x + 46
+    av = x + 47
+    aw = x + 48
+    ax = x + 49
+    ay = x + 50
+    az = x + 51
+    ba = x + 52
+    bb = x + 53
+    bc = x + 54
+    bd = x + 55
+    be = x + 56
+    bf = x + 57
+    bg = x + 58
+    bh = x + 59
+    bi = x + 60
+    bj = x + 61
+    bk = x + 62
+    bl = x + 63
+    bm = x + 64
+    bn = x + 65
+    bo = x + 66
+    bp = x + 67
+    bq = x + 68
+    br = x + 69
+    bs = x + 70
+    bt = x + 71
+    bu = x + 72
+    bv = x + 73
+    bw = x + 74
+    bx = x + 75
+    by = x + 76
+    bz = x + 77
+    ca = x + 78
+    cb = x + 79
+    cc = x + 80
+    cd = x + 81
+    ce = x + 82
+    cf = x + 83
+    cg = x + 84
+    ch = x + 85
+    ci = x + 86
+    cj = x + 87
+    ck = x + 88
+    cl = x + 89
+    cm = x + 90
+    cn = x + 91
+    co = x + 92
+    cp = x + 93
+    cq = x + 94
+    cr = x + 95
+    cs = x + 96
+    ct = x + 97
+    cu = x + 98
+    cv = x + 99
+    cw = x + 100
+    cx = x + 101
+    cy = x + 102
+    cz = x + 103
+    return a + b + c + d + e
+PYEOF
 
 # --- Tests ---
 
@@ -97,8 +297,8 @@ run_test "Invalid .json file (missing brace)" \
   2 \
   "LINTER ERROR"
 
-# 5. .py file (no linter)
-run_test ".py file (no linter configured)" \
+# 5. .py file (simple, no functions for lizard to analyze)
+run_test ".py file — simple, no functions" \
   "{\"tool_input\":{\"file_path\":\"$TEST_DIR/script.py\"}}" \
   0
 
@@ -117,6 +317,29 @@ run_test "Non-existent .json file" \
   "{\"tool_input\":{\"file_path\":\"$TEST_DIR/does-not-exist.json\"}}" \
   2 \
   "LINTER ERROR"
+
+# 9. Python file with low complexity (CC=4, clean)
+run_test ".py file — low complexity (CC=4, clean)" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/cc_low.py\"}}" \
+  0
+
+# 10. Python file with medium complexity (CC=12, warn but pass)
+run_test ".py file — medium complexity (CC=12, warning)" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/cc_warn.py\"}}" \
+  0 \
+  "COMPLEXITY WARNING"
+
+# 11. Python file with high complexity (CC=18, must block)
+run_test ".py file — high complexity (CC=18, blocked)" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/cc_block.py\"}}" \
+  2 \
+  "COMPLEXITY ERROR"
+
+# 12. Python file with very long function (105 NLOC, must block)
+run_test ".py file — long function (105 NLOC, blocked)" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/long_func.py\"}}" \
+  2 \
+  "COMPLEXITY ERROR"
 
 # --- Summary ---
 echo ""

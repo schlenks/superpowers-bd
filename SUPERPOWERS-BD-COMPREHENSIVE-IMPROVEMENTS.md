@@ -8,7 +8,7 @@
 
 *Item numbers are stable IDs from the [archive](docs/IMPROVEMENTS-ARCHIVE.md), not priority ranks.*
 
-**Next up:** #6 — add cyclomatic complexity checks to code-reviewer
+**Next up:** #16 — create artifact-specific rule-of-five variants
 
 ---
 
@@ -28,7 +28,7 @@
 | ~~25~~ | ~~Linter guards via frontmatter PostToolUse~~ | ~~Hook config~~ | ~~DONE~~ |
 | ~~14~~ | ~~Require completion evidence before closing (builds on #5)~~ | ~~Hook + prompt~~ | ~~DONE~~ |
 | ~~15~~ | ~~Declare file ownership in task definitions~~ | ~~Skill update~~ | ~~DONE~~ |
-| 6 | Add cyclomatic complexity checks to code-reviewer | Prompt | Q |
+| ~~6~~ | ~~Add cyclomatic complexity checks to code-reviewer~~ | ~~Prompt~~ | ~~DONE~~ |
 | 16 | Create artifact-specific rule-of-five variants | Skill variant | Q |
 | 24 | Run file conflict analysis before planning | Skill update | C |
 
@@ -154,4 +154,5 @@ Rejected, merged, or made obsolete. Completed items move to the [archive](docs/I
 - **#15** (file ownership in task definitions) — Done (2026-02-08). Advisory `.claude/file-locks.json` written per wave, consulted by implementers on unexpected file needs, cleaned up at epic completion.
 - **#25** (linter guards) — Done (2026-02-08). PostToolUse hooks run shellcheck (.sh) and jq (.json) after Write/Edit. Main thread via hooks.json, subagents via code-reviewer frontmatter. Graceful degradation if tools missing.
 - **#46** (multi-review aggregation) — Done (2026-02-08). N=3 independent reviews for max-20x/max-5x tiers with union+severity consensus aggregation. New skill + SDD integration.
+- **#6** (cyclomatic complexity checks) — Done (2026-02-09). Quantitative metrics section in code-reviewer (CC, function length, duplication thresholds). Lizard hook in run-linter.sh with two-pass enforcement (block CC>15/length>100, warn CC>10/length>50). Graceful degradation with install hint.
 - **#14** (completion evidence) — Done (2026-02-08). Two-layer enforcement: TaskCompleted hook Check 2 blocks implementation tasks without commit/files/tests evidence (interactive mode), structured implementer report template ensures evidence generation (all modes), `bd close --reason` persists evidence in beads audit trail.
