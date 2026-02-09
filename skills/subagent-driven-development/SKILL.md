@@ -350,8 +350,9 @@ Issue hub-abc.3 files: [auth.service.ts, models/index.ts]  ← CONFLICT with .1!
 5. If file appears in multiple ready issues:
    - **Dispatch lowest-numbered first** (e.g., hub-abc.1 before hub-abc.3)
    - **Defer conflicting issues to next wave** (they stay ready, dispatch after current wave completes)
-6. **Mark conflict check task as `completed` with conflict report**
-7. **Write `.claude/file-locks.json`** from the file → issue map (parallelizable set only):
+6. **Cap at 3 tasks per wave.** If more than 3 are parallelizable, dispatch the lowest-numbered 3 and defer the rest. This prevents the orchestrator from exhausting its context window managing too many agents simultaneously.
+7. **Mark conflict check task as `completed` with conflict report**
+8. **Write `.claude/file-locks.json`** from the file → issue map (parallelizable set only):
    ```json
    {
      "epic": "<epic-id>",
@@ -363,7 +364,7 @@ Issue hub-abc.3 files: [auth.service.ts, models/index.ts]  ← CONFLICT with .1!
    }
    ```
    Overwritten at each wave start. Only includes files from dispatched (non-deferred) issues.
-8. Dispatch all non-conflicting issues in parallel
+9. Dispatch all non-conflicting issues in parallel
 
 **If `## Files` section is missing:** Treat as conflicting with ALL other issues (cannot parallelize, must dispatch alone).
 
@@ -394,6 +395,7 @@ SEQUENTIAL (old):
 PARALLEL (new):
   TaskCreate "Check file conflicts for wave N"
   parallelizable = filter_file_conflicts(ready)
+  parallelizable = parallelizable[:3]  # Max 3 per wave — prevents context exhaustion
   TaskUpdate conflict-task status=completed  # with conflict report
 
   write_file_locks(epic_id, wave_n, parallelizable)  # .claude/file-locks.json
@@ -415,7 +417,7 @@ PARALLEL (new):
 
 ### Background Execution with Polling
 
-**When to use:** For 3+ tasks per wave, background execution lets you monitor all tasks simultaneously and start reviews as soon as each completes—without waiting for all implementations to finish.
+**When to use:** For 2+ tasks per wave (up to the max of 3), background execution lets you monitor all tasks simultaneously and start reviews as soon as each completes—without waiting for all implementations to finish.
 
 Use `run_in_background: true` with TaskOutput polling.
 
