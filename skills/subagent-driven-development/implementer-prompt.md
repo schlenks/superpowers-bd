@@ -34,6 +34,11 @@ Task tool:
     If you discover you need to modify other files, STOP and ask.
     This constraint enables safe parallel execution with other subagents.
 
+    **Advisory lock file:** `.claude/file-locks.json` lists all file locks for this wave.
+    If you discover you need a file not in your list, check `.claude/file-locks.json` to see
+    if another agent owns it. If locked, STOP and report the conflicting file and its owner.
+    Do NOT read this file routinely — only consult it when you encounter an unexpected file need.
+
     ## Dependencies (Already Complete)
 
     These issues have been completed. You can use their outputs:
@@ -87,6 +92,7 @@ Task tool:
     **File Scope:**
     - Did I ONLY modify files in my allowed list?
     - If I touched other files, I need to report this as an issue
+    - If I needed a file owned by another agent (per `.claude/file-locks.json`), did I STOP and report it?
 
     **Completeness:**
     - Did I fully implement everything in the spec?

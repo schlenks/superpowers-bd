@@ -8,7 +8,7 @@
 
 *Item numbers are stable IDs from the [archive](docs/IMPROVEMENTS-ARCHIVE.md), not priority ranks.*
 
-**Next up:** #15 — declare file ownership in task definitions
+**Next up:** #6 — add cyclomatic complexity checks to code-reviewer
 
 ---
 
@@ -27,7 +27,7 @@
 | ~~46~~ | ~~Multi-review aggregation — N independent reviews~~ | ~~Skill/prompt~~ | ~~DONE~~ |
 | ~~25~~ | ~~Linter guards via frontmatter PostToolUse~~ | ~~Hook config~~ | ~~DONE~~ |
 | ~~14~~ | ~~Require completion evidence before closing (builds on #5)~~ | ~~Hook + prompt~~ | ~~DONE~~ |
-| 15 | Declare file ownership in task definitions | Skill update | C |
+| ~~15~~ | ~~Declare file ownership in task definitions~~ | ~~Skill update~~ | ~~DONE~~ |
 | 6 | Add cyclomatic complexity checks to code-reviewer | Prompt | Q |
 | 16 | Create artifact-specific rule-of-five variants | Skill variant | Q |
 | 24 | Run file conflict analysis before planning | Skill update | C |
@@ -112,10 +112,8 @@ Tracked to prevent re-raising. Revisit only when the blocking condition changes.
 - **12 workflow skills** — TDD, debugging, verification, brainstorming, etc.
 - **TaskCompleted hooks** (#5) — hard enforcement quality gates (interactive mode)
 - **Multi-review aggregation** (#46) — N=3 independent reviews, union+severity consensus, 43.67% F1 improvement
-
-**Planned (in roadmap):**
-- **Prompt-based file ownership** (#15) — proven pattern, no upstream dependency
-- **Modern agent frontmatter** (#45) — DONE (memory, maxTurns, disallowedTools, command frontmatter, reference docs)
+- **Prompt-based file ownership** (#15) — advisory `.claude/file-locks.json` per wave, implementer lock-file lookup on conflict
+- **Modern agent frontmatter** (#45) — memory, maxTurns, disallowedTools, command frontmatter, reference docs
 
 **The playbook:** Claude Code stable GA for coordination + superpowers-bd for discipline.
 
@@ -153,6 +151,7 @@ Rejected, merged, or made obsolete. Completed items move to the [archive](docs/I
 - **#38** (add `memory: project` to agent definitions) — Done (2026-02-08)
 - **#41** (expose native Task metrics for cost tracking) — Done (2026-02-08). Per-task/wave/epic metrics in SDD skill, wave summary costs, epic completion report.
 - **#42** (add hooks in agent/skill frontmatter) — Done (2026-02-08). PostToolUse audit hook on code-reviewer. Plugin hooks workaround via `link-plugin-components.sh` (#17688).
+- **#15** (file ownership in task definitions) — Done (2026-02-08). Advisory `.claude/file-locks.json` written per wave, consulted by implementers on unexpected file needs, cleaned up at epic completion.
 - **#25** (linter guards) — Done (2026-02-08). PostToolUse hooks run shellcheck (.sh) and jq (.json) after Write/Edit. Main thread via hooks.json, subagents via code-reviewer frontmatter. Graceful degradation if tools missing.
 - **#46** (multi-review aggregation) — Done (2026-02-08). N=3 independent reviews for max-20x/max-5x tiers with union+severity consensus aggregation. New skill + SDD integration.
 - **#14** (completion evidence) — Done (2026-02-08). Two-layer enforcement: TaskCompleted hook Check 2 blocks implementation tasks without commit/files/tests evidence (interactive mode), structured implementer report template ensures evidence generation (all modes), `bd close --reason` persists evidence in beads audit trail.

@@ -351,7 +351,19 @@ Issue hub-abc.3 files: [auth.service.ts, models/index.ts]  ← CONFLICT with .1!
    - **Dispatch lowest-numbered first** (e.g., hub-abc.1 before hub-abc.3)
    - **Defer conflicting issues to next wave** (they stay ready, dispatch after current wave completes)
 6. **Mark conflict verification task as `completed` with conflict report**
-7. Dispatch all non-conflicting issues in parallel
+7. **Write `.claude/file-locks.json`** from the file → issue map (parallelizable set only):
+   ```json
+   {
+     "epic": "<epic-id>",
+     "wave": N,
+     "generated_at": "<ISO-8601 timestamp>",
+     "locks": {
+       "<file-path>": {"owner": "<issue-id>", "action": "Create|Modify|Test"}
+     }
+   }
+   ```
+   Overwritten at each wave start. Only includes files from dispatched (non-deferred) issues.
+8. Dispatch all non-conflicting issues in parallel
 
 **If `## Files` section is missing:** Treat as conflicting with ALL other issues (cannot parallelize, must dispatch alone).
 
@@ -383,6 +395,8 @@ PARALLEL (new):
   TaskCreate "Verify no file conflicts in wave N"
   parallelizable = filter_file_conflicts(ready)
   TaskUpdate conflict-task status=completed  # with conflict report
+
+  write_file_locks(epic_id, wave_n, parallelizable)  # .claude/file-locks.json
 
   TaskCreate "Wave N: Dispatch [list issues]"
   for issue in parallelizable:
@@ -896,11 +910,11 @@ If `bd ready` shows nothing for your epic BUT issues remain open, check for:
 ├──────────┬──────────────────────────────────────────────────┤
 │ INIT     │ Ask budget tier, load epic                       │
 │ LOADING  │ Parse children, check bd ready, filter to epic   │
-│ DISPATCH │ File conflict check → dispatch non-conflicting   │
+│ DISPATCH │ File conflict check → write file-locks.json → dispatch │
 │ MONITOR  │ Poll background tasks, route completions         │
 │ REVIEW   │ Dispatch spec/code reviewers as tasks complete   │
 │ CLOSE    │ Extract evidence, bd close --reason, wave summary │
-│ COMPLETE │ Cost report → finishing-branch                    │
+│ COMPLETE │ Cost report → cleanup file-locks.json → finishing-branch │
 └──────────┴──────────────────────────────────────────────────┘
 
 Transitions:
@@ -945,6 +959,12 @@ bd comments add <epic-id> "Epic complete:
 ```
 
 **3. Reference post-hoc analysis:** The blended $9/M rate is an estimate. For precise input vs output token costs, run `analyze-token-usage.py` on the session JSONL after completion.
+
+**4. Cleanup file-locks.json:**
+```bash
+rm -f .claude/file-locks.json
+```
+Advisory locks removed — no agents active.
 
 ## Failure Recovery
 
