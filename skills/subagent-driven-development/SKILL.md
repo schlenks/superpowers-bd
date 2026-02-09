@@ -557,7 +557,8 @@ on_code_review_pass(task_id, result):
     )
 
     if verification_result.passed:
-        bd_close(task_id)
+        # Extract evidence and close with audit trail (see "Evidence Extraction Before Close")
+        extract_evidence_and_close(task_id, implementer_result)
     elif verification_result.escalated:
         # Human intervention task created by gap closure
         pending_human_intervention.add(task_id)
@@ -577,6 +578,40 @@ Code review passes → Create verification task (attempt 1) → Run verification
 - Gap closure happens in REVIEW → CLOSE transition
 - If escalated, task moves to "pending human" (not closed, not dispatched)
 - After human resolves, re-enter REVIEW state for that task
+
+### Evidence Extraction Before Close
+
+After verification passes but before `bd close`, capture structured evidence for audit trail:
+
+```python
+on_verification_pass(task_id, implementer_result):
+    # 1. Parse ### Evidence section from implementer's report
+    evidence = parse_evidence_section(implementer_result)
+
+    # 2. Fallback: run git commands directly if report is malformed
+    if not evidence.commit:
+        evidence.commit = run("git rev-parse --short HEAD")
+    if not evidence.files:
+        evidence.files = run("git diff --stat")
+
+    # 3. Create native "Close evidence" task → triggers TaskCompleted hook (interactive mode)
+    evidence_task = TaskCreate(
+        subject=f"Close evidence: {task_id}",
+        description=f"Commit: {evidence.commit}\n"
+                    f"Files changed: {evidence.files}\n"
+                    f"Test results: {evidence.test_results}",
+        activeForm=f"Recording evidence for {task_id}"
+    )
+    TaskUpdate(taskId=evidence_task.id, status="completed")
+
+    # 4. Close with evidence in reason for beads audit trail
+    bd_close(task_id, reason=f"Commit: {evidence.commit} | Files: {evidence.files} | Tests: {evidence.test_results}")
+```
+
+**Why two layers:**
+- **Native task** (step 3) — triggers TaskCompleted hook in interactive mode, which blocks if evidence is missing
+- **bd close --reason** (step 4) — persists evidence in beads for cross-session audit trail
+- **Prompt-based** — implementer report template ensures evidence is generated in all modes (including headless)
 
 ### Wave Orchestration with Native Tasks
 
@@ -642,6 +677,9 @@ TaskUpdate(taskId=summary_task.id, metadata={
 ```bash
 bd comments add <epic-id> "Wave N complete:
 - Closed: hub-abc.1, hub-abc.2
+- Evidence:
+  - hub-abc.1: commit=[hash], files=[count] changed, tests=[pass_count] pass
+  - hub-abc.2: commit=[hash], files=[count] changed, tests=[pass_count] pass
 - Cost: [wave_tokens] tokens (~$[cost]) | [tool_calls] tool calls | [duration]s
   - hub-abc.1: impl=[tok]/[calls]/[dur]s, spec=[tok], code=[tok]×N+agg=[tok]
   - hub-abc.2: impl=[tok]/[calls]/[dur]s, spec=[tok], code=[tok]×N+agg=[tok]
@@ -708,15 +746,22 @@ Spec reviewer: ✅ Spec compliant
 [Dispatch code quality reviewer for hub-abc.2]
 Code reviewer: ✅ Approved
 
-[bd close hub-abc.2]
+[Extract evidence from implementer report]
+  Commit: f3a9b1c
+  Files: jwt.utils.ts (+85), utils/index.ts (+2)
+  Tests: 8/8 pass, exit 0
+[TaskCreate "Close evidence: hub-abc.2" with evidence in description → completed]
+[bd close hub-abc.2 --reason "Commit: f3a9b1c | Files: 2 changed | Tests: 8/8 pass"]
 
 [Check bd ready: still nothing new - hub-abc.4 still blocked by hub-abc.3]
 
 [hub-abc.1 completes]
 Implementer 1:
-  - Implemented User model
-  - Tests passing
-  - Committed
+  ### Evidence
+  - Commit: a7e2d4f
+  - Files changed: user.model.ts (+120), models/index.ts (+3)
+  - Test command: npm test -- --grep "User"
+  - Test results: 12/12 pass, exit 0
 
 [Dispatch spec reviewer for hub-abc.1]
 Spec reviewer: ✅ Spec compliant
@@ -724,7 +769,9 @@ Spec reviewer: ✅ Spec compliant
 [Dispatch code quality reviewer for hub-abc.1]
 Code reviewer: ✅ Approved
 
-[bd close hub-abc.1]
+[Extract evidence from implementer report]
+[TaskCreate "Close evidence: hub-abc.1" with evidence in description → completed]
+[bd close hub-abc.1 --reason "Commit: a7e2d4f | Files: 2 changed | Tests: 12/12 pass"]
 
 [Post wave summary]
 bd comments add hub-abc "Wave 1 complete:
@@ -751,7 +798,7 @@ Implementer 3:
   - Committed
 
 [Review passes]
-[bd close hub-abc.3]
+[Extract evidence + bd close hub-abc.3 --reason "Commit: c8d1e5a | Files: 1 changed | Tests: 5/5 pass"]
 
 [bd ready now shows hub-abc.4 (unblocked - was blocked by .2, .3, both now closed)]
 
@@ -761,7 +808,7 @@ Wave 3: Task 4 is ready
 [Dispatch implementer for hub-abc.4]
 
 [hub-abc.4 completes, reviews pass]
-[bd close hub-abc.4]
+[Extract evidence + bd close hub-abc.4 --reason "Commit: 9b3f7a2 | Files: 3 changed | Tests: 15/15 pass"]
 
 [All issues closed]
 
@@ -849,7 +896,7 @@ If `bd ready` shows nothing for your epic BUT issues remain open, check for:
 │ DISPATCH │ File conflict check → dispatch non-conflicting   │
 │ MONITOR  │ Poll background tasks, route completions         │
 │ REVIEW   │ Dispatch spec/code reviewers as tasks complete   │
-│ CLOSE    │ bd close passed tasks, post wave summary         │
+│ CLOSE    │ Extract evidence, bd close --reason, wave summary │
 │ COMPLETE │ Cost report → finishing-branch                    │
 └──────────┴──────────────────────────────────────────────────┘
 

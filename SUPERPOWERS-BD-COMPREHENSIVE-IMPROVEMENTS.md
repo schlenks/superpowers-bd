@@ -8,7 +8,7 @@
 
 *Item numbers are stable IDs from the [archive](docs/IMPROVEMENTS-ARCHIVE.md), not priority ranks.*
 
-**Next up:** #14 — require completion evidence before closing
+**Next up:** #15 — declare file ownership in task definitions
 
 ---
 
@@ -26,7 +26,7 @@
 |---|------|------|------|
 | ~~46~~ | ~~Multi-review aggregation — N independent reviews~~ | ~~Skill/prompt~~ | ~~DONE~~ |
 | ~~25~~ | ~~Linter guards via frontmatter PostToolUse~~ | ~~Hook config~~ | ~~DONE~~ |
-| 14 | Require completion evidence before closing (builds on #5) | Hook + prompt | Q |
+| ~~14~~ | ~~Require completion evidence before closing (builds on #5)~~ | ~~Hook + prompt~~ | ~~DONE~~ |
 | 15 | Declare file ownership in task definitions | Skill update | C |
 | 6 | Add cyclomatic complexity checks to code-reviewer | Prompt | Q |
 | 16 | Create artifact-specific rule-of-five variants | Skill variant | Q |
@@ -155,3 +155,4 @@ Rejected, merged, or made obsolete. Completed items move to the [archive](docs/I
 - **#42** (add hooks in agent/skill frontmatter) — Done (2026-02-08). PostToolUse audit hook on code-reviewer. Plugin hooks workaround via `link-plugin-components.sh` (#17688).
 - **#25** (linter guards) — Done (2026-02-08). PostToolUse hooks run shellcheck (.sh) and jq (.json) after Write/Edit. Main thread via hooks.json, subagents via code-reviewer frontmatter. Graceful degradation if tools missing.
 - **#46** (multi-review aggregation) — Done (2026-02-08). N=3 independent reviews for max-20x/max-5x tiers with union+severity consensus aggregation. New skill + SDD integration.
+- **#14** (completion evidence) — Done (2026-02-08). Two-layer enforcement: TaskCompleted hook Check 2 blocks implementation tasks without commit/files/tests evidence (interactive mode), structured implementer report template ensures evidence generation (all modes), `bd close --reason` persists evidence in beads audit trail.

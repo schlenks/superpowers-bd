@@ -69,6 +69,40 @@ if echo "$subject_lower" | grep -qE '(verify|verification)'; then
   fi
 fi
 
+# --- Check 2: Implementation/close evidence ---
+# Tasks with "implement" or "close evidence" in subject must have commit, files, and test evidence
+if echo "$subject_lower" | grep -qE '(implement|close evidence)'; then
+  missing=()
+
+  if [ -z "$task_description" ]; then
+    missing+=("commit hash" "files changed" "test results")
+  else
+    desc_lower=$(echo "$task_description" | tr '[:upper:]' '[:lower:]')
+
+    # Commit hash: 7-40 hex chars or "commit:" label
+    if ! echo "$task_description" | grep -qE '([0-9a-f]{7,40}|[Cc]ommit:)'; then
+      missing+=("commit hash")
+    fi
+
+    # Files changed: file extensions or "file(s) changed/modified/created"
+    if ! echo "$task_description" | grep -qE '(\.[a-z]{1,4}\b|files? (changed|modified|created))'; then
+      missing+=("files changed")
+    fi
+
+    # Test results: test/pass/fail/exit code/assertions
+    if ! echo "$desc_lower" | grep -qE '(test|pass|fail|exit code|0 failures|assertion)'; then
+      missing+=("test results")
+    fi
+  fi
+
+  if [ ${#missing[@]} -gt 0 ]; then
+    missing_str=$(IFS=', '; echo "${missing[*]}")
+    log_result "BLOCKED" "implementation task missing: ${missing_str}"
+    echo "BLOCKED: Task \"${task_subject}\" lacks completion evidence. Missing: ${missing_str}. Update task description with: commit hash (git rev-parse --short HEAD), files changed (git diff --stat), and test results before completing." >&2
+    exit 2
+  fi
+fi
+
 # --- All checks passed ---
 log_result "ALLOWED" "all checks passed"
 exit 0

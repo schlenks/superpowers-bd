@@ -113,14 +113,21 @@ Task tool:
 
     ## Report Format
 
-    When done, report:
+    When done, report using this EXACT structure:
+
+    ### Evidence
+    - **Commit:** [hash from `git rev-parse --short HEAD`]
+    - **Files changed:** [output from `git diff --stat HEAD~1`]
+    - **Test command:** [exact command you ran]
+    - **Test results:** [pass/fail count and exit code]
+
+    ### Summary
     - What you implemented
     - **Files actually modified** (MUST match allowed list)
-    - What you tested and test results
     - Self-review findings (if any)
     - Rule-of-five passes applied (if artifact >50 lines)
     - Any issues or concerns
-    - **File scope violations** (if you had to modify files outside allowed list - explain why)
+    - **File scope violations** (if any)
 ```
 
 ## Example Dispatch
