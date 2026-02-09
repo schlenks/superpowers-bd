@@ -1,6 +1,6 @@
 # Superpowers-BD: Improvement Roadmap
 
-**Version:** 6.3 (February 8, 2026) | **Active items:** 37 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
+**Version:** 6.4 (February 9, 2026) | **Active items:** 36 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
 
 **Philosophy:** If Claude Code does it natively, use that. If beads already does it, don't rebuild it. Config before code.
 
