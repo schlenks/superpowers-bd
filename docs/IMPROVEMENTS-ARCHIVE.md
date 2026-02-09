@@ -70,7 +70,7 @@ Reduces code complexity. Qualitative review already covered by 5+ existing skill
 
 ### FROM SWE-AGENT RESEARCH
 
-**#25** — Linter guards on all edits: Run linter after edit (PostToolUse hook), surface error to Claude, prompt retry. SWE-agent ablation: 3pp improvement (15.0% → 18.0%). Frontmatter hooks verified working for subagents (2026-02-07). Source: SWE-agent ACI.
+**#25** — Linter guards on all edits: Run linter after edit (PostToolUse hook), surface error to Claude, prompt retry. SWE-agent ablation: 3pp improvement (15.0% → 18.0%). Frontmatter hooks verified working for subagents (2026-02-07). **DONE (2026-02-08):** `hooks/run-linter.sh` runs shellcheck (.sh) and jq (.json) after Write/Edit. Main thread coverage via `hooks/hooks.json` PostToolUse. Subagent coverage via `agents/code-reviewer.md` frontmatter hook chain. Graceful degradation if tools not installed. 8/8 unit tests pass. Source: SWE-agent ACI.
 
 **#26** — Succinct search results (max 50): Prevents context overflow in subagents. Source: SWE-agent ACI.
 
@@ -472,6 +472,7 @@ Sources: [SWE-agent](https://github.com/SWE-agent/SWE-agent), [mini-swe-agent](h
 | 5.4 | 2026-02-08 | Post-experiment cleanup. Fixed 3 stale Section 7 Two-Phase references. #46 promoted P3.1→P2.1. Section 1 count 44→43. |
 | 5.5 | 2026-02-08 | Document split: action roadmap (153 lines) + research archive (this file). Zero content lost. Redundancy eliminated. |
 | 5.6 | 2026-02-08 | Roadmap structural cleanup: removed Order column, renamed Effort→Type, split Non-Negotiables into Design Principles + Differentiators, split Key Constraints into Verified Facts + Open Blockers, split P8 into Future + Icebox, added Status column to P5/P6, added topic labels to Removed Items, moved #45 checklist to archive, verb-first What descriptions. |
+| 6.3 | 2026-02-08 | #25 linter guards DONE. PostToolUse hooks for shellcheck (.sh) + jq (.json). Main thread + subagent coverage. 37 active items. |
 | 5.7 | 2026-02-08 | Second structural pass: merged P3+P4 into "Formalization & State", inlined blockers (dropped Status column), added Goal column (Q/P/C/DX), added dependency notes (after #N), added "Next up" pointer, added stable-ID explanation, added Icebox purpose statement, split Differentiators into Shipped/Planned, removed non-principle from Design Principles, added Completed convention to Removed Items, restored #45 scope to What description. |
 
 ---

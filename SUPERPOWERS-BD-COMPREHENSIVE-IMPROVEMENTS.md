@@ -1,6 +1,6 @@
 # Superpowers-BD: Improvement Roadmap
 
-**Version:** 6.2 (February 8, 2026) | **Active items:** 38 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
+**Version:** 6.3 (February 8, 2026) | **Active items:** 37 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
 
 **Philosophy:** If Claude Code does it natively, use that. If beads already does it, don't rebuild it. Config before code.
 
@@ -8,7 +8,7 @@
 
 *Item numbers are stable IDs from the [archive](docs/IMPROVEMENTS-ARCHIVE.md), not priority ranks.*
 
-**Next up:** #25 — linter guards via frontmatter PostToolUse
+**Next up:** #14 — require completion evidence before closing
 
 ---
 
@@ -25,7 +25,7 @@
 | # | What | Type | Goal |
 |---|------|------|------|
 | ~~46~~ | ~~Multi-review aggregation — N independent reviews~~ | ~~Skill/prompt~~ | ~~DONE~~ |
-| 25 | Linter guards via frontmatter PostToolUse | Hook config | C |
+| ~~25~~ | ~~Linter guards via frontmatter PostToolUse~~ | ~~Hook config~~ | ~~DONE~~ |
 | 14 | Require completion evidence before closing (builds on #5) | Hook + prompt | Q |
 | 15 | Declare file ownership in task definitions | Skill update | C |
 | 6 | Add cyclomatic complexity checks to code-reviewer | Prompt | Q |
@@ -153,4 +153,5 @@ Rejected, merged, or made obsolete. Completed items move to the [archive](docs/I
 - **#38** (add `memory: project` to agent definitions) — Done (2026-02-08)
 - **#41** (expose native Task metrics for cost tracking) — Done (2026-02-08). Per-task/wave/epic metrics in SDD skill, wave summary costs, epic completion report.
 - **#42** (add hooks in agent/skill frontmatter) — Done (2026-02-08). PostToolUse audit hook on code-reviewer. Plugin hooks workaround via `link-plugin-components.sh` (#17688).
+- **#25** (linter guards) — Done (2026-02-08). PostToolUse hooks run shellcheck (.sh) and jq (.json) after Write/Edit. Main thread via hooks.json, subagents via code-reviewer frontmatter. Graceful degradation if tools missing.
 - **#46** (multi-review aggregation) — Done (2026-02-08). N=3 independent reviews for max-20x/max-5x tiers with union+severity consensus aggregation. New skill + SDD integration.

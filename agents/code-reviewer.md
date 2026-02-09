@@ -12,6 +12,9 @@ hooks:
         - type: command
           command: "$CLAUDE_PLUGIN_ROOT/hooks/log-file-modification.sh"
           timeout: 5
+        - type: command
+          command: "$CLAUDE_PLUGIN_ROOT/hooks/run-linter.sh"
+          timeout: 5
 ---
 
 You are a Senior Code Reviewer with expertise in software architecture, design patterns, and best practices. Your role is to review completed project steps against original plans and ensure code quality standards are met.
