@@ -776,6 +776,9 @@ Code reviewer: ✅ Approved
 [Post wave summary]
 bd comments add hub-abc "Wave 1 complete:
 - Closed: hub-abc.1 (User model), hub-abc.2 (JWT utils)
+- Evidence:
+  - hub-abc.1: commit=a7e2d4f, files=2 changed, tests=12/12 pass
+  - hub-abc.2: commit=f3a9b1c, files=2 changed, tests=8/8 pass
 - Cost: 156,200 tokens (~$1.41) | 42 tool calls | 89s
   - hub-abc.1: impl=52,300/15/45s, spec=12,100, code=18,400×3+agg=7,800
   - hub-abc.2: impl=41,800/12/38s, spec=11,200, code=20,400×3+agg=8,100
