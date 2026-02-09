@@ -12,10 +12,8 @@ Import a Superpowers plan (Markdown) or a Shortcut story into Beads as an epic w
 >
 > **Permission Avoidance Rules:**
 > - Use `--body-file temp/*.md` for multi-line descriptions (avoids newline issues)
-> - **NEVER use semicolons** in `--acceptance`—the pattern ` ; ` triggers permission prompts
-> - Use commas or `$'...\n...'` (ANSI-C quoting) for acceptance criteria:
->   - Commas: `--acceptance "Criterion 1, Criterion 2, Criterion 3"`
->   - Newlines: `--acceptance $'Criterion 1\nCriterion 2\nCriterion 3'` (displays better)
+> - **NEVER use `\n` or ANSI-C quoting (`$'...'`)** in `--acceptance`—newlines trigger permission prompts
+> - Use semicolons to separate acceptance criteria: `--acceptance "Criterion 1; Criterion 2; Criterion 3"`
 > - Do NOT delete temp files (rm triggers permission prompts) - leave for human cleanup
 
 ## Usage
@@ -109,14 +107,10 @@ Content: Concatenated context sections (Problem Statement, Goals, Architecture, 
 
 2. Create the epic using `--body-file`:
 ```bash
-# Option A: Commas (single line)
-bd create --silent --type epic "Epic Title" --body-file temp/epic-desc.md --acceptance "Criterion 1, Criterion 2, Criterion 3" -p 1
-
-# Option B: Newlines (displays better in bd show)
-bd create --silent --type epic "Epic Title" --body-file temp/epic-desc.md --acceptance $'Criterion 1\nCriterion 2\nCriterion 3' -p 1
+bd create --silent --type epic "Epic Title" --body-file temp/epic-desc.md --acceptance "Criterion 1; Criterion 2; Criterion 3" -p 1
 ```
 
-**IMPORTANT:** Never use semicolons in `--acceptance`—the pattern ` ; ` triggers permission prompts. Use commas or `$'...\n...'` (ANSI-C quoting) instead.
+**IMPORTANT:** Never use `\n` or ANSI-C quoting (`$'...'`) in `--acceptance`—newlines trigger permission prompts. Use semicolons to separate criteria instead.
 
 - Add `--external-ref "sc-1234"` for Shortcut stories
 - If no H1 found, use the filename (without extension) as title
@@ -304,7 +298,7 @@ Deviations from plan (if any): ___
 
 Create the task:
 ```bash
-bd create --silent --parent hub-abc "Epic Verification" --body-file temp/task-desc.md --deps "hub-abc.1,hub-abc.2,..." --acceptance $'All automated checks pass\nRule-of-five applied to changes >50 lines\nEngineering checklist complete\nNo unmarked items' -p 1
+bd create --silent --parent hub-abc "Epic Verification" --body-file temp/task-desc.md --deps "hub-abc.1,hub-abc.2,..." --acceptance "All automated checks pass; Rule-of-five applied to changes >50 lines; Engineering checklist complete; No unmarked items" -p 1
 ```
 
 **Note:** The `--deps` should include ALL implementation task IDs so this task only unblocks after all work is done.
@@ -389,7 +383,7 @@ conversation is no longer needed - beads preserves all task details.
 | `-p N` | Priority (0-4, where 0=critical, 4=backlog) |
 | `-e N` | Estimate in minutes (e.g., `-e 60` for 1 hour) |
 | `--deps "id1,id2"` | Dependencies (blocked by these—only `blocks` type affects `bd ready`) |
-| `--acceptance "text"` | Acceptance criteria (use commas or `$'...\n...'`, never semicolons) |
+| `--acceptance "text"` | Acceptance criteria (use semicolons to separate, never `\n`) |
 | `--external-ref "ref"` | External link (e.g., "sc-1234") |
 | `--defer "date"` | Hide from `bd ready` until date (e.g., `+1d`, `tomorrow`, `2025-01-20`) |
 
