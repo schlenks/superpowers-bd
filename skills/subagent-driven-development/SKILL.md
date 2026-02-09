@@ -321,10 +321,10 @@ Task(
 
 ## File Conflict Detection (Task-Tracked)
 
-**Before dispatching each wave, create a conflict verification task:**
+**Before dispatching each wave, create a conflict check task:**
 
 ```
-TaskCreate: "Verify no file conflicts in wave N"
+TaskCreate: "Check file conflicts for wave N"
   description: "Parse ## Files from each ready issue. Build file→issue map. Identify conflicts. Report parallelizable set."
   activeForm: "Checking file conflicts"
 ```
@@ -350,7 +350,7 @@ Issue hub-abc.3 files: [auth.service.ts, models/index.ts]  ← CONFLICT with .1!
 5. If file appears in multiple ready issues:
    - **Dispatch lowest-numbered first** (e.g., hub-abc.1 before hub-abc.3)
    - **Defer conflicting issues to next wave** (they stay ready, dispatch after current wave completes)
-6. **Mark conflict verification task as `completed` with conflict report**
+6. **Mark conflict check task as `completed` with conflict report**
 7. **Write `.claude/file-locks.json`** from the file → issue map (parallelizable set only):
    ```json
    {
@@ -392,7 +392,7 @@ SEQUENTIAL (old):
     review()
 
 PARALLEL (new):
-  TaskCreate "Verify no file conflicts in wave N"
+  TaskCreate "Check file conflicts for wave N"
   parallelizable = filter_file_conflicts(ready)
   TaskUpdate conflict-task status=completed  # with conflict report
 
@@ -411,7 +411,7 @@ PARALLEL (new):
   TaskUpdate wave-task status=completed  # when all in wave done
 ```
 
-**ENFORCEMENT:** Wave dispatch task is blocked until file conflict verification completes. This makes the verification step visible and non-skippable.
+**ENFORCEMENT:** Wave dispatch task is blocked until file conflict check completes. This makes the step visible and non-skippable.
 
 ### Background Execution with Polling
 
