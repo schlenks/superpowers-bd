@@ -134,6 +134,13 @@ Task tool:
     - Rule-of-five passes applied (if artifact >50 lines)
     - Any issues or concerns
     - **File scope violations** (if any)
+
+    **STOP after reporting.** Do NOT:
+    - Ask what to do next
+    - Offer options (commit, push, merge, etc.)
+    - Invoke workflow skills (finishing-a-development-branch, etc.)
+    - Suggest follow-up actions
+    The orchestrator manages all workflow decisions. Your only job is to report results.
 ```
 
 ## Example Dispatch
@@ -211,4 +218,11 @@ Task tool:
     This service will be used by the Login endpoint (hub-abc.4).
 
     ...
+
+    **STOP after reporting.** Do NOT:
+    - Ask what to do next
+    - Offer options (commit, push, merge, etc.)
+    - Invoke workflow skills (finishing-a-development-branch, etc.)
+    - Suggest follow-up actions
+    The orchestrator manages all workflow decisions. Your only job is to report results.
 ```

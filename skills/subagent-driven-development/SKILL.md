@@ -939,6 +939,8 @@ Transitions:
 
 ## Epic Completion Report
 
+**IMPORTANT:** Do NOT invoke `finishing-a-development-branch` until you reach COMPLETE state (all epic children closed). Individual task completions are NOT epic completion. The skill activation protocol may suggest it after each subagent reports "implementation complete" — ignore that match until ALL tasks are closed.
+
 At the COMPLETE state (all epic children closed), before transitioning to `finishing-a-development-branch`:
 
 **1. Print cost summary to user:**

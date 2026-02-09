@@ -95,6 +95,32 @@ TaskCreate: "Final validation gate"
 - **Parse `Depends on:` line for task-level dependencies** (see Step 4)
 - **Extract `Files:` section and preserve in task description**
 
+### Step 2b: Ask Completion Strategy
+
+**Before creating the epic**, ask the user how they want the epic to complete:
+
+```
+How should this epic complete when all tasks are done?
+
+1. Commit only — I'll review and push manually (Recommended)
+2. Push to remote
+3. Push and create a Pull Request
+4. Merge to main locally (worktree workflows)
+```
+
+Map the choice to a label:
+
+| Choice | Label |
+|--------|-------|
+| 1 | `completion:commit-only` |
+| 2 | `completion:push` |
+| 3 | `completion:push-pr` |
+| 4 | `completion:merge-local` |
+
+Store this label on the epic in Step 3. This enables `finishing-a-development-branch` to execute automatically at epic completion without prompting.
+
+**If the user skips or doesn't choose:** Default to `completion:commit-only` (safest — no destructive actions).
+
 ### Step 3: Create the Epic
 
 **IMPORTANT:** Use `temp/*.md` files for descriptions to avoid permission prompts from multi-line bash commands.
@@ -105,9 +131,9 @@ Write tool → temp/epic-desc.md
 Content: Concatenated context sections (Problem Statement, Goals, Architecture, etc.)
 ```
 
-2. Create the epic using `--body-file`:
+2. Create the epic using `--body-file` and the completion strategy label:
 ```bash
-bd create --silent --type epic "Epic Title" --body-file temp/epic-desc.md --acceptance "Criterion 1; Criterion 2; Criterion 3" -p 1
+bd create --silent --type epic "Epic Title" --body-file temp/epic-desc.md --acceptance "Criterion 1; Criterion 2; Criterion 3" -l "completion:commit-only" -p 1
 ```
 
 **IMPORTANT:** Never use `\n` or ANSI-C quoting (`$'...'`) in `--acceptance`—newlines trigger permission prompts. Use semicolons to separate criteria instead.

@@ -1,15 +1,25 @@
 ---
 name: finishing-a-development-branch
-description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
+description: Use ONLY when ALL tasks in an epic or branch are closed and you are ready to integrate the entire body of work - never after individual task completions, never mid-epic
 ---
 
 # Finishing a Development Branch
+
+## Guard: Do NOT Use Mid-Epic
+
+**STOP.** Before proceeding, check:
+
+1. **Are you a subagent implementing a single task?** → This skill does NOT apply. Report your evidence and stop.
+2. **Are there still open tasks in the epic?** → This skill does NOT apply. Only the orchestrator at COMPLETE state should invoke this.
+3. **Is there an epic with a `completion:*` label?** → Read it and execute automatically (see Step 3 Auto below). No prompting needed.
+
+**This skill is ONLY for:** The final integration step after ALL work is done. If even one task remains open, do not invoke this skill.
 
 ## Overview
 
 Guide completion of development work by presenting clear options and handling chosen workflow.
 
-**Core principle:** Verify tests → Present options → Execute choice → Clean up.
+**Core principle:** Verify tests → Check completion strategy → Execute (auto or prompted) → Clean up.
 
 **Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
 
@@ -105,7 +115,39 @@ git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null
 
 Or ask: "This branch split from main - is that correct?"
 
-### Step 3: Present Options (Task-Tracked)
+### Step 3: Check Completion Strategy
+
+**Check the epic for a `completion:*` label:**
+
+```bash
+bd show <epic-id>
+```
+
+Look for labels like `completion:commit-only`, `completion:push`, `completion:push-pr`, `completion:merge-local`.
+
+**If a completion label exists → Step 3 Auto (skip prompting)**
+**If no completion label → Step 3 Manual (present options)**
+
+### Step 3 Auto: Execute Pre-Chosen Strategy
+
+The completion strategy was chosen during planning. Execute it automatically:
+
+| Label | Action |
+|-------|--------|
+| `completion:commit-only` | Run `git status` to verify clean working tree. Report summary. Done — skip Steps 4 and 5. |
+| `completion:push` | Verify clean working tree, then `git push`. Report summary. |
+| `completion:push-pr` | Verify clean, push, create PR (Option 2 below). |
+| `completion:merge-local` | Merge to base branch locally (Option 1 below). |
+
+**No prompting needed.** The user already decided during planning.
+
+**Note:** For `completion:commit-only`, skip Step 2 (Determine Base Branch) — it's not needed when staying on the current branch.
+
+After executing, skip to Step 5 (Cleanup Worktree) if applicable.
+
+### Step 3 Manual: Present Options (Task-Tracked)
+
+**Only if no `completion:*` label exists on the epic.**
 
 **Create tasks for the remaining steps (blocked by test verification):**
 
@@ -125,8 +167,6 @@ TaskCreate: "Cleanup worktree (if applicable)"
   activeForm: "Cleaning up worktree"
   addBlockedBy: [execute-option-task-id]
 ```
-
-### Step 3 Execution: Present Options
 
 Present exactly these 4 options:
 
