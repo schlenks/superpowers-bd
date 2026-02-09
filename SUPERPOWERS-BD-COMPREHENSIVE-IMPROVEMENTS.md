@@ -1,6 +1,6 @@
 # Superpowers-BD: Improvement Roadmap
 
-**Version:** 6.4 (February 9, 2026) | **Active items:** 36 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
+**Version:** 6.5 (February 9, 2026) | **Active items:** 36 | **Archive:** [docs/IMPROVEMENTS-ARCHIVE.md](docs/IMPROVEMENTS-ARCHIVE.md)
 
 **Philosophy:** If Claude Code does it natively, use that. If beads already does it, don't rebuild it. Config before code.
 
@@ -29,6 +29,7 @@
 | ~~14~~ | ~~Require completion evidence before closing (builds on #5)~~ | ~~Hook + prompt~~ | ~~DONE~~ |
 | ~~15~~ | ~~Declare file ownership in task definitions~~ | ~~Skill update~~ | ~~DONE~~ |
 | ~~6~~ | ~~Add cyclomatic complexity checks to code-reviewer~~ | ~~Prompt~~ | ~~DONE~~ |
+| ~~47~~ | ~~cognitive-complexity-ts for TS/TSX linting~~ | ~~Hook enhancement~~ | ~~DONE~~ |
 | 16 | Create artifact-specific rule-of-five variants | Skill variant | Q |
 | 24 | Run file conflict analysis before planning | Skill update | C |
 
@@ -155,4 +156,5 @@ Rejected, merged, or made obsolete. Completed items move to the [archive](docs/I
 - **#25** (linter guards) — Done (2026-02-08). PostToolUse hooks run shellcheck (.sh) and jq (.json) after Write/Edit. Main thread via hooks.json, subagents via code-reviewer frontmatter. Graceful degradation if tools missing.
 - **#46** (multi-review aggregation) — Done (2026-02-08). N=3 independent reviews for max-20x/max-5x tiers with union+severity consensus aggregation. New skill + SDD integration.
 - **#6** (cyclomatic complexity checks) — Done (2026-02-09). Quantitative metrics section in code-reviewer (CC, function length, duplication thresholds). Lizard hook in run-linter.sh with two-pass enforcement (block CC>15/length>100, warn CC>10/length>50). Graceful degradation with install hint.
+- **#47** (cognitive-complexity-ts for TS/TSX) — Done (2026-02-09). ccts-json preferred for TS/TSX cognitive complexity (warn >15, block >25), lizard fallback when ccts-json unavailable. 6 new tests.
 - **#14** (completion evidence) — Done (2026-02-08). Two-layer enforcement: TaskCompleted hook Check 2 blocks implementation tasks without commit/files/tests evidence (interactive mode), structured implementer report template ensures evidence generation (all modes), `bd close --reason` persists evidence in beads audit trail.

@@ -6,7 +6,8 @@
 # Exit 0 means no issues (or unsupported file type / missing tool).
 #
 # Supported: *.sh (shellcheck), *.json (jq),
-#   *.py|*.js|*.ts|*.tsx|*.jsx|*.go|*.java|*.c|*.cpp|*.h|*.hpp|*.rb|*.swift|*.rs (lizard)
+#   *.ts|*.tsx (cognitive-complexity-ts preferred, lizard fallback),
+#   *.py|*.js|*.jsx|*.go|*.java|*.c|*.cpp|*.h|*.hpp|*.rb|*.swift|*.rs (lizard)
 # Graceful degradation: exits 0 if linter tool not installed.
 
 set -euo pipefail
@@ -37,7 +38,57 @@ case "$file_path" in
       exit 2
     fi
     ;;
-  *.py|*.js|*.ts|*.tsx|*.jsx|*.go|*.java|*.c|*.cpp|*.h|*.hpp|*.rb|*.swift|*.rs)
+  *.ts|*.tsx)
+    if command -v ccts-json &>/dev/null; then
+      # Cognitive complexity via ccts-json
+      ccts_output=$(ccts-json "$file_path" 2>/dev/null) || true
+      if [[ -n "$ccts_output" ]]; then
+        # Block: cognitive complexity > 25
+        violations_block=$(echo "$ccts_output" | jq -r \
+          '.. | objects | select(.kind == "function" and .score > 25) | "\(.name)\t\(.line)\t\(.score)"' \
+          2>/dev/null) || true
+        if [[ -n "$violations_block" ]]; then
+          echo "COMPLEXITY ERROR: functions exceed critical cognitive complexity in $file_path" >&2
+          echo "  Functions with cognitive complexity > 25 must be decomposed:" >&2
+          while IFS=$'\t' read -r fname fline fscore; do
+            echo "  ${file_path}:${fline} — ${fname}() cognitive complexity = ${fscore}" >&2
+          done <<< "$violations_block"
+          exit 2
+        fi
+        # Warn: cognitive complexity > 15
+        violations_warn=$(echo "$ccts_output" | jq -r \
+          '.. | objects | select(.kind == "function" and .score > 15) | "\(.name)\t\(.line)\t\(.score)"' \
+          2>/dev/null) || true
+        if [[ -n "$violations_warn" ]]; then
+          echo "COMPLEXITY WARNING: functions exceed advisory cognitive complexity in $file_path" >&2
+          while IFS=$'\t' read -r fname fline fscore; do
+            echo "  ${file_path}:${fline} — ${fname}() cognitive complexity = ${fscore}" >&2
+          done <<< "$violations_warn"
+          echo "  Consider extracting nested logic into helper functions." >&2
+        fi
+      fi
+    else
+      # Fallback: lizard for TS/TSX when ccts-json not installed
+      if command -v lizard &>/dev/null; then
+        block_output=$(lizard -C 15 -L 100 -w "$file_path" 2>/dev/null || true)
+        if [[ -n "$block_output" ]]; then
+          echo "COMPLEXITY ERROR: functions exceed critical thresholds in $file_path" >&2
+          echo "$block_output" >&2
+          echo "Functions with CC>15 must be decomposed. Functions >100 lines must be split." >&2
+          exit 2
+        fi
+        warn_output=$(lizard -C 10 -L 50 -w "$file_path" 2>/dev/null || true)
+        if [[ -n "$warn_output" ]]; then
+          echo "COMPLEXITY WARNING: functions exceed advisory thresholds in $file_path" >&2
+          echo "$warn_output" >&2
+          echo "Consider extracting branches into helper functions or splitting long functions." >&2
+        fi
+      else
+        echo "Tip: install cognitive-complexity-ts for TS complexity checking: npm install -g cognitive-complexity-ts" >&2
+      fi
+    fi
+    ;;
+  *.py|*.js|*.jsx|*.go|*.java|*.c|*.cpp|*.h|*.hpp|*.rb|*.swift|*.rs)
     if ! command -v lizard &>/dev/null; then
       echo "Tip: install lizard for complexity checking: pip install lizard" >&2
       exit 0

@@ -270,6 +270,133 @@ def very_long_function(x):
     return a + b + c + d + e
 PYEOF
 
+# TypeScript file with low cognitive complexity (score=4, well below 15)
+cat > "$TEST_DIR/cc_low.ts" << 'TSEOF'
+function simpleCheck(x: number, y: number, z: number): string {
+    if (x > 0) {
+        return "positive";
+    } else if (y > 0) {
+        return "y positive";
+    } else if (z > 0) {
+        return "z positive";
+    } else {
+        return "all non-positive";
+    }
+}
+TSEOF
+
+# TypeScript file with medium cognitive complexity (score=22, warn but not block)
+cat > "$TEST_DIR/cc_warn.ts" << 'TSEOF'
+function complexValidator(
+    data: number[],
+    mode: string,
+    strict: boolean,
+    level: number
+): string[] {
+    const result: string[] = [];
+    if (!data) {
+        return result;
+    }
+    if (mode === "alpha") {
+        if (strict) {
+            if (level > 5) {
+                result.push("high_strict");
+            } else {
+                result.push("low_strict");
+            }
+        } else {
+            result.push("alpha");
+        }
+    } else if (mode === "beta") {
+        if (strict) {
+            if (level > 5) {
+                result.push("strict_beta_high");
+            } else {
+                result.push("strict_beta_low");
+            }
+        } else {
+            result.push("beta");
+        }
+    } else if (mode === "gamma") {
+        result.push("gamma");
+    }
+    for (const item of data) {
+        if (item > 100) {
+            result.push("large");
+        } else if (item > 50) {
+            result.push("medium");
+        }
+    }
+    return result;
+}
+TSEOF
+
+# TypeScript file with high cognitive complexity (score=31, must block)
+cat > "$TEST_DIR/cc_block.ts" << 'TSEOF'
+function overlyComplex(data: number[], mode: string, strict: boolean, level: number): string[] {
+    const result: string[] = [];
+    if (!data) {
+        return result;
+    }
+    if (mode === "alpha") {
+        if (strict) {
+            if (level > 5) {
+                if (level > 10) {
+                    result.push("very_high");
+                } else {
+                    result.push("high");
+                }
+            } else {
+                result.push("low");
+            }
+        } else {
+            result.push("alpha");
+        }
+    } else if (mode === "beta") {
+        if (strict) {
+            if (level > 5) {
+                result.push("strict_beta_high");
+            } else {
+                result.push("strict_beta_low");
+            }
+        } else {
+            result.push("beta");
+        }
+    } else if (mode === "gamma") {
+        result.push("gamma");
+    }
+    for (const item of data) {
+        if (item > 100) {
+            if (strict) {
+                result.push("strict_large");
+            } else {
+                result.push("large");
+            }
+        } else if (item > 50) {
+            result.push("medium");
+        }
+    }
+    return result;
+}
+TSEOF
+
+# TypeScript long function (105+ NLOC, low cognitive complexity)
+{
+  echo 'function veryLongFunction(x: number): number {'
+  for i in $(seq 1 103); do
+    printf '    const v%d = x + %d;\n' "$i" "$i"
+  done
+  echo '    return v1 + v2 + v3;'
+  echo '}'
+} > "$TEST_DIR/long_func.ts"
+
+# Simple TSX file (verify .tsx extension matching)
+cat > "$TEST_DIR/simple.tsx" << 'TSEOF'
+function SimpleComponent({ name }: { name: string }) {
+    return <div>{name}</div>;
+}
+TSEOF
+
 # --- Tests ---
 
 echo "=== run-linter.sh unit tests ==="
@@ -340,6 +467,58 @@ run_test ".py file — long function (105 NLOC, blocked)" \
   "{\"tool_input\":{\"file_path\":\"$TEST_DIR/long_func.py\"}}" \
   2 \
   "COMPLEXITY ERROR"
+
+# --- TypeScript / cognitive-complexity-ts tests ---
+
+# 13. TS file with low cognitive complexity (clean)
+run_test ".ts file — low cognitive complexity (clean)" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/cc_low.ts\"}}" \
+  0
+
+# 14. TS file with medium cognitive complexity (warn but pass)
+run_test ".ts file — medium cognitive complexity (warning)" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/cc_warn.ts\"}}" \
+  0 \
+  "COMPLEXITY WARNING"
+
+# 15. TS file with high cognitive complexity (must block)
+run_test ".ts file — high cognitive complexity (blocked)" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/cc_block.ts\"}}" \
+  2 \
+  "COMPLEXITY ERROR"
+
+# 16. TS file with very long function (low cognitive complexity — passes)
+run_test ".ts file — long function (low cognitive complexity, clean)" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/long_func.ts\"}}" \
+  0
+
+# 17. TSX extension matching (clean file)
+run_test ".tsx file — extension matching (clean)" \
+  "{\"tool_input\":{\"file_path\":\"$TEST_DIR/simple.tsx\"}}" \
+  0
+
+# 18. TS fallback to lizard when ccts-json unavailable
+_test_ts_fallback() {
+  local stderr_file="$TEST_DIR/stderr_fallback"
+  local actual_exit=0
+  local restricted_path=""
+  while IFS= read -r -d: p || [[ -n "$p" ]]; do
+    if [[ -n "$p" ]] && ! [[ -x "$p/ccts-json" ]]; then
+      restricted_path="${restricted_path:+$restricted_path:}$p"
+    fi
+  done <<< "$PATH:"
+  echo "{\"tool_input\":{\"file_path\":\"$TEST_DIR/cc_low.ts\"}}" \
+    | env PATH="$restricted_path" "$HOOK" 2>"$stderr_file" || actual_exit=$?
+  if [[ "$actual_exit" -eq 0 ]]; then
+    echo "PASS: .ts file — fallback to lizard (ccts-json unavailable)"
+    pass=$((pass + 1))
+  else
+    echo "FAIL: .ts file — fallback to lizard — expected exit 0, got $actual_exit"
+    [[ -s "$stderr_file" ]] && echo "  stderr: $(cat "$stderr_file")"
+    fail=$((fail + 1))
+  fi
+}
+_test_ts_fallback
 
 # --- Summary ---
 echo ""

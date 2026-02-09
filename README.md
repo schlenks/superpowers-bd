@@ -36,6 +36,7 @@ These tools enhance linting and complexity checks but are **not required** — h
 |------|---------|---------|
 | [shellcheck](https://www.shellcheck.net/) | Shell script linting | `brew install shellcheck` |
 | [lizard](https://github.com/terryyin/lizard) | Cyclomatic complexity checking | `pip install lizard` |
+| [cognitive-complexity-ts](https://github.com/Deskbot/Cognitive-Complexity-TS) | Cognitive complexity for TS/TSX | `npm install -g cognitive-complexity-ts` |
 
 ## Key Features
 

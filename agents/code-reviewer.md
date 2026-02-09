@@ -35,9 +35,12 @@ When reviewing completed work, you will:
    - Look for potential security vulnerabilities or performance issues
 
 3. **Quantitative Complexity Metrics**:
-   - **Cyclomatic complexity** — count decision points (if, elif/else if, for, while, case/when, catch, &&, ||, ternary ?:) plus 1 per function. Thresholds:
+   - **Cyclomatic complexity** (McCabe) — count decision points (if, elif/else if, for, while, case/when, catch, &&, ||, ternary ?:) plus 1 per function. Thresholds:
      - **Important** (should fix): CC > 10 — recommend extracting branches into helper functions
      - **Critical** (must fix): CC > 15 — function MUST be decomposed before merge
+   - **Cognitive complexity** (SonarSource) — measures understandability: increments for nesting depth, breaks in linear flow, and nested control structures. More nuanced than cyclomatic for deeply nested code. Thresholds:
+     - **Important** (should fix): > 15 — recommend simplifying nested logic
+     - **Critical** (must fix): > 25 — function MUST be restructured before merge
    - **Function length** — count non-blank, non-comment lines per function. Thresholds:
      - **Important**: > 50 lines — recommend splitting into focused sub-functions
      - **Critical**: > 100 lines — function MUST be broken up before merge
