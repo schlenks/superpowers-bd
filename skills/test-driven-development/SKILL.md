@@ -212,8 +212,27 @@ After green only:
 - Remove duplication
 - Improve names
 - Extract helpers
+- Reduce nesting depth (flatten conditionals, use early returns)
+- Eliminate redundant abstractions (inline single-use wrappers)
+- Prefer explicit over compact (readability > cleverness)
 
 Keep tests green. Don't add behavior.
+
+**Conditional simplification dispatch:** If this TDD cycle changed >50 lines OR any function has cyclomatic complexity >10, dispatch the `code-simplifier:code-simplifier` agent via Task tool on the changed files:
+
+```python
+if lines_changed > 50 or max_cyclomatic_complexity > 10:
+    Task(
+        subagent_type="code-simplifier:code-simplifier",
+        description="Simplify: TDD refactor cycle",
+        prompt="Focus on recently modified code. Reduce complexity, "
+               "flatten nesting, eliminate redundant abstractions. "
+               "Preserve all existing behavior and keep tests green."
+    )
+    # After simplification: re-run tests, verify green, commit
+```
+
+**After simplification:** Re-run the full test suite. If tests fail, revert simplification changes and proceed without them. If tests pass, commit the simplification separately: `refactor: simplify [area]`.
 
 ### Repeat
 

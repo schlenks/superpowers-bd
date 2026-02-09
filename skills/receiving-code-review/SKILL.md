@@ -146,6 +146,7 @@ FOR multi-item feedback:
      - Complex fixes (refactoring, logic)
   3. Test each fix individually
   4. Verify no regressions
+  5. Simplify as you go: reduce nesting, eliminate redundant wrappers, prefer explicit over compact
 ```
 
 ## When To Push Back

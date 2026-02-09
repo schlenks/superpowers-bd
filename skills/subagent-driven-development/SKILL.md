@@ -45,11 +45,11 @@ Before dispatching, determine model selection strategy.
 
 **Model matrix by tier:**
 
-| Tier | Implementer | Spec Reviewer | Code Reviewer | N Reviews | Epic Verifier |
-|------|-------------|---------------|---------------|-----------|---------------|
-| max-20x | opus | sonnet | sonnet | 3 | opus |
-| max-5x | sonnet | haiku | sonnet | 3 | sonnet |
-| pro/api | sonnet | haiku | haiku | 1 | sonnet |
+| Tier | Implementer | Spec Reviewer | Code Reviewer | N Reviews | Epic Verifier | Post-Wave Simplify |
+|------|-------------|---------------|---------------|-----------|---------------|-------------------|
+| max-20x | opus | sonnet | sonnet | 3 | opus | Yes |
+| max-5x | sonnet | haiku | sonnet | 3 | sonnet | Yes |
+| pro/api | sonnet | haiku | haiku | 1 | sonnet | Skip (save cost) |
 
 Note: Epic Verifier uses sonnet minimum (opus for max-20x) because verification is comprehensive and must catch subtle issues. See `skills/epic-verifier/SKILL.md`.
 
@@ -687,9 +687,41 @@ TaskUpdate(taskId=summary_task.id, metadata={
 - Clear dependency enforcement
 - Audit trail of execution
 
+## Post-Wave Simplification
+
+**After all tasks in a wave close and pass review, if the wave had 2+ tasks:**
+
+1. Collect all files modified across the wave's tasks
+2. Dispatch `code-simplifier:code-simplifier` via Task tool focusing on cross-file consistency:
+
+```python
+if wave_task_count >= 2 and budget_tier != "pro/api":
+    # Collect files from all wave tasks
+    wave_files = collect_modified_files_across_wave(wave_tasks)
+
+    Task(
+        subagent_type="code-simplifier:code-simplifier",
+        description=f"Simplify: post-wave {wave_number}",
+        prompt=f"Focus on these files modified in wave {wave_number}: "
+               f"{wave_files}. "
+               "Check cross-file consistency: naming patterns, "
+               "duplication between tasks, redundant abstractions. "
+               "Preserve all behavior and keep tests green."
+    )
+    # Capture metrics: tokens, duration
+    task_metrics[f"wave{wave_number}.simplify"] = {...}
+```
+
+3. **If changes made:** Run tests, commit `refactor: post-wave simplification (wave N)`
+4. **If tests fail:** Revert simplification changes, continue to wave summary
+5. **Skip on pro/api tier** (save cost). Run on max-20x and max-5x only.
+6. **Skip for single-task waves** (no cross-file consistency to check)
+
+See `./simplifier-dispatch-guidance.md` for detailed invocation reference.
+
 ## Wave Summary (Cross-Wave Context)
 
-**After each wave completes, post a summary comment to the epic:**
+**After each wave completes (and optional simplification), post a summary comment to the epic:**
 
 ```bash
 bd comments add <epic-id> "Wave N complete:
@@ -697,9 +729,11 @@ bd comments add <epic-id> "Wave N complete:
 - Evidence:
   - hub-abc.1: commit=[hash], files=[count] changed, tests=[pass_count] pass
   - hub-abc.2: commit=[hash], files=[count] changed, tests=[pass_count] pass
+- Simplification: [applied/skipped (reason)] [files touched, if applied]
 - Cost: [wave_tokens] tokens (~$[cost]) | [tool_calls] tool calls | [duration]s
   - hub-abc.1: impl=[tok]/[calls]/[dur]s, spec=[tok], code=[tok]×N+agg=[tok]
   - hub-abc.2: impl=[tok]/[calls]/[dur]s, spec=[tok], code=[tok]×N+agg=[tok]
+  - simplify: [tok]/[calls]/[dur]s (if applied)
 - Running total: [epic_tokens] tokens (~$[epic_cost]) across [N] waves
 - Conventions established:
   - [Pattern/convention implementers chose]
@@ -791,16 +825,23 @@ Code reviewer: ✅ Approved
 [TaskCreate "Close evidence: hub-abc.1" with evidence in description → completed]
 [bd close hub-abc.1 --reason "Commit: a7e2d4f | Files: 2 changed | Tests: 12/12 pass"]
 
+[Post-wave simplification: 2 tasks in wave → dispatch code-simplifier]
+[code-simplifier reviews user.model.ts, jwt.utils.ts, models/index.ts, utils/index.ts]
+[Simplifier: aligned naming patterns across model/util files, no behavior changes]
+[Tests pass → commit "refactor: post-wave simplification (wave 1)"]
+
 [Post wave summary]
 bd comments add hub-abc "Wave 1 complete:
 - Closed: hub-abc.1 (User model), hub-abc.2 (JWT utils)
 - Evidence:
   - hub-abc.1: commit=a7e2d4f, files=2 changed, tests=12/12 pass
   - hub-abc.2: commit=f3a9b1c, files=2 changed, tests=8/8 pass
-- Cost: 156,200 tokens (~$1.41) | 42 tool calls | 89s
+- Simplification: applied (2 tasks) — aligned naming across model/util files
+- Cost: 168,500 tokens (~$1.52) | 46 tool calls | 95s
   - hub-abc.1: impl=52,300/15/45s, spec=12,100, code=18,400×3+agg=7,800
   - hub-abc.2: impl=41,800/12/38s, spec=11,200, code=20,400×3+agg=8,100
-- Running total: 156,200 tokens (~$1.41) across 1 wave
+  - simplify: 12,300/4/6s
+- Running total: 168,500 tokens (~$1.52) across 1 wave
 - Conventions: Using uuid v4 for IDs, camelCase for all JSON fields
 - Notes: JWT expiry set to 24h per Key Decisions"
 
@@ -919,7 +960,7 @@ If `bd ready` shows nothing for your epic BUT issues remain open, check for:
 │ DISPATCH │ File conflict check → write file-locks.json → dispatch │
 │ MONITOR  │ Poll background tasks, route completions         │
 │ REVIEW   │ Dispatch spec/code reviewers as tasks complete   │
-│ CLOSE    │ Extract evidence, bd close --reason, wave summary │
+│ CLOSE    │ Extract evidence → bd close → [simplify if 2+ tasks] → wave summary │
 │ COMPLETE │ Cost report → cleanup file-locks.json → finishing-branch │
 └──────────┴──────────────────────────────────────────────────┘
 
