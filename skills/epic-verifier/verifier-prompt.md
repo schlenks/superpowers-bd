@@ -91,8 +91,7 @@ Task tool:
 
     After completing your verification, persist your full report:
 
-    0. Ensure temp dir exists: `mkdir -p temp`
-    1. Write to temp file:
+    1. Write to temp file (the `temp/` directory already exists — do NOT run `mkdir`):
        ```bash
        cat > temp/{epic_id}-verification.md << 'REPORT'
        [EPIC-VERIFICATION] {epic_id}

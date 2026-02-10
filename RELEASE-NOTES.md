@@ -1,5 +1,133 @@
 # Superpowers Release Notes
 
+## v4.4.1 (2026-02-10) - Beads Fork
+
+### Fix: Unique Temp Filenames in plan2beads
+
+Fixed permission prompt issue when running plan2beads multiple times in the same session.
+
+**Problem:** plan2beads reused `temp/epic-desc.md` and `temp/task-desc.md` for every run. On subsequent runs, the Write tool triggered overwrite confirmation prompts because the files already existed.
+
+**Solution:** Each file now uses a unique name derived from its content:
+- Epic description: `temp/{title-slug}-epic.md` (e.g., `temp/authentication-system-epic.md`)
+- Task descriptions: `temp/{epic_id}-task-{n}.md` (e.g., `temp/hub-abc-task-3.md`)
+- Verification task: `temp/{epic_id}-verification.md`
+
+No files are reused or overwritten across runs.
+
+**Files Modified (1):**
+- `commands/plan2beads.md` — unique temp filenames, updated examples and documentation
+
+---
+
+## v4.4.0 (2026-02-10) - Beads Fork
+
+### Major Feature: Beads-Mediated Stateless Sub-Agents
+
+Architectural shift: sub-agents now self-read context from beads and persist reports to beads comments, instead of receiving pasted context and returning reports in their final message. Reduces orchestrator context consumption by ~450-750 lines per wave.
+
+**Problem:** The orchestrator pasted full task requirements, epic context, Key Decisions, wave conventions, and prior reports into every sub-agent dispatch prompt. For a 3-task wave with spec + code review, this consumed 1,500+ lines of orchestrator context. In 5+ wave epics, the orchestrator exhausted its context window.
+
+**Solution:** Sub-agents are given only small, safety-critical fields in their dispatch prompt (issue ID, epic ID, file ownership list, SHAs). They self-read everything else from beads:
+
+```bash
+bd show <issue-id>              # Task requirements, files, steps
+bd show <epic-id> | head -30    # Epic goal and Key Decisions
+bd comments <epic-id> --json    # Wave conventions ([WAVE-SUMMARY] entries)
+bd comments <issue-id> --json   # Prior reports ([IMPL-REPORT], [SPEC-REVIEW])
+```
+
+**Report persistence:** Sub-agents write full reports to beads comments with machine-parseable tags, then return only a minimal structured verdict:
+
+| Tag | Written by | Content |
+|-----|-----------|---------|
+| `[IMPL-REPORT]` | Implementer | Implementation evidence, files changed, test results |
+| `[SPEC-REVIEW]` | Spec reviewer | Spec compliance findings |
+| `[CODE-REVIEW-N/M]` | Code reviewer N | Full code review report |
+| `[CODE-REVIEW-AGG]` | Aggregator | Aggregated multi-review report |
+| `[EPIC-VERIFICATION]` | Epic verifier | Engineering checklist + rule-of-five findings |
+| `[WAVE-SUMMARY]` | Orchestrator | Wave completion summary with conventions |
+
+**Verdict format (all sub-agents):**
+```
+VERDICT: PASS|FAIL|APPROVE|REJECT|WITH_FIXES
+[role-specific metrics]
+REPORT_PERSISTED: YES|NO
+```
+
+The orchestrator reads verdicts to make routing decisions. Full reports are persisted in beads for audit trails and downstream sub-agents.
+
+**Files Modified (7):**
+- `skills/subagent-driven-development/SKILL.md` — self-read orchestration, `mkdir -p temp`, compaction safety net
+- `skills/subagent-driven-development/implementer-prompt.md` — self-read + beads report + verdict format
+- `skills/subagent-driven-development/spec-reviewer-prompt.md` — self-read + beads report + verdict format
+- `skills/subagent-driven-development/code-quality-reviewer-prompt.md` — self-read + beads report + verdict format
+- `skills/subagent-driven-development/context-loading.md` — rewritten for self-read pattern
+- `skills/multi-review-aggregation/aggregator-prompt.md` — self-read + beads report + verdict format
+- `skills/epic-verifier/verifier-prompt.md` — self-read + beads report + verdict format
+
+---
+
+### Feature: Code Reviewer Self-Read
+
+Code quality reviewers now read the review methodology from disk instead of receiving it pasted in the prompt. The orchestrator resolves the path once per wave and passes it as `{code_reviewer_path}`:
+
+```python
+code_reviewer_path = Glob("**/requesting-code-review/code-reviewer.md")[0]
+```
+
+The sub-agent reads the 119-line methodology file directly, eliminating another source of orchestrator context consumption.
+
+---
+
+### Feature: Compaction Safety Net
+
+For large epics (8+ waves), context may grow despite beads-mediated stateless waves. Added environment variable override:
+
+```bash
+export CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70
+```
+
+Triggers compaction at 70% context usage instead of the default 95%, providing a buffer.
+
+---
+
+### Fix: Rule-of-Five Quality Audit
+
+Applied rule-of-five review across all 16 qualifying files (>50 lines changed), finding and fixing 15 issues:
+
+| Fix | Files Affected |
+|-----|----------------|
+| `{N}` → `{wave_number}` placeholder mismatch | implementer-prompt, spec-reviewer-prompt, code-quality-reviewer-prompt |
+| Invalid hex SHA in example (`e4f5g6h` → `e4f5a6d`) | verifier-prompt |
+| Stale cross-references to removed template slots | context-loading, SDD SKILL.md |
+| Ambiguous `[issue-id]` → explicit `{issue_id}` placeholders | All 4 prompt templates |
+| Redundant "Additional Context" / "Before You Begin" sections | implementer-prompt |
+| Missing `temp/` directory creation step | SDD SKILL.md |
+| Condensed verbose example in verifier prompt | verifier-prompt |
+
+---
+
+### Key Decisions
+
+- **Self-read over pasted context** — Sub-agents have fresh context windows. Shifting reads to them costs ~2s per `bd show` but saves 450-750 lines of orchestrator context per wave.
+- **Structured tags over free-form** — `[IMPL-REPORT]`, `[SPEC-REVIEW]` etc. enable downstream sub-agents to find prior reports reliably via `bd comments --json`.
+- **Verdict-only final messages** — Orchestrator needs routing decisions (PASS/FAIL), not full reports. Full reports live in beads for audit and downstream consumption.
+- **Path resolution once per wave** — `Glob("**/code-reviewer.md")[0]` runs once, result passed to all code reviewers in the wave.
+
+### Files Changed (7)
+
+**Modified:**
+- `skills/subagent-driven-development/SKILL.md` — self-read pattern, temp dir, compaction override, placeholder fixes, step renumbering
+- `skills/subagent-driven-development/implementer-prompt.md` — self-read + beads persistence + verdict
+- `skills/subagent-driven-development/spec-reviewer-prompt.md` — self-read + beads persistence + verdict
+- `skills/subagent-driven-development/code-quality-reviewer-prompt.md` — self-read + beads persistence + verdict
+- `skills/subagent-driven-development/context-loading.md` — rewritten for self-read pattern
+- `skills/multi-review-aggregation/aggregator-prompt.md` — self-read + beads persistence + verdict
+- `skills/epic-verifier/verifier-prompt.md` — self-read + beads persistence + verdict + condensed example
+
+---
+
 ## v4.3.0 (2026-02-10) - Beads Fork
 
 ### Major Feature: 3-Tier Progressive Disclosure

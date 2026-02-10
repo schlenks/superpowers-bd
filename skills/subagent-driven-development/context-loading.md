@@ -68,4 +68,4 @@ Downstream sub-agents search for these tags to load prior reports. Example: spec
 - Dependencies are set (`bd blocked` shows expected blockers)
 - Each issue has `## Files` section in description
 - Epic has 2+ child issues (single-issue work doesn't need orchestration—just implement and use `superpowers:verification-before-completion`)
-- `temp/` directory exists in working directory (for report temp files)
+- `temp/` directory exists in working directory (already present — do NOT run `mkdir`)

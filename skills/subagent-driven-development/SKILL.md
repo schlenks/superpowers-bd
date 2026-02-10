@@ -19,7 +19,7 @@ Execute beads epic by dispatching parallel subagents for independent issues, wit
 
 1. Ask budget tier (max-20x / max-5x / pro-api) — sets model matrix for session
 2. Load epic: `bd show <epic-id>`, parse children and Key Decisions
-3. `mkdir -p temp` — sub-agents write report temp files here
+3. Verify `temp/` exists (it should — do NOT run `mkdir`)
 4. Get ready tasks: `bd ready`, filter to epic children only
 5. Check file conflicts, cap wave at 3 tasks, write `.claude/file-locks.json`
 6. Dispatch implementers in parallel (`run_in_background: true`) — sub-agents self-read from beads
@@ -55,7 +55,7 @@ CLOSE: extract evidence → bd close --reason → simplify (if 2+ tasks) → wav
 
 **Never:** dispatch blocked issues, dispatch cross-epic issues, dispatch file-conflicting issues in same wave, skip `bd update --status=in_progress`, skip `bd close` after review, skip reviews, start code review before spec passes.
 
-**Always:** check `bd ready` before each wave, compare file lists for conflicts, `bd close` immediately after review passes, re-check `bd ready` after each close, create `temp/` directory before first wave (`mkdir -p temp`).
+**Always:** check `bd ready` before each wave, compare file lists for conflicts, `bd close` immediately after review passes, re-check `bd ready` after each close.
 
 **Deadlock:** If `bd ready` empty but issues remain open → check `bd blocked` for circular deps or forgotten closes.
 

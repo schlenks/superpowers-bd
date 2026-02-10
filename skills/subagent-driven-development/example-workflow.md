@@ -4,7 +4,6 @@
 You: I'm using Subagent-Driven Development to execute beads epic hub-abc.
 
 [Load epic: bd show hub-abc]
-[mkdir -p temp]  # Ensure temp dir for sub-agent reports
 [Check initial state:]
   bd ready: hub-abc.1, hub-abc.2 (no deps)
   bd blocked: hub-abc.3 (by .1), hub-abc.4 (by .2, .3)

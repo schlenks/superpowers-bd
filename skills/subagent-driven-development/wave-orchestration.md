@@ -51,5 +51,5 @@ TaskUpdate(taskId=summary_task.id, metadata={
 
 After posting the wave summary, remove temp report files: `rm -f temp/<epic-prefix>*`
 
-The `temp/` directory must exist before the first wave — create in INIT: `mkdir -p temp`
+The `temp/` directory already exists at the repo root — do NOT run `mkdir` for it.
 

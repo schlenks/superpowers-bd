@@ -8,7 +8,7 @@ Import a Superpowers plan (Markdown) or a Shortcut story into Beads as an epic w
 
 **REQUIRED BACKGROUND:** You MUST understand `superpowers:beads` before using this command. That skill covers bd CLI usage, permission avoidance, and dependency management.
 
-> **Note:** This command uses `temp/*.md` files with `--body-file` for descriptions instead of inline `-d "..."` arguments. This avoids Claude Code permission prompts caused by newlines in bash commands breaking pattern matching. The `temp/` directory must exist at the repo root. Each file uses a unique name to avoid overwrite prompts across runs.
+> **Note:** This command uses `temp/*.md` files with `--body-file` for descriptions instead of inline `-d "..."` arguments. This avoids Claude Code permission prompts caused by newlines in bash commands breaking pattern matching. The `temp/` directory already exists at the repo root — do NOT run `mkdir` for it. Each file uses a unique name to avoid overwrite prompts across runs.
 >
 > **Permission Avoidance Rules:**
 > - Use `--body-file temp/*.md` for multi-line descriptions (avoids newline issues)
