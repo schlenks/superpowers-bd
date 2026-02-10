@@ -8,10 +8,11 @@ Import a Superpowers plan (Markdown) or a Shortcut story into Beads as an epic w
 
 **REQUIRED BACKGROUND:** You MUST understand `superpowers:beads` before using this command. That skill covers bd CLI usage, permission avoidance, and dependency management.
 
-> **Note:** This command uses `temp/*.md` files with `--body-file` for descriptions instead of inline `-d "..."` arguments. This avoids Claude Code permission prompts caused by newlines in bash commands breaking pattern matching. The `temp/` directory must exist at the repo root.
+> **Note:** This command uses `temp/*.md` files with `--body-file` for descriptions instead of inline `-d "..."` arguments. This avoids Claude Code permission prompts caused by newlines in bash commands breaking pattern matching. The `temp/` directory must exist at the repo root. Each file uses a unique name to avoid overwrite prompts across runs.
 >
 > **Permission Avoidance Rules:**
 > - Use `--body-file temp/*.md` for multi-line descriptions (avoids newline issues)
+> - Use unique temp filenames: `temp/{title-slug}-epic.md`, `temp/{epic_id}-task-{n}.md` (avoids overwrite prompts)
 > - **NEVER use `\n` or ANSI-C quoting (`$'...'`)** in `--acceptance`—newlines trigger permission prompts
 > - Use semicolons to separate acceptance criteria: `--acceptance "Criterion 1; Criterion 2; Criterion 3"`
 > - Do NOT delete temp files (rm triggers permission prompts) - leave for human cleanup
@@ -125,15 +126,16 @@ Store this label on the epic in Step 3. This enables `finishing-a-development-br
 
 **IMPORTANT:** Use `temp/*.md` files for descriptions to avoid permission prompts from multi-line bash commands.
 
-1. Write the epic description to a temp file using the Write tool:
+1. Write the epic description to a temp file using the Write tool (derive a short slug from the epic title — lowercase, hyphens for spaces — to avoid overwriting files from previous runs):
 ```
-Write tool → temp/epic-desc.md
+Write tool → temp/{title-slug}-epic.md
 Content: Concatenated context sections (Problem Statement, Goals, Architecture, etc.)
+Example: "Authentication System" → temp/authentication-system-epic.md
 ```
 
 2. Create the epic using `--body-file` and the completion strategy label:
 ```bash
-bd create --silent --type epic "Epic Title" --body-file temp/epic-desc.md --acceptance "Criterion 1; Criterion 2; Criterion 3" -l "completion:commit-only" -p 1
+bd create --silent --type epic "Epic Title" --body-file temp/{title-slug}-epic.md --acceptance "Criterion 1; Criterion 2; Criterion 3" -l "completion:commit-only" -p 1
 ```
 
 **IMPORTANT:** Never use `\n` or ANSI-C quoting (`$'...'`) in `--acceptance`—newlines trigger permission prompts. Use semicolons to separate criteria instead.
@@ -204,29 +206,30 @@ Create tasks **in numeric order** so dependencies can reference earlier IDs.
 **IMPORTANT:** Use `temp/*.md` files for task descriptions to avoid permission prompts from multi-line bash commands.
 
 For each task:
-1. Write task description to `temp/task-desc.md` using the Write tool
-2. Create the task with `--body-file temp/task-desc.md`
-3. Reuse the same temp file for each task (overwrite)
+1. Write task description to `temp/{epic_id}-task-{n}.md` using the Write tool (where `{epic_id}` is from Step 3 and `{n}` is the task number)
+2. Create the task with `--body-file temp/{epic_id}-task-{n}.md`
+
+Each task gets its own file, prefixed by epic ID — unique across runs and avoids permission prompts.
 
 ```bash
 # Task 1: No dependencies
-# (Write tool creates temp/task-desc.md with task 1 description)
-bd create --silent --parent hub-abc "User Model" --body-file temp/task-desc.md -p 2
+# (Write tool creates temp/hub-abc-task-1.md)
+bd create --silent --parent hub-abc "User Model" --body-file temp/hub-abc-task-1.md -p 2
 # Returns: hub-abc.1
 
 # Task 2: No dependencies (can be parallel with Task 1 at execution time)
-# (Write tool overwrites temp/task-desc.md with task 2 description)
-bd create --silent --parent hub-abc "JWT Utils" --body-file temp/task-desc.md -p 2
+# (Write tool creates temp/hub-abc-task-2.md)
+bd create --silent --parent hub-abc "JWT Utils" --body-file temp/hub-abc-task-2.md -p 2
 # Returns: hub-abc.2
 
 # Task 3: Depends on Task 1
-# (Write tool overwrites temp/task-desc.md with task 3 description)
-bd create --silent --parent hub-abc "Auth Service" --body-file temp/task-desc.md --deps "hub-abc.1" -p 2
+# (Write tool creates temp/hub-abc-task-3.md)
+bd create --silent --parent hub-abc "Auth Service" --body-file temp/hub-abc-task-3.md --deps "hub-abc.1" -p 2
 # Returns: hub-abc.3
 
 # Task 4: Depends on Task 2 and Task 3
-# (Write tool overwrites temp/task-desc.md with task 4 description)
-bd create --silent --parent hub-abc "Login Endpoint" --body-file temp/task-desc.md --deps "hub-abc.2,hub-abc.3" -p 2
+# (Write tool creates temp/hub-abc-task-4.md)
+bd create --silent --parent hub-abc "Login Endpoint" --body-file temp/hub-abc-task-4.md --deps "hub-abc.2,hub-abc.3" -p 2
 # Returns: hub-abc.4
 ```
 
@@ -324,7 +327,7 @@ Deviations from plan (if any): ___
 
 Create the task:
 ```bash
-bd create --silent --parent hub-abc "Epic Verification" --body-file temp/task-desc.md --deps "hub-abc.1,hub-abc.2,..." --acceptance "All automated checks pass; Rule-of-five applied to changes >50 lines; Engineering checklist complete; No unmarked items" -p 1
+bd create --silent --parent hub-abc "Epic Verification" --body-file temp/hub-abc-verification.md --deps "hub-abc.1,hub-abc.2,..." --acceptance "All automated checks pass; Rule-of-five applied to changes >50 lines; Engineering checklist complete; No unmarked items" -p 1
 ```
 
 **Note:** The `--deps` should include ALL implementation task IDs so this task only unblocks after all work is done.
