@@ -89,6 +89,8 @@ Only include Suggestion-level findings if there are zero Critical, Important, or
 
 ## Evidence Protocol (mandatory in output)
 
+**Your final message must contain ONLY the structured report below. No preamble, no narrative, no summary of your review process. Just the sections below.**
+
 Your output MUST include these sections. Omitting any is a review failure.
 
 ### Changed Files Manifest

@@ -48,6 +48,8 @@ Task tool:
 
     ## Output Format
 
+    **CRITICAL: Your final message must contain ONLY the structured report below. No preamble, no narrative, no explanation of your aggregation process.**
+
     Produce EXACTLY this format:
 
     ## Strengths

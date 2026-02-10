@@ -124,6 +124,8 @@ Task tool:
 
     ## Part 3: Verdict
 
+    **CRITICAL: Your final message must contain ONLY the Summary Table and Verdict below. No preamble, no narrative, no explanation of your verification process.**
+
     ### Summary Table
 
     | Check | Status | Key Finding |

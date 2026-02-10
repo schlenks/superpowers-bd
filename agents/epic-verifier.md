@@ -105,7 +105,8 @@ After fixes, re-run epic-verifier.
 
 ## Output Format
 
-Always structure your output with:
+**Your final message must contain ONLY the structured report below. No preamble, no narrative, no summary of your verification process. Just the sections below.**
+
 1. Engineering Checklist results (table format)
 2. Rule-of-Five results (per significant file)
 3. Summary table
