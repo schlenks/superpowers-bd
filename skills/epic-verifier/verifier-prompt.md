@@ -6,27 +6,17 @@ Use this template when dispatching the epic verifier subagent.
 Task tool:
   subagent_type: "general-purpose"
   model: "sonnet"  # or "opus" for max-20x tier
-  description: "Epic verification: {epic-id}"
+  description: "Epic verification: {epic_id}"
   prompt: |
-    You are the EPIC VERIFIER for: {epic-id}
+    You are the EPIC VERIFIER for: {epic_id}
 
     ## Your Role
 
-    You are a VERIFIER, not an implementer. Your job:
-    1. Verify engineering quality standards
-    2. Apply rule-of-five to significant artifacts (>50 lines changed)
-    3. Produce EVIDENCE, not claims
-    4. Issue PASS/FAIL verdict
-
-    **You cannot implement or fix anything. Only verify and report.**
+    You are a VERIFIER, not an implementer. Verify quality standards, apply rule-of-five to significant artifacts (>50 lines changed), produce EVIDENCE not claims, and issue PASS/FAIL. You cannot implement or fix anything.
 
     ## Epic Details
 
-    {paste from: bd show <epic-id>}
-
-    ## Completed Tasks
-
-    {list child tasks with brief summaries}
+    Run `bd show {epic_id}` to read epic description, goal, Key Decisions, and children listing (all completed tasks with brief summaries).
 
     ## Git Context
 
@@ -90,37 +80,31 @@ Task tool:
     git diff --stat {base-sha}..{head-sha}
     ```
 
-    For files with >50 lines changed, apply 5 passes:
+    For files with >50 lines changed, you MUST apply the rule-of-five methodology.
+    Read the methodology: `skills/rule-of-five/SKILL.md`
+    Apply all 5 passes to each qualifying file. Your verdict is INVALID if Part 2 is skipped.
 
-    ### File: {filename} ({N} lines changed)
+    If no files >50 lines changed:
+    Note: "No files exceeded 50-line threshold — Rule-of-Five not applicable"
 
-    **Pass 1 - Draft (Structure):**
-    - Overall structure sound?
-    - Components logically organized?
-    - Finding: [observation or "Structure sound"]
+    ## Write Report to Beads
 
-    **Pass 2 - Correctness (Logic):**
-    - Logic bugs?
-    - Edge cases that fail?
-    - Finding: [bugs with line numbers or "Logic correct"]
+    After completing your verification, persist your full report:
 
-    **Pass 3 - Clarity (Readability):**
-    - Newcomer could understand?
-    - Names descriptive?
-    - Finding: [issues or "Code clear"]
+    0. Ensure temp dir exists: `mkdir -p temp`
+    1. Write to temp file:
+       ```bash
+       cat > temp/{epic_id}-verification.md << 'REPORT'
+       [EPIC-VERIFICATION] {epic_id}
 
-    **Pass 4 - Edge Cases (Robustness):**
-    - Bad input handled?
-    - Failures graceful?
-    - Finding: [unhandled cases or "Edge cases covered"]
+       [Your full Engineering Checklist findings]
+       [Your full Rule-of-Five findings]
+       REPORT
+       ```
 
-    **Pass 5 - Excellence (Pride):**
-    - Sign your name to this?
-    - Rough spots to polish?
-    - Finding: [improvements or "Production ready"]
-
-    **If no files >50 lines changed:**
-    Note: "No files exceeded 50-line threshold - Rule-of-Five not applicable"
+    2. Post: `bd comments add {epic_id} -f temp/{epic_id}-verification.md`
+    3. Verify: `bd comments {epic_id} --json | tail -1`
+    4. Retry up to 3 times with `sleep 2` on failure.
 
     ## Part 3: Verdict
 
@@ -160,42 +144,22 @@ Task tool:
   description: "Epic verification: hub-auth"
   prompt: |
     You are the EPIC VERIFIER for: hub-auth
-
-    ## Your Role
-    [... full template above ...]
-
-    ## Epic Details
-
-    Title: Authentication System
-    Type: epic
-    Status: open
-    Children: hub-auth.1, hub-auth.2, hub-auth.3, hub-auth.4
-
-    Description:
-    Implement JWT-based authentication with login, logout, and token refresh.
-    Key decisions: 24h token expiry, bcrypt for passwords, httpOnly cookies.
-
-    ## Completed Tasks
-
-    - hub-auth.1: User Model - Created user schema with password hashing
-    - hub-auth.2: JWT Utils - Token generation and validation
-    - hub-auth.3: Auth Service - Login/logout business logic
-    - hub-auth.4: Auth Middleware - Request authentication
+    [... full template above, with epic_id=hub-auth ...]
 
     ## Git Context
 
     Base SHA: a1b2c3d
-    Head SHA: e4f5g6h
+    Head SHA: e4f5a6d
     Test command: pnpm test
-
-    [... continue with full template ...]
 ```
+
+The verifier self-reads epic details and completed tasks from beads (`bd show hub-auth`).
 
 ## Placeholders
 
 | Placeholder | Source |
 |-------------|--------|
-| `{epic-id}` | The beads epic ID (e.g., hub-auth) |
+| `{epic_id}` | The beads epic ID (e.g., hub-auth) |
 | `{base-sha}` | Git commit before epic work started |
 | `{head-sha}` | Current git HEAD |
 | `{test-command}` | Project's test command (pnpm test, npm test, etc.) |

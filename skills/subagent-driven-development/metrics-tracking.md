@@ -53,10 +53,10 @@ epic_cost += wave_cost
 
 ## Wave Summary Template
 
-Post to epic comments after each wave:
+Post to epic comments after each wave with `[WAVE-SUMMARY]` tag (sub-agents search for this):
 
 ```bash
-bd comments add <epic-id> "Wave N complete:
+bd comments add <epic-id> "[WAVE-SUMMARY] Wave N complete:
 - Closed: hub-abc.1, hub-abc.2
 - Evidence:
   - hub-abc.1: commit=[hash], files=[count] changed, tests=[pass_count] pass
@@ -75,20 +75,27 @@ bd comments add <epic-id> "Wave N complete:
   - [Anything Wave N+1 should know]"
 ```
 
-**Why this matters:**
-- Wave 2 implementers can see what conventions Wave 1 established
-- Prevents inconsistent naming, patterns, or style choices
-- Creates audit trail of implementation decisions
-- Cost visibility enables budget decisions mid-epic
-
-**What to capture:**
+**What to capture** (Wave N+1 implementers self-read these from beads to maintain consistency):
 - Cost data (always include — tokens, tool calls, duration, running total)
 - File naming patterns chosen
 - Code style decisions (async/await vs promises, etc.)
 - Interface shapes that future tasks will consume
 - Any surprises or deviations from the plan
 
-**When to skip conventions (not cost):** If the wave established no new conventions (e.g., single-task wave, or tasks followed existing patterns without decisions), a minimal summary is fine — but always include cost: "Wave N complete: Closed hub-abc.1. Cost: 45,000 tokens (~$0.41). Running total: 120,000 tokens (~$1.08). No new conventions."
+**When to skip conventions (not cost):** If the wave established no new conventions (e.g., single-task wave, or tasks followed existing patterns without decisions), a minimal summary is fine — but always include cost: "[WAVE-SUMMARY] Wave N complete: Closed hub-abc.1. Cost: 45,000 tokens (~$0.41). Running total: 120,000 tokens (~$1.08). No new conventions."
+
+## Wave Receipt Compression
+
+After posting the full wave summary to beads, the orchestrator retains only a **2-line receipt** in its context:
+
+```
+Wave 1: 2 tasks closed (hub-abc.1, hub-abc.2), 168k tokens, ~$1.52. Conventions: uuid-v4, camelCase.
+Wave 2: 1 task closed (hub-abc.3), 62k tokens, ~$0.56. No new conventions.
+```
+
+**Full summaries live in beads** — future wave sub-agents read them via `bd comments <epic-id> --json`. The orchestrator only needs the receipt for its own tracking (running totals, which tasks are done).
+
+This reduces per-wave context retention from ~15-25 lines to ~2 lines, saving ~40-70 lines by wave 3.
 
 ## Epic Completion Report Template
 
@@ -114,6 +121,27 @@ bd comments add <epic-id> "Epic complete:
 - Per-wave breakdown in wave summary comments above
 - For precise input/output split: analyze-token-usage.py <session>.jsonl"
 ```
+
+## Disk Persistence (Prevent Unbounded Accumulation)
+
+At the end of each wave, write `task_metrics` to disk and clear from context:
+
+```python
+import json
+metrics_path = f"temp/metrics-{epic_id}.json"  # metrics- prefix avoids wave cleanup (rm -f temp/<epic-prefix>*)
+
+# Read existing (from prior waves)
+existing = json.load(open(metrics_path)) if os.path.exists(metrics_path) else {}
+existing.update(task_metrics)  # merge this wave's entries
+
+# Write back
+json.dump(existing, open(metrics_path, "w"), indent=2)
+
+# Orchestrator retains only: epic_tokens, epic_tool_uses, epic_cost (3 numbers)
+# Per-task metrics are on disk for the epic completion report
+```
+
+At epic completion, read `temp/metrics-{epic_id}.json` back for the full report.
 
 Reference post-hoc analysis: The blended $9/M rate is an estimate. For precise input vs output token costs, run `analyze-token-usage.py` on the session JSONL after completion.
 

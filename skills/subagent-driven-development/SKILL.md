@@ -19,13 +19,14 @@ Execute beads epic by dispatching parallel subagents for independent issues, wit
 
 1. Ask budget tier (max-20x / max-5x / pro-api) — sets model matrix for session
 2. Load epic: `bd show <epic-id>`, parse children and Key Decisions
-3. Get ready tasks: `bd ready`, filter to epic children only
-4. Check file conflicts, cap wave at 3 tasks, write `.claude/file-locks.json`
-5. Dispatch implementers in parallel (`run_in_background: true`)
-6. As each completes: spec review → code review → verification → evidence → `bd close`
-7. Post wave summary to epic comments (cost + conventions)
-8. Repeat from step 3 until all children closed
-9. Print epic completion report, cleanup file-locks.json, run `finishing-a-development-branch`
+3. `mkdir -p temp` — sub-agents write report temp files here
+4. Get ready tasks: `bd ready`, filter to epic children only
+5. Check file conflicts, cap wave at 3 tasks, write `.claude/file-locks.json`
+6. Dispatch implementers in parallel (`run_in_background: true`) — sub-agents self-read from beads
+7. As each returns verdict: spec review → code review → verification → evidence → `bd close`
+8. Post `[WAVE-SUMMARY]` to epic comments, cleanup `temp/<epic>*`, retain 2-line receipt
+9. Repeat from step 4 until all children closed
+10. Print epic completion report, cleanup file-locks.json, run `finishing-a-development-branch`
 
 ## Budget Tier Selection
 
@@ -54,7 +55,7 @@ CLOSE: extract evidence → bd close --reason → simplify (if 2+ tasks) → wav
 
 **Never:** dispatch blocked issues, dispatch cross-epic issues, dispatch file-conflicting issues in same wave, skip `bd update --status=in_progress`, skip `bd close` after review, skip reviews, start code review before spec passes.
 
-**Always:** check `bd ready` before each wave, compare file lists for conflicts, `bd close` immediately after review passes, re-check `bd ready` after each close.
+**Always:** check `bd ready` before each wave, compare file lists for conflicts, `bd close` immediately after review passes, re-check `bd ready` after each close, create `temp/` directory before first wave (`mkdir -p temp`).
 
 **Deadlock:** If `bd ready` empty but issues remain open → check `bd blocked` for circular deps or forgotten closes.
 
@@ -73,13 +74,14 @@ Read these on-demand during execution:
 | [example-workflow.md](example-workflow.md) | First time using this skill (complete 3-wave worked example) |
 | [failure-recovery.md](failure-recovery.md) | On any failure (timeout, rejection loop, deadlock, bd errors) |
 | [dispatch-and-conflict.md](dispatch-and-conflict.md) | Dispatch decision routing, file conflict algorithm, parallel dispatch pseudocode |
-| [context-loading.md](context-loading.md) | Before first wave (epic context, wave conventions, template slots) |
+| [context-loading.md](context-loading.md) | Before first wave (self-read pattern, report tags, what orchestrator provides vs sub-agent reads) |
 
 ## Prompt Templates
 
-- `./implementer-prompt.md` — includes `[EPIC_GOAL]`, `[KEY_DECISIONS]`, `[TASK_PURPOSE]`, `[WAVE_CONVENTIONS]` slots
-- `./spec-reviewer-prompt.md` — spec compliance
-- `./code-quality-reviewer-prompt.md` — code quality
+- `./implementer-prompt.md` — uses `{issue_id}`, `{epic_id}`, `{file_ownership_list}`, `{dependency_ids}`, `{wave_number}` — sub-agent self-reads details from beads
+- `./spec-reviewer-prompt.md` — uses `{issue_id}`, `{wave_number}` — self-reads requirements + implementer report from beads
+- `./code-quality-reviewer-prompt.md` — uses `{issue_id}`, `{base_sha}`, `{head_sha}`, `{wave_number}`, `{code_reviewer_path}` — sub-agent self-reads methodology from disk
+- `skills/epic-verifier/verifier-prompt.md` — uses `{epic_id}`, `{base-sha}`, `{head-sha}`, `{test-command}` — sub-agent self-reads epic details and rule-of-five from beads/disk
 - `./simplifier-dispatch-guidance.md` — post-wave simplification (skip on pro/api, skip single-task waves)
 
 ## State Machine
@@ -89,6 +91,16 @@ INIT → LOADING → DISPATCH → MONITOR → REVIEW → CLOSE → LOADING (loop
                                                       → COMPLETE (all closed)
 REVIEW → PENDING_HUMAN (verification >3 attempts)
 ```
+
+## Compaction Safety Net
+
+For very large epics (8+ waves), context may still grow despite beads-mediated stateless waves. As a fallback, set early compaction:
+
+```bash
+export CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70
+```
+
+This triggers compaction at 70% context usage instead of the default 95%, providing a buffer before the context window fills completely.
 
 ## Integration
 

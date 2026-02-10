@@ -45,26 +45,13 @@ digraph when_to_use {
 ## The Pattern
 
 ### 1. Identify Independent Domains
-
-Group failures by what's broken:
-- File A tests: Tool approval flow
-- File B tests: Batch completion behavior
-- File C tests: Abort functionality
-
-Each domain is independent - fixing tool approval doesn't affect abort tests.
+Group failures by what's broken (e.g., File A: tool approval flow, File B: batch completion, File C: abort functionality). Each domain is independent - fixing one doesn't affect the others.
 
 ### 2. Create Focused Agent Tasks
-
-Each agent gets:
-- **Specific scope:** One test file or subsystem
-- **Clear goal:** Make these tests pass
-- **Constraints:** Don't change other code
-- **Expected output:** Summary of what you found and fixed
+Each agent gets: **specific scope** (one test file/subsystem), **clear goal** (make these tests pass), **constraints** (don't change other code), **expected output** (summary of findings and fixes).
 
 ### 3. Dispatch in Parallel
-
 ```typescript
-// In Claude Code / AI environment
 Task("Fix agent-tool-abort.test.ts failures")
 Task("Fix batch-completion-behavior.test.ts failures")
 Task("Fix tool-approval-race-conditions.test.ts failures")
@@ -72,95 +59,49 @@ Task("Fix tool-approval-race-conditions.test.ts failures")
 ```
 
 ### 4. Review and Integrate
-
-When agents return:
-- Read each summary
-- Verify fixes don't conflict
-- Run full test suite
-- Integrate all changes
+Read each summary, verify fixes don't conflict, run full test suite, integrate all changes.
 
 ## Agent Prompt Structure
 
-Good agent prompts are:
+Three rules for good agent prompts:
 1. **Focused** - One clear problem domain
 2. **Self-contained** - All context needed to understand the problem
 3. **Specific about output** - What should the agent return?
 
+**Condensed example:**
 ```markdown
 Fix the 3 failing tests in src/agents/agent-tool-abort.test.ts:
+1. "should abort tool with partial output capture" - expects 'interrupted at'
+2. "should handle mixed completed and aborted tools" - fast tool aborted
+3. "should properly track pendingToolCount" - expects 3 results, gets 0
 
-1. "should abort tool with partial output capture" - expects 'interrupted at' in message
-2. "should handle mixed completed and aborted tools" - fast tool aborted instead of completed
-3. "should properly track pendingToolCount" - expects 3 results but gets 0
-
-These are timing/race condition issues. Your task:
-
-1. Read the test file and understand what each test verifies
-2. Identify root cause - timing issues or actual bugs?
-3. Fix by:
-   - Replacing arbitrary timeouts with event-based waiting
-   - Fixing bugs in abort implementation if found
-   - Adjusting test expectations if testing changed behavior
-
-Do NOT just increase timeouts - find the real issue.
-
-Return: Summary of what you found and what you fixed.
+These are timing/race condition issues. Replace arbitrary timeouts with
+event-based waiting. Do NOT just increase timeouts.
+Return: Summary of root cause and changes made.
 ```
+
+See `references/agent-prompt-example.md` for full annotated version.
 
 ## Common Mistakes
 
-**❌ Too broad:** "Fix all the tests" - agent gets lost
-**✅ Specific:** "Fix agent-tool-abort.test.ts" - focused scope
+**Too broad:** "Fix all the tests" - agent gets lost
+**Specific:** "Fix agent-tool-abort.test.ts" - focused scope
 
-**❌ No context:** "Fix the race condition" - agent doesn't know where
-**✅ Context:** Paste the error messages and test names
+**No context:** "Fix the race condition" - agent doesn't know where
+**Context:** Paste the error messages and test names
 
-**❌ No constraints:** Agent might refactor everything
-**✅ Constraints:** "Do NOT change production code" or "Fix tests only"
+**No constraints:** Agent might refactor everything
+**Constraints:** "Do NOT change production code" or "Fix tests only"
 
-**❌ Vague output:** "Fix it" - you don't know what changed
-**✅ Specific:** "Return summary of root cause and changes"
+**Vague output:** "Fix it" - you don't know what changed
+**Specific:** "Return summary of root cause and changes"
 
 ## When NOT to Use
 
-**Related failures:** Fixing one might fix others - investigate together first
-**Need full context:** Understanding requires seeing entire system
-**Exploratory debugging:** You don't know what's broken yet
-**Shared state:** Agents would interfere (editing same files, using same resources)
-
-## Real Example from Session
-
-**Scenario:** 6 test failures across 3 files after major refactoring
-
-**Failures:**
-- agent-tool-abort.test.ts: 3 failures (timing issues)
-- batch-completion-behavior.test.ts: 2 failures (tools not executing)
-- tool-approval-race-conditions.test.ts: 1 failure (execution count = 0)
-
-**Decision:** Independent domains - abort logic separate from batch completion separate from race conditions
-
-**Dispatch:**
-```
-Agent 1 → Fix agent-tool-abort.test.ts
-Agent 2 → Fix batch-completion-behavior.test.ts
-Agent 3 → Fix tool-approval-race-conditions.test.ts
-```
-
-**Results:**
-- Agent 1: Replaced timeouts with event-based waiting
-- Agent 2: Fixed event structure bug (threadId in wrong place)
-- Agent 3: Added wait for async tool execution to complete
-
-**Integration:** All fixes independent, no conflicts, full suite green
-
-**Time saved:** 3 problems solved in parallel vs sequentially
-
-## Key Benefits
-
-1. **Parallelization** - Multiple investigations happen simultaneously
-2. **Focus** - Each agent has narrow scope, less context to track
-3. **Independence** - Agents don't interfere with each other
-4. **Speed** - 3 problems solved in time of 1
+- **Related failures:** Fixing one might fix others - investigate together first
+- **Need full context:** Understanding requires seeing entire system
+- **Exploratory debugging:** You don't know what's broken yet
+- **Shared state:** Agents would interfere (editing same files, using same resources)
 
 ## Verification
 
@@ -170,11 +111,10 @@ After agents return:
 3. **Run full suite** - Verify all fixes work together
 4. **Spot check** - Agents can make systematic errors
 
-## Real-World Impact
+## Reference Files
 
-From debugging session (2025-10-03):
-- 6 failures across 3 files
-- 3 agents dispatched in parallel
-- All investigations completed concurrently
-- All fixes integrated successfully
-- Zero conflicts between agent changes
+| File | When to read |
+|------|-------------|
+| `references/agent-prompt-example.md` | Full annotated prompt example with test names and constraints |
+| `references/real-session-example.md` | Complete scenario: dispatch, results, integration, time saved |
+| `references/real-world-impact.md` | Stats from debugging session (2025-10-03) |

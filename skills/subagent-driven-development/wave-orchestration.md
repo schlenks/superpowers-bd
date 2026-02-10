@@ -18,19 +18,13 @@ wave_task = TaskCreate(
     addBlockedBy=[conflict_task.id]
 )
 
-# For each implementation
-impl_task = TaskCreate(
-    subject="Implement hub-abc.1",
-    activeForm="Implementing User Model"
-)
-
+# For each implementation — review_task is a commitment device preventing review-skipping
 review_task = TaskCreate(
     subject="Review hub-abc.1",
-    activeForm="Reviewing User Model",
-    addBlockedBy=[impl_task.id]
+    activeForm="Reviewing User Model"
 )
 
-# At wave end — aggregate metrics for this wave
+# At wave end — aggregate metrics, then persist to disk (see metrics-tracking.md "Disk Persistence")
 wave_metrics = [v for k, v in task_metrics.items() if k.startswith(tuple(wave_issue_ids))]
 wave_tokens = sum(m["total_tokens"] for m in wave_metrics)
 wave_tool_uses = sum(m["tool_uses"] for m in wave_metrics)
@@ -53,7 +47,9 @@ TaskUpdate(taskId=summary_task.id, metadata={
 })
 ```
 
-**Benefits:**
-- Visual progress in Claude Code UI
-- Clear dependency enforcement
-- Audit trail of execution
+## Wave Cleanup
+
+After posting the wave summary, remove temp report files: `rm -f temp/<epic-prefix>*`
+
+The `temp/` directory must exist before the first wave — create in INIT: `mkdir -p temp`
+

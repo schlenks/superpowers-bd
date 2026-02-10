@@ -1,15 +1,5 @@
 # Dispatch Decision & File Conflict Detection
 
-## Key Terms
-
-| Term | Meaning |
-|------|---------|
-| **Dispatch** | Use the `Task` tool to spawn a subagent with a specific prompt |
-| **Wave** | A batch of issues dispatched together (all have no dependency conflicts) |
-| **bd** | Beads CLI - git-backed issue tracker (`bd ready`, `bd show`, `bd close`, etc.) |
-| **Ready** | Issue has no blockers - all its dependencies are closed |
-| **Blocked** | Issue is waiting for one or more dependencies to close |
-
 ## Filtering to Current Epic
 
 `bd ready` returns ALL ready issues across all epics. Filter to current epic:
@@ -43,32 +33,32 @@ def get_prompt_for_task(task):
         return ("implementer", implementer_prompt_template)
 ```
 
-```
-Task becomes ready
-       │
-       ▼
-Is verification task?
-    yes/ \no
-      /   \
-Use verifier    Use implementer
-prompt          prompt
-```
-
-**Why this works:**
-- plan2beads already creates verification task with proper checklist
-- finishing-a-development-branch already checks verification task is closed
-- Different prompts ensure verification is done rigorously, not rushed
-
 **Dispatch example:**
 ```python
+# Resolve once per wave (reused across all code reviewer dispatches)
+code_reviewer_path = Glob("**/requesting-code-review/code-reviewer.md")[0]
+
 prompt_type, prompt_template = get_prompt_for_task(task)
 
+# Sub-agents self-read from beads. Orchestrator only provides:
+# - issue_id, epic_id (for bd show/bd comments)
+# - file_ownership_list (safety-critical, must be in prompt)
+# - dependency_ids (1-3 lines)
+# - wave_number (for tagging reports)
+# - code_reviewer_path (for code reviewers to self-read methodology)
 Task(
     subagent_type="general-purpose",  # Always general-purpose
     model=tier_verifier if prompt_type == "verifier" else tier_impl,
     run_in_background=True,
     description=f"{'Verify' if prompt_type == 'verifier' else 'Implement'}: {task.id}",
-    prompt=prompt_template.format(task=task)
+    prompt=prompt_template.format(
+        issue_id=task.id,
+        epic_id=epic_id,
+        file_ownership_list=task.files,
+        dependency_ids=task.deps,
+        wave_number=wave_n,
+        code_reviewer_path=code_reviewer_path
+    )
 )
 ```
 

@@ -1,5 +1,462 @@
 # Superpowers Release Notes
 
+## v4.3.0 (2026-02-10) - Beads Fork
+
+### Major Feature: 3-Tier Progressive Disclosure
+
+Restructured all 14 oversized skills from monolithic SKILL.md files into a 3-tier architecture: frontmatter (always loaded) → action guide (loaded on trigger) → reference files (loaded on demand). Reduces per-trigger token cost by ~67% while preserving all content.
+
+**Problem:** Every skill invocation loaded the full SKILL.md into context — 400-1100 lines of examples, troubleshooting, rationale, and edge cases that agents only need occasionally. This consumed orchestrator context budget, especially in SDD workflows dispatching multiple skills per wave.
+
+**Solution:** Extract detailed content to `references/` directories. SKILL.md retains only what agents need on every invocation: core rules, process steps, key tables, and a reference table telling agents when to load each extracted file.
+
+**Skills restructured (14):**
+
+| Skill | Before | After | Reduction | Reference Files |
+|-------|--------|-------|-----------|-----------------|
+| subagent-driven-development | 1,129 | 99 | 91% | 9 peer files |
+| writing-skills | 726 | 137 | 81% | 9 |
+| beads | 431 | 139 | 68% | 8 |
+| test-driven-development | 414 | 126 | 70% | 6 |
+| writing-plans | 361 | 143 | 60% | 6 |
+| finishing-a-development-branch | 356 | 120 | 66% | 7 |
+| systematic-debugging | 329 | 129 | 61% | 10 |
+| verification-before-completion | 300 | 129 | 57% | 6 |
+| using-git-worktrees | 255 | 86 | 66% | 5 |
+| receiving-code-review | 253 | 122 | 52% | 5 |
+| multi-review-aggregation | 212 | 124 | 42% | 4 |
+| executing-plans | 208 | 106 | 49% | 5 |
+| epic-verifier | 182 | 116 | 36% | 4 |
+| dispatching-parallel-agents | 181 | 120 | 34% | 3 |
+| rule-of-five | 175 | 114 | 35% | 3 |
+| **Total** | **5,512** | **1,810** | **67%** | **90** |
+
+**What stays in SKILL.md:**
+- Iron Laws, Guards, core enforcement rules (verbatim)
+- Process steps (condensed — task names + 1-line descriptions)
+- Key tables (command references, pass tables, common mistakes)
+- Reference table at bottom (tells agents when to load each file)
+
+**What moves to references/:**
+- Full TaskCreate blocks with descriptions
+- Detailed examples and annotated workflows
+- Troubleshooting guides and edge cases
+- Rationale, research citations, and historical context
+- Real-world impact stats
+
+**Peer files preserved:** Dispatch templates (`aggregator-prompt.md`, `verifier-prompt.md`, `implementer-prompt.md`, etc.) remain as peer files — they are actively used, not reference material.
+
+**All skills pass `npx claude-skills-cli validate --lenient` and are ≤150 lines.**
+
+---
+
+### Feature: Context Consumption Reduction
+
+Three fixes to prevent orchestrator context exhaustion during SDD workflows.
+
+**Problem:** In production SDD runs, the orchestrator would exhaust its context window before completing wave processing — unable to run reviews, close tasks, or post summaries.
+
+**Concise output directives** (all agents):
+- Added "final message must contain ONLY the structured report" to implementer, spec reviewer, code quality reviewer, code-reviewer agent, epic-verifier agent, and aggregator prompts
+- Prevents verbose agent output from consuming orchestrator context
+
+**Trivial change threshold:**
+- Changes ≤10 diff lines override multi-review to single reviewer regardless of budget tier
+- 3 code reviewers for a 1-line change is wasteful and blows context
+
+**Wave size cap:**
+- Capped at 3 tasks per wave (was unlimited)
+- With 5+ parallel agents, orchestrator ran out of context before processing results
+- Excess ready tasks defer to next wave using existing file conflict deferral mechanism
+
+**Files Modified (8):**
+- `agents/code-reviewer.md` — concise output directive
+- `agents/epic-verifier.md` — concise output directive
+- `skills/epic-verifier/verifier-prompt.md` — concise output directive
+- `skills/multi-review-aggregation/aggregator-prompt.md` — concise output directive
+- `skills/subagent-driven-development/SKILL.md` — wave cap + trivial threshold
+- `skills/subagent-driven-development/implementer-prompt.md` — concise output directive
+- `skills/subagent-driven-development/spec-reviewer-prompt.md` — concise output directive
+- `skills/subagent-driven-development/code-quality-reviewer-prompt.md` — concise output directive
+
+---
+
+### Fix: SDD Conflict Task Triggering Quality Gate
+
+The file conflict check task was named "Verify no file conflicts in wave N" which matched the TaskCompleted hook's verify/verification pattern, causing it to demand evidence markers for what is a logistics task. Renamed to "Check file conflicts for wave N" to avoid the false trigger.
+
+**Files Modified (1):**
+- `skills/subagent-driven-development/SKILL.md`
+
+---
+
+### Key Decisions
+
+- **3-tier over 2-tier** — Reference files (tier 3) are cheaper than keeping everything in SKILL.md. Agents load them only when the specific situation arises.
+- **No content loss** — Every line from the original exists in either SKILL.md or a reference file. This is restructuring, not rewriting.
+- **Peer files vs reference files** — Dispatch templates (prompts used in Task tool calls) stay as peer files. Reference files are for on-demand reading only.
+- **≤150 line budget** — Proven sweet spot: enough for core rules + process + tables, small enough to leave context for agent work.
+- **Wave cap at 3** — Empirically determined from production runs where 5-agent waves exhausted context.
+
+### Files Changed
+
+**New Files (90 reference files across 14 skills):**
+- `skills/beads/references/` — 8 files
+- `skills/using-git-worktrees/references/` — 5 files
+- `skills/receiving-code-review/references/` — 5 files
+- `skills/multi-review-aggregation/references/` — 4 files
+- `skills/executing-plans/references/` — 5 files
+- `skills/epic-verifier/references/` — 4 files
+- `skills/dispatching-parallel-agents/references/` — 3 files
+- `skills/rule-of-five/references/` — 3 files
+- `skills/writing-skills/references/` — 9 files
+- `skills/test-driven-development/references/` — 6 files
+- `skills/writing-plans/references/` — 6 files
+- `skills/finishing-a-development-branch/references/` — 7 files
+- `skills/systematic-debugging/references/` — 10 files
+- `skills/verification-before-completion/references/` — 6 files
+- `skills/subagent-driven-development/` — 9 peer reference files
+
+**Modified (22):**
+- 14 `skills/*/SKILL.md` files — restructured with 3-tier progressive disclosure
+- `agents/code-reviewer.md` — concise output directive
+- `agents/epic-verifier.md` — concise output directive
+- `skills/epic-verifier/verifier-prompt.md` — concise output directive
+- `skills/multi-review-aggregation/aggregator-prompt.md` — concise output directive
+- `skills/subagent-driven-development/implementer-prompt.md` — concise output directive
+- `skills/subagent-driven-development/spec-reviewer-prompt.md` — concise output directive
+- `skills/subagent-driven-development/code-quality-reviewer-prompt.md` — concise output directive
+- `skills/subagent-driven-development/SKILL.md` — wave cap, trivial threshold, conflict task rename
+
+---
+
+## v4.2.0 (2026-02-09) - Beads Fork
+
+### Major Feature: Code Reviewer Rewrite
+
+Complete rewrite of the code-reviewer agent from aspirational ("review for best practices") to procedural methodology with precision gates and mandatory evidence.
+
+**Problem:** The reviewer produced surface-level observations—flagging style preferences while missing real bugs. The prompt was aspirational, the architecture was fragmented across 3 files with inconsistent severity labels, and there was no verification that findings met a quality bar.
+
+**Solution:** Procedural 7-step methodology with precision gate and evidence protocol.
+
+**New Review Methodology:**
+1. Run `git diff` and catalog changed files
+2. Read each changed file in full (not just diff hunks)
+3. Extract requirements from task spec
+4. Trace data flow through changed paths
+5. Hunt for missing error handling, unchecked returns, race conditions
+6. Verify test coverage of changed paths
+7. Compile findings with mandatory evidence sections
+
+**Precision Gate:** No finding emitted without a violated requirement, concrete failing path, or missing test scenario. Eliminates speculative "what if" noise.
+
+**Evidence Protocol (mandatory 5-section output):**
+- Changed Files Manifest — what was reviewed
+- Requirement Mapping — spec item → implementation location
+- Uncovered Paths — code paths lacking test coverage
+- Not Checked — areas excluded from review (blocks "Yes" verdict if core/security)
+- Findings — with file:line, severity, and violation evidence
+
+**Architecture Unification:**
+- Template (`skills/requesting-code-review/code-reviewer.md`) is single source of truth
+- Agent body (`agents/code-reviewer.md`) kept in sync via automated parity test
+- `test-reviewer-prompt-parity.sh` fails CI if agent diverges from template
+
+**Plugin Update Propagation:**
+- `link-plugin-components.sh` now uses source-hash sidecar tracking
+- Updates propagate automatically when source changes
+- Orphan pruning removes stale copies when source deleted or hooks removed
+
+**Files Changed (8):**
+- `agents/code-reviewer.md` — full rewrite with disallowedTools
+- `skills/requesting-code-review/code-reviewer.md` — full rewrite
+- `skills/requesting-code-review/SKILL.md` — updated docs
+- `skills/subagent-driven-development/code-quality-reviewer-prompt.md` — aligned with new structure
+- `hooks/link-plugin-components.sh` — hash tracking + orphan pruning (+91 lines)
+- `tests/claude-code/test-reviewer-prompt-parity.sh` — new automated drift test
+- `tests/verification/test-link-plugin-components.sh` — hash/prune test coverage
+- `docs/plans/code-reviewer-rewrite.md` — planning document
+
+---
+
+### Major Feature: Multi-Review Aggregation
+
+New skill dispatching N independent code reviewers in parallel, then aggregating findings for higher recall.
+
+**Problem:** Single code reviews miss rare bugs. Research (SWR-Bench, arXiv 2509.01494) shows N=3 independent reviews achieve 43.67% F1 improvement and 118% recall boost over single reviews.
+
+**Solution:** `multi-review-aggregation` skill with parallel dispatch, deduplication, and severity voting.
+
+**Algorithm:**
+- Dispatch N independent reviewers (each unaware of others)
+- Deduplicate: same file + lines within 5 + same category = one finding
+- Severity voting: unanimous → keep severity; disagreement → highest; lone finding → downgrade 1 level (except security/data-loss)
+- Fast path: if all N approve with 0 Critical/Important, skip aggregation
+- Verdict: "Yes" only if 0 Critical AND 0 Important AND majority approved
+
+**N by Budget Tier:**
+
+| Tier | N | Rationale |
+|------|---|-----------|
+| max-20x | 3 | Quality priority |
+| max-5x | 3 | Quality priority |
+| pro/api | 1 | Budget priority |
+
+**Files Added (2):**
+- `skills/multi-review-aggregation/SKILL.md` — 212-line skill with algorithm and cost analysis
+- `skills/multi-review-aggregation/aggregator-prompt.md` — haiku-based aggregation template
+
+**Files Modified (3):**
+- `skills/subagent-driven-development/SKILL.md` — N=3 dispatch pattern
+- `skills/requesting-code-review/SKILL.md` — multi-review guidance for manual use
+- `skills/subagent-driven-development/code-quality-reviewer-prompt.md` — reviewer independence instruction
+
+---
+
+### Feature: Linter Guards via PostToolUse Hooks
+
+Automated linting on every Write/Edit operation, blocking syntax errors before they cascade.
+
+**Problem:** Code writes could introduce syntax errors or invalid config files. In parallel subagent workflows, one bad write cascades into multiple failures.
+
+**Solution:** PostToolUse hook `run-linter.sh` runs after every Write|Edit:
+- **shellcheck** for `.sh` files
+- **jq** validation for `.json` files
+- **lizard** for cyclomatic complexity (CC>15 blocks, CC>10 warns) — Python, JS, Go, Java, C/C++, Ruby, Swift, Rust
+- **cognitive-complexity-ts** for `.ts`/`.tsx` files (>25 blocks, >15 warns) — preferred over lizard for TypeScript
+- Exit code 2 blocks the operation; stderr surfaces to Claude for self-correction
+- Graceful degradation with install hints if tools missing
+
+**Two-layer coverage:**
+- Main thread: `hooks/hooks.json` PostToolUse matcher
+- Subagents: code-reviewer agent frontmatter (copied to `.claude/` by link-plugin-components)
+
+**Files Added (1):**
+- `hooks/run-linter.sh` — linter dispatcher with shellcheck, jq, lizard, and ccts-json integration
+
+**Files Modified (4):**
+- `hooks/hooks.json` — PostToolUse matcher for Write|Edit
+- `agents/code-reviewer.md` — run-linter.sh in agent PostToolUse hooks
+- `README.md` — lizard and ccts install docs
+- `tests/verification/test-linter-hook.sh` — 529-line test suite
+
+---
+
+### Feature: TaskCompleted Quality Gate Hook
+
+Blocks task completion without evidence in interactive mode.
+
+**Problem:** Tasks could be marked complete without proof of what was done, making audits impossible and enabling rubber-stamp approvals.
+
+**Solution:** `task-completed.sh` hook runs on every TaskUpdate to `completed`:
+- **Check 1 (Verification tasks):** Blocks unless description contains evidence markers (test output, exit codes, confirmations)
+- **Check 2 (Implementation tasks):** Blocks unless description contains commit hash, files changed, or test results
+- Exit code 2 rejects the completion; stderr tells Claude what's missing
+
+**Constraint:** Interactive mode only (V2 Experiment A confirmed TaskCompleted hooks don't fire in headless `claude -p` mode). Headless gets prompt-based evidence templates as soft enforcement.
+
+**Files Added (2):**
+- `hooks/task-completed.sh` — 109-line quality gate
+- `tests/verification/test-quality-gate-hook.sh` — 153-line test suite
+
+---
+
+### Feature: Completion Evidence Before Closing
+
+Three-layer enforcement ensuring every closed issue has an audit trail.
+
+**Problem:** Beads issues closed without evidence of what was done, breaking audit trails across sessions.
+
+**Solution:**
+1. **TaskCompleted hook** — blocks native task completion without evidence (interactive mode)
+2. **Implementer report template** — structured `### Evidence` section in implementer-prompt ensures evidence generation in all modes
+3. **`bd close --reason`** — persists evidence in beads for cross-session audit
+
+**Files Modified (3):**
+- `hooks/task-completed.sh` — evidence check for implementation tasks
+- `skills/subagent-driven-development/SKILL.md` — evidence extraction pattern, `bd close --reason`
+- `skills/subagent-driven-development/implementer-prompt.md` — `### Evidence` output section
+
+---
+
+### Feature: Advisory File Ownership
+
+Prevents parallel implementers from unknowingly modifying the same files.
+
+**Problem:** In wave-based parallel execution, multiple implementers could modify the same files, causing merge conflicts.
+
+**Solution:** Generate `.claude/file-locks.json` at wave start with file→issue mapping:
+```json
+{
+  "epic": "<epic-id>",
+  "wave": 1,
+  "locks": {
+    "src/auth.ts": {"owner": "hub-abc.3", "action": "Modify"}
+  }
+}
+```
+
+Implementers consult lock file if they need a file not assigned to them. Cleaned up at epic completion.
+
+**Files Modified (2):**
+- `skills/subagent-driven-development/SKILL.md` — `write_file_locks()` at wave dispatch, cleanup at COMPLETE
+- `skills/subagent-driven-development/implementer-prompt.md` — lock file consultation guidance
+
+---
+
+### Feature: PostToolUse Audit Logging with Plugin Workaround
+
+Audit logging for file modifications during code review, with workaround for Claude Code issue #17688.
+
+**Problem:** Plugin frontmatter hooks never fire (Claude Code #17688 — agent loader skips hook parsing). PostToolUse hooks were needed for audit logging on code-reviewer subagent.
+
+**Solution:** Two-part workaround:
+1. Add PostToolUse hooks to agent frontmatter (Write|Edit → `log-file-modification.sh`)
+2. `link-plugin-components.sh` copies hooked components from plugin directory to `.claude/` on SessionStart (project-local hooks DO fire)
+
+**Files Added (2):**
+- `hooks/log-file-modification.sh` — appends to `file-modifications.log`
+- `hooks/link-plugin-components.sh` — 265-line plugin-to-project copier with hash tracking
+
+**Files Modified (2):**
+- `agents/code-reviewer.md` — PostToolUse hooks for audit and linting
+- `hooks/hooks.json` — SessionStart hook for link-plugin-components
+
+---
+
+### Feature: Cost Metrics Tracking in SDD
+
+Per-task, per-wave, and per-epic token cost visibility during subagent execution.
+
+**Problem:** No visibility into token costs during epic execution. Users couldn't make informed budget decisions mid-epic.
+
+**Solution:** Capture `<usage>` block from every Task tool call. Track at three levels:
+- **Per-task** — keyed by `{issue_id}.{role}` (e.g., `hub-abc.3.impl`, `hub-abc.3.code.2`)
+- **Per-wave** — sum tokens/tool uses, max duration (parallel wall clock)
+- **Epic accumulator** — running totals across all waves
+
+Displayed in wave summary comments and epic completion report. Uses blended $9/M rate for real-time estimates.
+
+**Files Modified (1):**
+- `skills/subagent-driven-development/SKILL.md` — 125 lines of metrics tracking documentation
+
+---
+
+### Feature: Code Simplifier Integration
+
+Dispatch code-simplifier agent at 4 workflow insertion points to combat accumulated cruft.
+
+**Problem:** Code accumulates redundant abstractions, inconsistent naming, and unnecessary complexity over time. No systematic simplification pass existed.
+
+**Solution:** Dispatch `code-simplifier:code-simplifier` at 4 points:
+1. **TDD REFACTOR** (conditional) — if implementation >50 lines or CC>10
+2. **SDD post-wave** (conditional) — after 2+ tasks close, check cross-file consistency (skip pro/api tier)
+3. **Pre-merge** (mandatory) — in finishing-a-development-branch Step 1.5
+4. **Receiving code review** (guidance) — manual option for complex changes
+
+All runs are test-gated: apply changes, run tests, commit if pass, revert if fail.
+
+**Files Added (1):**
+- `skills/subagent-driven-development/simplifier-dispatch-guidance.md` — 89-line reference doc
+
+**Files Modified (4):**
+- `skills/subagent-driven-development/SKILL.md` — post-wave simplification section
+- `skills/finishing-a-development-branch/SKILL.md` — Step 1.5 pre-merge simplification
+- `skills/test-driven-development/SKILL.md` — conditional simplification in REFACTOR phase
+- `skills/receiving-code-review/SKILL.md` — manual simplification guidance
+
+---
+
+### Feature: Epic Completion Strategy
+
+User declares completion strategy once during planning; finishing skill executes automatically.
+
+**Problem:** `finishing-a-development-branch` prompted users interactively every time, even in automated SDD workflows. Users reported "it keeps asking what to do."
+
+**Solution:** `plan2beads` now asks the user how the epic should complete and stores the answer as a `completion:*` beads label. `finishing-a-development-branch` reads it and auto-executes.
+
+**Strategies:** `commit-only`, `push`, `push-pr`, `merge-local`
+
+Also fixed prompt stampede where the skill activated after every subagent task completion instead of once at epic end. Four-layer guard: skill description tightening, subagent guard section, orchestrator warning, implementer prohibition.
+
+**Files Modified (3):**
+- `commands/plan2beads.md` — completion strategy prompt and label creation
+- `skills/finishing-a-development-branch/SKILL.md` — guard section (Step 0) + auto-execution (Step 3 Auto)
+- `skills/subagent-driven-development/SKILL.md` — warning before COMPLETE transition
+
+---
+
+### Other Changes
+
+**Agent memory (#38):**
+- Added `memory: project` to code-reviewer and epic-verifier agents, enabling persistent memory across sessions
+
+**Agent limits (#45):**
+- Added `maxTurns: 25` to code-reviewer, `maxTurns: 40` to epic-verifier (prevents infinite loops)
+- Added `disallowedTools: [Write, Edit, NotebookEdit]` to epic-verifier (reviewers don't modify code)
+- Added YAML frontmatter to plan2beads command
+- Added Component Frontmatter Reference section to writing-skills guide
+
+**Beads fix:**
+- Use semicolons instead of `\n` for acceptance criteria separators (shell quoting issue)
+
+**Documentation:**
+- Bumped improvements doc to v6.4
+- Updated CLAUDE.md with hook documentation
+
+### Key Decisions
+
+- **Procedural over aspirational** — reviewer prompt says "Run git diff" not "Review for patterns"
+- **Two-layer enforcement** — interactive hooks for hard gates + prompt-based templates for universal coverage (headless included)
+- **Advisory file ownership** — prompt-based locks, not hard enforcement. Proven at scale by Anthropic C compiler project
+- **N=3 reviews by budget tier** — max-20x/max-5x get quality, pro/api gets single review
+- **Hash-based propagation** — source hash sidecar detects when plugin components change, enabling automatic updates to `.claude/` copies
+- **Plugin workaround is temporary** — `link-plugin-components.sh` should be removed when Claude Code #17688 is fixed
+
+### Improvement Items Closed (11)
+
+#5, #6, #14, #15, #25, #38, #41, #42, #45, #46, #47
+
+### Files Changed (31)
+
+**New Files (11):**
+- `hooks/task-completed.sh`
+- `hooks/link-plugin-components.sh`
+- `hooks/log-file-modification.sh`
+- `hooks/run-linter.sh`
+- `skills/multi-review-aggregation/SKILL.md`
+- `skills/multi-review-aggregation/aggregator-prompt.md`
+- `skills/subagent-driven-development/simplifier-dispatch-guidance.md`
+- `tests/verification/test-link-plugin-components.sh`
+- `tests/verification/test-linter-hook.sh`
+- `tests/verification/test-quality-gate-hook.sh`
+- `tests/claude-code/test-reviewer-prompt-parity.sh`
+- `docs/plans/code-reviewer-rewrite.md`
+
+**Modified (19):**
+- `agents/code-reviewer.md` — full rewrite
+- `agents/epic-verifier.md` — memory, maxTurns, disallowedTools
+- `AGENTS.md` — workaround documentation
+- `CLAUDE.md` — hook documentation
+- `README.md` — tool install docs
+- `hooks/hooks.json` — 3 new hook entries
+- `commands/plan2beads.md` — completion strategy, frontmatter
+- `skills/subagent-driven-development/SKILL.md` — metrics, file locks, evidence, simplifier, multi-review (+352 lines)
+- `skills/subagent-driven-development/implementer-prompt.md` — evidence, locks, workflow guard
+- `skills/subagent-driven-development/code-quality-reviewer-prompt.md` — reviewer independence, new structure
+- `skills/finishing-a-development-branch/SKILL.md` — guard, auto-execution, simplifier (+88 lines)
+- `skills/requesting-code-review/SKILL.md` — multi-review, updated docs
+- `skills/requesting-code-review/code-reviewer.md` — full rewrite
+- `skills/test-driven-development/SKILL.md` — simplifier in REFACTOR
+- `skills/receiving-code-review/SKILL.md` — simplifier guidance
+- `skills/writing-skills/SKILL.md` — frontmatter reference
+- `SUPERPOWERS-BD-COMPREHENSIVE-IMPROVEMENTS.md` — v6.4 updates
+- `docs/IMPROVEMENTS-ARCHIVE.md` — archive updates
+- `tests/claude-code/run-skill-tests.sh` — parity test wired in
+
+---
+
 ## v4.1.2 (2026-01-31) - Beads Fork
 
 ### Feature: Visual Verification for Frontend Code

@@ -14,9 +14,13 @@ Task tool:
     code reviews of the same implementation. Your job is to produce a single
     unified review report.
 
-    ## Reviewer Outputs
+    ## Load Reviewer Reports
 
-    {reviewer_outputs}
+    Run: `bd comments {issue_id} --json`
+
+    Find the {n_reviews} entries tagged `[CODE-REVIEW-1/{n_reviews}]` through
+    `[CODE-REVIEW-{n_reviews}/{n_reviews}]` for this wave. These are the
+    independent reviewer reports to aggregate.
 
     ## Aggregation Rules
 
@@ -83,4 +87,37 @@ Task tool:
       (after deduplication).
     - Annotate provenance: [Reviewers: 1, 3] or [Reviewer: 2, downgraded from X].
     - Security/data-loss findings are NEVER downgraded, even as lone findings.
+
+    ## Write Report to Beads
+
+    After producing the aggregated report, persist it:
+
+    1. Write the full aggregated report to a temp file:
+       ```bash
+       cat > temp/{issue_id}-code-agg.md << 'REPORT'
+       [CODE-REVIEW-AGG] {issue_id} wave-{N}
+
+       [Your full aggregated report — Strengths, Issues by severity, Assessment]
+       REPORT
+       ```
+
+    2. Post to beads:
+       ```bash
+       bd comments add {issue_id} -f temp/{issue_id}-code-agg.md
+       ```
+
+    3. Verify: `bd comments {issue_id} --json | tail -1`
+
+    4. If `bd comments add` fails, retry up to 3 times with `sleep 2` between attempts.
+
+    ## Verdict (Final Message)
+
+    CRITICAL: Your final message must contain ONLY this structured verdict.
+    No preamble, no narrative, no explanation of your aggregation process.
+
+    ```
+    VERDICT: YES|WITH_FIXES|NO
+    CRITICAL: <n> IMPORTANT: <n> REVIEWERS: <approved>/<total>
+    REPORT_PERSISTED: YES|NO
+    ```
 ```

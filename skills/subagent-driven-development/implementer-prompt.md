@@ -9,26 +9,23 @@ Task tool:
   run_in_background: true          # for parallelism
   description: "Implement Issue: [issue-id] [issue title]"
   prompt: |
-    You are implementing beads issue: [issue-id]
+    You are implementing beads issue: {issue_id}
 
-    ## Issue Details
+    ## Load Your Context
 
-    [FULL CONTENT from `bd show <issue-id>` - paste it here, don't make subagent run bd]
+    1. Run: `bd show {issue_id}` for full task details (requirements, files, steps)
+    2. Run: `bd show {epic_id} | head -30` for epic goal and Key Decisions
+    3. Run: `bd comments {epic_id} --json` and look for `[WAVE-SUMMARY]` entries to learn conventions from previous waves
 
-    ## Epic Context (Optional)
-
-    [EPIC_GOAL - One sentence describing what the epic achieves]
-
-    **Key Decisions:**
-    [KEY_DECISIONS - 3-5 architectural decisions with rationale from epic description]
-
-    **Why This Task Matters:**
-    [TASK_PURPOSE - How this task contributes to the epic goal]
+    Parse from `bd show {issue_id}`:
+    - The `## Files` section → your allowed file list (if missing, use the `Files You Own` list below)
+    - The `## Implementation Steps` section → your work plan (if missing, infer steps from the issue description)
+    - Dependencies listed → already completed, their outputs are available
 
     ## Files You Own
 
     You are ONLY allowed to modify these files:
-    [List from issue's ## Files section]
+    {file_ownership_list}
 
     **CRITICAL:** DO NOT modify any files outside this list.
     If you discover you need to modify other files, STOP and ask.
@@ -41,33 +38,11 @@ Task tool:
 
     ## Dependencies (Already Complete)
 
-    These issues have been completed. You can use their outputs:
-    [List completed dependency issues, if any]
-
-    ## Established Conventions (from previous waves)
-
-    [WAVE_CONVENTIONS - Patterns and conventions from previous wave summaries]
-
-    If this section is empty, you are establishing conventions. Document your choices clearly in commit messages.
-
-    ## Additional Context
-
-    [ADDITIONAL_CONTEXT - Any scene-setting beyond epic context and wave conventions]
-
-    ## Before You Begin
-
-    If you have questions about:
-    - The requirements or acceptance criteria
-    - The approach or implementation strategy
-    - Why you're limited to certain files
-    - Dependencies or assumptions
-    - Anything unclear in the issue description
-
-    **Ask them now.** Raise any concerns before starting work.
+    {dependency_ids}
 
     ## Your Job
 
-    Once you're clear on requirements:
+    Verify you understand all requirements from `bd show` before starting, then:
     1. Implement exactly what the issue specifies
     2. ONLY modify files in your allowed list
     3. Write tests (following TDD if issue says to)
@@ -77,10 +52,7 @@ Task tool:
     7. Self-review (see below)
     8. Report back
 
-    Work from: [directory]
-
-    **While you work:** If you encounter something unexpected or unclear, **ask questions**.
-    It's always OK to pause and clarify. Don't guess or make assumptions.
+    Work from: {working_directory}
 
     **If you need files outside your allowed list:**
     STOP immediately and ask. Do not modify them. This would conflict with parallel work.
@@ -117,30 +89,66 @@ Task tool:
 
     If you find issues during self-review, fix them now before reporting.
 
-    ## Report Format
+    ## Write Report to Beads
 
-    **CRITICAL: Your final message must contain ONLY this report. No preamble, no narrative, no explanation of your process. Just the structured report below.**
+    After implementation and self-review, persist your full report to beads:
 
-    ### Evidence
-    - **Commit:** [hash from `git rev-parse --short HEAD`]
-    - **Files changed:** [output from `git diff --stat HEAD~1`]
-    - **Test command:** [exact command you ran]
-    - **Test results:** [pass/fail count and exit code]
+    1. Write your full report to a temp file:
+       ```bash
+       cat > temp/{issue_id}-impl.md << 'REPORT'
+       [IMPL-REPORT] {issue_id} wave-{wave_number}
 
-    ### Summary
-    - What you implemented (1-2 sentences)
-    - **Files actually modified** (MUST match allowed list)
-    - Self-review findings (if any)
-    - Rule-of-five passes applied (if artifact >50 lines)
-    - Any issues or concerns
-    - **File scope violations** (if any)
+       ### Evidence
+       - **Commit:** [hash from `git rev-parse --short HEAD`]
+       - **Files changed:** [output from `git diff --stat HEAD~1`]
+       - **Test command:** [exact command you ran]
+       - **Test results:** [pass/fail count and exit code]
 
-    **STOP after reporting.** Do NOT:
+       ### Summary
+       - What you implemented (1-2 sentences)
+       - **Files actually modified** (MUST match allowed list)
+       - Self-review findings (if any)
+       - Rule-of-five passes applied (if artifact >50 lines)
+       - Any issues or concerns
+       - **File scope violations** (if any)
+       REPORT
+       ```
+
+    2. Post to beads:
+       ```bash
+       bd comments add {issue_id} -f temp/{issue_id}-impl.md
+       ```
+
+    3. Verify it was persisted:
+       ```bash
+       bd comments {issue_id} --json | tail -1
+       ```
+
+    4. If `bd comments add` fails, retry up to 3 times with `sleep 2` between attempts.
+
+    ## Verdict (Final Message)
+
+    **CRITICAL: Your final message must contain ONLY this structured verdict. No preamble, no narrative, no explanation of your process.**
+
+    ```
+    VERDICT: PASS|FAIL
+    COMMIT: <hash>
+    FILES: <count> changed (<insertions>+/<deletions>-)
+    TESTS: <pass>/<total> pass, exit <code>
+    SCOPE: CLEAN|VIOLATION
+    REPORT_PERSISTED: YES|NO
+    ```
+
+    - VERDICT: PASS if implementation complete and tests green; FAIL otherwise
+    - SCOPE: CLEAN if only allowed files modified; VIOLATION if others touched
+    - REPORT_PERSISTED: YES if beads comment succeeded; NO if all retries failed
+
+    **STOP after the verdict.** Do NOT:
     - Ask what to do next
     - Offer options (commit, push, merge, etc.)
     - Invoke workflow skills (finishing-a-development-branch, etc.)
     - Suggest follow-up actions
-    The orchestrator manages all workflow decisions. Your only job is to report results.
+    The orchestrator manages all workflow decisions. Your only job is the verdict.
 ```
 
 ## Example Dispatch
@@ -154,32 +162,16 @@ Task tool:
   prompt: |
     You are implementing beads issue: hub-abc.3
 
-    ## Issue Details
+    ## Load Your Context
 
-    Title: Auth Service
-    Status: in_progress
-    Priority: 2
+    1. Run: `bd show hub-abc.3` for full task details
+    2. Run: `bd show hub-abc | head -30` for epic goal and Key Decisions
+    3. Run: `bd comments hub-abc --json` for [WAVE-SUMMARY] entries → conventions
 
-    ## Files
-    - Create: `apps/api/src/services/auth.service.ts`
-    - Modify: `apps/api/src/services/index.ts`
-    - Test: `apps/api/src/__tests__/services/auth.service.test.ts`
-
-    ## Implementation Steps
-    **Step 1: Write the failing test**
-    ```typescript
-    describe('AuthService', () => {
-      it('should validate user credentials', async () => {
-        // ...
-      })
-    })
-    ```
-
-    **Step 2: Run test to verify it fails**
-    Run: `pnpm api:test -- --grep "AuthService"`
-    Expected: FAIL
-
-    ...
+    Parse from `bd show hub-abc.3`:
+    - The `## Files` section → your allowed file list
+    - The `## Implementation Steps` section → your work plan
+    - Dependencies listed → already completed, their outputs are available
 
     ## Files You Own
 
@@ -190,39 +182,18 @@ Task tool:
 
     **CRITICAL:** DO NOT modify any files outside this list.
 
+    **Advisory lock file:** `.claude/file-locks.json` lists all file locks for this wave.
+
     ## Dependencies (Already Complete)
 
-    - hub-abc.1: User Model (apps/api/src/models/user.model.ts exists)
-
-    ## Established Conventions (from previous waves)
-
-    - Using uuid v4 for all entity IDs
-    - camelCase for JSON field names
-    - Async/await over raw promises
-
-    ## Epic Context (Optional)
-
-    Build a complete authentication system for the API.
-
-    **Key Decisions:**
-    - JWT for stateless auth with 24h expiry
-    - Bcrypt for password hashing
-    - Refresh tokens stored in database
-
-    **Why This Task Matters:**
-    Auth service is the core of user authentication. Login endpoint (hub-abc.4) depends on this.
-
-    ## Additional Context
-
-    This is part of the Auth System epic. The User model is complete.
-    This service will be used by the Login endpoint (hub-abc.4).
+    - hub-abc.1: User Model
 
     ...
 
-    **STOP after reporting.** Do NOT:
+    **STOP after the verdict.** Do NOT:
     - Ask what to do next
     - Offer options (commit, push, merge, etc.)
     - Invoke workflow skills (finishing-a-development-branch, etc.)
     - Suggest follow-up actions
-    The orchestrator manages all workflow decisions. Your only job is to report results.
+    The orchestrator manages all workflow decisions. Your only job is the verdict.
 ```

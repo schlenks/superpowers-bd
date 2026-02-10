@@ -11,48 +11,9 @@ Verification tasks (like Rule-of-Five, Code Review, Plan Verification) are proce
 3. **Same review flow** - All tasks still go through spec compliance then code quality review
 4. **Specific acceptance criteria** - The spec reviewer verifies the verification was actually performed, not just claimed
 
-**Example: Rule-of-Five verification task**
+**Example:** A verification task (e.g., `superpowers-xyz.5`) depends on impl tasks 1-4. When all close, it appears in `bd ready`. The agent executing the verification task applies Rule-of-Five passes to all >50 line artifacts. The spec reviewer verifies each artifact was reviewed, confirms 5 passes were applied (not just claimed), and checks improvements were substantive. Then code review → `bd close`.
 
-```
-Task superpowers-xyz.5 (Rule-of-Five verification)
-  Dependencies: [superpowers-xyz.1, superpowers-xyz.2, superpowers-xyz.3, superpowers-xyz.4]
-  Files: [docs/plans/implementation-plan.md]
-  Acceptance: Apply 5-pass review to all artifacts >50 lines created in tasks 1-4
-```
-
-**Dispatch flow:**
-```
-[Tasks 1-4 all closed]
-[bd ready now shows superpowers-xyz.5]
-
-[bd update superpowers-xyz.5 --status=in_progress]
-[Dispatch implementer for superpowers-xyz.5]
-
-Implementer:
-  - Reviews artifacts from tasks 1-4
-  - Applies Rule-of-Five passes
-  - Documents changes made in each pass
-  - Committed
-
-[Dispatch spec reviewer]
-Spec reviewer:
-  - Verifies each required artifact was reviewed
-  - Confirms 5 passes were applied (not just claimed)
-  - Checks that improvements were substantive
-  ✅ Passes
-
-[Dispatch code quality reviewer]
-Code reviewer: ✅ Approved
-
-[bd close superpowers-xyz.5]
-```
-
-**Why no special handling?** Verification tasks have:
-- Clear acceptance criteria (verifiable by spec reviewer)
-- Defined file scope (what to review)
-- Dependencies (run after implementation completes)
-
-This means the existing dispatch → review → close flow works unchanged.
+The existing dispatch → review → close flow works unchanged for verification tasks.
 
 ## Verification Gap Closure
 
@@ -99,34 +60,41 @@ Code review passes → Create verification task (attempt 1) → Run verification
 
 ## Evidence Extraction Before Close
 
-After verification passes but before `bd close`, capture structured evidence for audit trail:
+After verification passes but before `bd close`, extract evidence from the implementer's structured verdict. Full reports are in beads comments — the orchestrator only needs the verdict fields.
 
 ```python
-on_verification_pass(task_id, implementer_result):
-    # 1. Parse ### Evidence section from implementer's report
-    evidence = parse_evidence_section(implementer_result)
+on_verification_pass(task_id, implementer_verdict):
+    # 1. Extract evidence from verdict fields (not full report)
+    evidence = {
+        "commit": implementer_verdict.COMMIT,      # e.g., "a7e2d4f"
+        "files": implementer_verdict.FILES,         # e.g., "3 changed (120+/15-)"
+        "tests": implementer_verdict.TESTS,         # e.g., "12/12 pass, exit 0"
+        "scope": implementer_verdict.SCOPE,         # CLEAN or VIOLATION
+    }
 
-    # 2. Fallback: run git commands directly if report is malformed
-    if not evidence.commit:
-        evidence.commit = run("git rev-parse --short HEAD")
-    if not evidence.files:
-        evidence.files = run("git diff --stat")
+    # 2. Fallback: run git commands directly if verdict is malformed
+    if not evidence["commit"]:
+        evidence["commit"] = run("git rev-parse --short HEAD")
+    if not evidence["files"]:
+        evidence["files"] = run("git diff --stat")
 
     # 3. Create native "Close evidence" task → triggers TaskCompleted hook (interactive mode)
     evidence_task = TaskCreate(
         subject=f"Close evidence: {task_id}",
-        description=f"Commit: {evidence.commit}\n"
-                    f"Files changed: {evidence.files}\n"
-                    f"Test results: {evidence.test_results}",
+        description=f"Commit: {evidence['commit']}\n"
+                    f"Files changed: {evidence['files']}\n"
+                    f"Test results: {evidence['tests']}",
         activeForm=f"Recording evidence for {task_id}"
     )
     TaskUpdate(taskId=evidence_task.id, status="completed")
 
     # 4. Close with evidence in reason for beads audit trail
-    bd_close(task_id, reason=f"Commit: {evidence.commit} | Files: {evidence.files} | Tests: {evidence.test_results}")
+    bd_close(task_id, reason=f"Commit: {evidence['commit']} | Files: {evidence['files']} | Tests: {evidence['tests']}")
 ```
 
 **Why two layers:**
 - **Native task** (step 3) — triggers TaskCompleted hook in interactive mode, which blocks if evidence is missing
 - **bd close --reason** (step 4) — persists evidence in beads for cross-session audit trail
-- **Prompt-based** — implementer report template ensures evidence is generated in all modes (including headless)
+- **Verdict-based** — implementer verdict provides structured fields; full report lives in beads comments for audit
+
+**Full reports in beads:** If the orchestrator needs to drill into details (e.g., investigating a failure), it can read the full report: `bd comments <issue-id> --json` and look for `[IMPL-REPORT]` tagged entries.

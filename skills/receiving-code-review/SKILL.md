@@ -28,39 +28,19 @@ WHEN receiving code review feedback:
 
 **When receiving code review feedback, create native tasks for each step:**
 
-```
-TaskCreate: "READ: Complete feedback without reacting"
-  description: "Read all feedback items completely before doing anything else."
-  activeForm: "Reading feedback"
+1. **"READ: Complete feedback without reacting"** — Read all items completely before doing anything else.
+2. **"UNDERSTAND: Restate requirements"** — Restate each requirement in own words. Ask if unclear. `addBlockedBy: [read-task-id]`
+3. **"VERIFY: Check against codebase"** — Check suggestions against codebase reality. Does current code exist for a reason? `addBlockedBy: [understand-task-id]`
+4. **"EVALUATE: Technical soundness"** — Technically sound for THIS codebase? Violates YAGNI? Conflicts with architecture? `addBlockedBy: [verify-task-id]`
+5. **"IMPLEMENT: Apply changes"** — One item at a time. Test each change. Verify no regressions. `addBlockedBy: [evaluate-task-id]`
 
-TaskCreate: "UNDERSTAND: Restate requirements"
-  description: "For each item, restate the requirement in your own words. Ask for clarification on unclear items."
-  activeForm: "Understanding feedback"
-  addBlockedBy: [read-task-id]
-
-TaskCreate: "VERIFY: Check against codebase"
-  description: "Check each suggestion against codebase reality. Does current code exist for a reason? Will change break anything?"
-  activeForm: "Verifying against codebase"
-  addBlockedBy: [understand-task-id]
-
-TaskCreate: "EVALUATE: Technical soundness"
-  description: "Is each suggestion technically sound for THIS codebase? Does it violate YAGNI? Conflict with architecture?"
-  activeForm: "Evaluating suggestions"
-  addBlockedBy: [verify-task-id]
-
-TaskCreate: "IMPLEMENT: Apply changes"
-  description: "Implement one item at a time. Test each change. Verify no regressions."
-  activeForm: "Implementing changes"
-  addBlockedBy: [evaluate-task-id]
-```
+See `references/task-enforcement-blocks.md` for full TaskCreate blocks with descriptions.
 
 **ENFORCEMENT:**
 - VERIFY step CANNOT be skipped - it's explicitly blocked until UNDERSTAND completes
 - IMPLEMENT is blocked until EVALUATE completes - no blind implementation
 - If you jump to IMPLEMENT without completing prior steps, TaskList exposes it
 - Mark each task complete only when genuinely done
-
-**This prevents the common failure mode: skipping VERIFY and blindly implementing feedback.**
 
 ## Forbidden Responses
 
@@ -85,14 +65,7 @@ IF any item is unclear:
 WHY: Items may be related. Partial understanding = wrong implementation.
 ```
 
-**Example:**
-```
-your human partner: "Fix 1-6"
-You understand 1,2,3,6. Unclear on 4,5.
-
-❌ WRONG: Implement 1,2,3,6 now, ask about 4,5 later
-✅ RIGHT: "I understand items 1,2,3,6. Need clarification on 4 and 5 before proceeding."
-```
+**Example:** "Fix 1-6" but you understand 1,2,3,6, unclear on 4,5. Do NOT implement 1,2,3,6 now. Ask about 4,5 first.
 
 ## Source-Specific Handling
 
@@ -103,102 +76,20 @@ You understand 1,2,3,6. Unclear on 4,5.
 - **Skip to action** or technical acknowledgment
 
 ### From External Reviewers
-```
-BEFORE implementing:
-  1. Check: Technically correct for THIS codebase?
-  2. Check: Breaks existing functionality?
-  3. Check: Reason for current implementation?
-  4. Check: Works on all platforms/versions?
-  5. Check: Does reviewer understand full context?
 
-IF suggestion seems wrong:
-  Push back with technical reasoning
+Before implementing, run 5 checks: technically correct for THIS codebase? Breaks existing functionality? Reason for current implementation? Works on all platforms/versions? Does reviewer understand full context?
 
-IF can't easily verify:
-  Say so: "I can't verify this without [X]. Should I [investigate/ask/proceed]?"
-
-IF conflicts with your human partner's prior decisions:
-  Stop and discuss with your human partner first
-```
+If suggestion seems wrong: push back with technical reasoning. If can't verify: say so. If conflicts with your human partner's prior decisions: stop and discuss with your human partner first. See `references/external-reviewer-protocol.md` for full protocol, YAGNI check, and implementation order.
 
 **your human partner's rule:** "External feedback - be skeptical, but check carefully"
 
-## YAGNI Check for "Professional" Features
-
-```
-IF reviewer suggests "implementing properly":
-  grep codebase for actual usage
-
-  IF unused: "This endpoint isn't called. Remove it (YAGNI)?"
-  IF used: Then implement properly
-```
-
-**your human partner's rule:** "You and reviewer both report to me. If we don't need this feature, don't add it."
-
-## Implementation Order
-
-```
-FOR multi-item feedback:
-  1. Clarify anything unclear FIRST
-  2. Then implement in this order:
-     - Blocking issues (breaks, security)
-     - Simple fixes (typos, imports)
-     - Complex fixes (refactoring, logic)
-  3. Test each fix individually
-  4. Verify no regressions
-  5. Simplify as you go: reduce nesting, eliminate redundant wrappers, prefer explicit over compact
-```
-
 ## When To Push Back
 
-Push back when:
-- Suggestion breaks existing functionality
-- Reviewer lacks full context
-- Violates YAGNI (unused feature)
-- Technically incorrect for this stack
-- Legacy/compatibility reasons exist
-- Conflicts with your human partner's architectural decisions
+Push back when: breaks existing functionality, reviewer lacks context, violates YAGNI, technically incorrect, legacy/compatibility reasons, or conflicts with your human partner's architectural decisions.
 
-**How to push back:**
-- Use technical reasoning, not defensiveness
-- Ask specific questions
-- Reference working tests/code
-- Involve your human partner if architectural
+**How:** Technical reasoning, specific questions, reference working tests/code. See `references/pushback-guide.md` for detailed guidance and graceful correction patterns.
 
 **Signal if uncomfortable pushing back out loud:** "Strange things are afoot at the Circle K"
-
-## Acknowledging Correct Feedback
-
-When feedback IS correct:
-```
-✅ "Fixed. [Brief description of what changed]"
-✅ "Good catch - [specific issue]. Fixed in [location]."
-✅ [Just fix it and show in the code]
-
-❌ "You're absolutely right!"
-❌ "Great point!"
-❌ "Thanks for catching that!"
-❌ "Thanks for [anything]"
-❌ ANY gratitude expression
-```
-
-**Why no thanks:** Actions speak. Just fix it. The code itself shows you heard the feedback.
-
-**If you catch yourself about to write "Thanks":** DELETE IT. State the fix instead.
-
-## Gracefully Correcting Your Pushback
-
-If you pushed back and were wrong:
-```
-✅ "You were right - I checked [X] and it does [Y]. Implementing now."
-✅ "Verified this and you're correct. My initial understanding was wrong because [reason]. Fixing."
-
-❌ Long apology
-❌ Defending why you pushed back
-❌ Over-explaining
-```
-
-State the correction factually and move on.
 
 ## Common Mistakes
 
@@ -212,37 +103,6 @@ State the correction factually and move on.
 | Partial implementation | Clarify all items first |
 | Can't verify, proceed anyway | State limitation, ask for direction |
 
-## Real Examples
-
-**Performative Agreement (Bad):**
-```
-Reviewer: "Remove legacy code"
-❌ "You're absolutely right! Let me remove that..."
-```
-
-**Technical Verification (Good):**
-```
-Reviewer: "Remove legacy code"
-✅ "Checking... build target is 10.15+, this API needs 13+. Need legacy for backward compat. Current impl has wrong bundle ID - fix it or drop pre-13 support?"
-```
-
-**YAGNI (Good):**
-```
-Reviewer: "Implement proper metrics tracking with database, date filters, CSV export"
-✅ "Grepped codebase - nothing calls this endpoint. Remove it (YAGNI)? Or is there usage I'm missing?"
-```
-
-**Unclear Item (Good):**
-```
-your human partner: "Fix items 1-6"
-You understand 1,2,3,6. Unclear on 4,5.
-✅ "Understand 1,2,3,6. Need clarification on 4 and 5 before implementing."
-```
-
-## GitHub Thread Replies
-
-When replying to inline review comments on GitHub, reply in the comment thread (`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies`), not as a top-level PR comment.
-
 ## The Bottom Line
 
 **External feedback = suggestions to evaluate, not orders to follow.**
@@ -250,3 +110,13 @@ When replying to inline review comments on GitHub, reply in the comment thread (
 Verify. Question. Then implement.
 
 No performative agreement. Technical rigor always.
+
+## Reference Files
+
+| File | When to read |
+|------|-------------|
+| `references/task-enforcement-blocks.md` | Full TaskCreate blocks with descriptions and activeForm fields |
+| `references/external-reviewer-protocol.md` | Full 5-check protocol, YAGNI check, implementation order |
+| `references/pushback-guide.md` | When/how to push back, gracefully correcting pushback |
+| `references/acknowledgment-and-responses.md` | Correct feedback acknowledgment patterns, GitHub thread replies |
+| `references/real-examples.md` | Full examples: performative, technical verification, YAGNI, unclear item |

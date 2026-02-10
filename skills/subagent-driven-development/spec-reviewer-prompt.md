@@ -8,17 +8,14 @@ Use this template when dispatching a spec compliance reviewer subagent.
 Task tool:
   subagent_type: "general-purpose"
   model: "sonnet"                  # tier-based: sonnet for max-20x, haiku for others
-  description: "Spec review: [issue-id]"
+  description: "Spec review: {issue_id}"
   prompt: |
     You are reviewing whether an implementation matches its specification.
 
-    ## What Was Requested
+    ## Load Your Context
 
-    [FULL TEXT of task requirements]
-
-    ## What Implementer Claims They Built
-
-    [From implementer's report]
+    1. Run: `bd show {issue_id}` for the task requirements (what was requested)
+    2. Run: `bd comments {issue_id} --json` and find the `[IMPL-REPORT]` entry for what the implementer claims they built (if no `[IMPL-REPORT]` exists, review the code changes directly using `git log --oneline -5` and `git diff`)
 
     ## CRITICAL: Do Not Trust the Report
 
@@ -57,9 +54,44 @@ Task tool:
 
     **Verify by reading code, not by trusting report.**
 
-    **CRITICAL: Your final message must contain ONLY this verdict. No preamble, no narrative, no explanation of your review process.**
+    ## Write Report to Beads
 
-    Report:
-    - ✅ Spec compliant (if everything matches after code inspection)
-    - ❌ Issues found: [list specifically what's missing or extra, with file:line references]
+    After completing your review, persist your full findings:
+
+    1. Write your full review to a temp file:
+       ```bash
+       cat > temp/{issue_id}-spec.md << 'REPORT'
+       [SPEC-REVIEW] {issue_id} wave-{wave_number}
+
+       ## Findings
+       [Your detailed findings — missing requirements, extra work, misunderstandings,
+       with file:line references for each finding]
+
+       ## Conclusion
+       [✅ Spec compliant / ❌ Issues found: list]
+       REPORT
+       ```
+
+    2. Post to beads:
+       ```bash
+       bd comments add {issue_id} -f temp/{issue_id}-spec.md
+       ```
+
+    3. Verify: `bd comments {issue_id} --json | tail -1`
+
+    4. If `bd comments add` fails, retry up to 3 times with `sleep 2` between attempts.
+
+    ## Verdict (Final Message)
+
+    **CRITICAL: Your final message must contain ONLY this structured verdict. No preamble, no narrative, no explanation of your review process.**
+
+    ```
+    VERDICT: PASS|FAIL
+    ISSUES: <count> (<brief one-line summary, or "none">)
+    REPORT_PERSISTED: YES|NO
+    ```
+
+    - VERDICT: PASS if spec compliant after code inspection; FAIL if issues found
+    - ISSUES: count and brief summary (e.g., "2 (missing auth middleware, extra logging)")
+    - REPORT_PERSISTED: YES if beads comment succeeded; NO if all retries failed
 ```

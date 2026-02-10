@@ -1,6 +1,6 @@
 ---
 name: multi-review-aggregation
-description: Use when dispatching code reviews for tiers with N>1 (max-20x, max-5x) in subagent-driven development, or manually for critical changes >200 lines or security-sensitive code
+description: Use when dispatching code reviews for tiers with N greater than 1 (max-20x, max-5x) in subagent-driven development, or manually for critical changes over 200 lines or security-sensitive code
 ---
 
 # Multi-Review Aggregation
@@ -23,63 +23,31 @@ When N=1, skip this skill entirely — use standard single code review dispatch.
 
 ## Parallel Dispatch Pattern
 
-After spec review passes, dispatch N independent code reviews:
+After spec review passes, dispatch N independent code reviews in parallel:
 
 ```python
-on_spec_review_pass(issue_id, result):
-    n_reviews = tier_n_reviews  # 3 for max-20x/max-5x, 1 for pro/api
+if n_reviews > 1:
+    # Dispatch N reviewers (run_in_background=True, each gets "Reviewer i of N")
+    results = wait_for_all(reviewer_tasks)
 
-    if n_reviews > 1:
-        reviewer_tasks = []
-        for i in range(n_reviews):
-            task = Task(
-                subagent_type="general-purpose",
-                model=tier_code_model,
-                run_in_background=True,
-                description=f"Code review {i+1}/{n_reviews}: {issue_id}",
-                prompt=code_reviewer_prompt + f"\nYou are Reviewer {i+1} of {n_reviews}. "
-                    "Review independently — do not reference other reviewers."
-            )
-            reviewer_tasks.append(task)
-
-        # Poll until all N complete
-        results = wait_for_all(reviewer_tasks)
-
-        # Check fast path
-        if all_approve_no_issues(results):
-            # Skip aggregation — unanimous clean approval
-            record_metrics(results, role="code")
-            proceed_to_close(issue_id)
-        else:
-            # Dispatch aggregator
-            dispatch_aggregator(results, issue_id)
+    if all_approve_no_issues(results):   # Fast path — unanimous clean
+        proceed_to_close(issue_id)
     else:
-        # Single review (pro/api) — unchanged
-        dispatch_single_code_review(issue_id)
+        dispatch_aggregator(results, issue_id)  # Uses haiku model
+else:
+    dispatch_single_code_review(issue_id)  # pro/api unchanged
 ```
+
+Full dispatch code with `on_spec_review_pass` handler: see `references/dispatch-code.md`.
+Aggregator prompt template: see `./aggregator-prompt.md`.
 
 ## Aggregation Algorithm
 
 ### Fast Path
 
-If ALL N reviewers report:
-- "Ready to merge: Yes"
-- Zero Critical issues
-- Zero Important issues
+If ALL N reviewers return `VERDICT: APPROVE` with `CRITICAL: 0` and `IMPORTANT: 0`, skip aggregation. The unanimous clean result IS the review output.
 
-Then skip the aggregation step. The unanimous clean result IS the review output.
-
-### Full Aggregation (When Needed)
-
-When any reviewer raises Critical/Important issues or disagrees on merge readiness:
-
-**1. Deduplication**
-Two findings are the same if they reference:
-- Same file AND
-- Lines within 5 of each other AND
-- Same category of issue (e.g., both about error handling)
-
-**2. Severity Voting**
+### Severity Voting (When Any Reviewer Raises Issues)
 
 | Condition | Result |
 |-----------|--------|
@@ -90,45 +58,15 @@ Two findings are the same if they reference:
 
 Severity levels: Critical > Important > Minor > Suggestion
 
-Lone-finding downgrade: Critical → Important, Important → Minor, Minor → Suggestion. Suggestion is the floor — lone Suggestions stay at Suggestion.
+### Verdict
 
-**3. Strengths**
-Union all strengths across reviewers. Deduplicate by meaning (same point in different words → keep the clearer one).
+- "Ready to merge: Yes" — zero Critical AND zero Important AND majority approved
+- "Ready to merge: With fixes" — only Minor/Suggestion issues after aggregation
+- "Ready to merge: No" — any Critical or Important issues remain
 
-**4. Verdict**
-- "Ready to merge: Yes" — only if zero Critical AND zero Important AND majority of reviewers approved
-- "Ready to merge: With fixes" — if only Minor/Suggestion issues remain after aggregation
-- "Ready to merge: No" — if any Critical or Important issues remain
-
-### Aggregator Dispatch
-
-```python
-dispatch_aggregator(reviewer_results, task_id):
-    combined_output = "\n---\n".join([
-        f"## Reviewer {i+1} Output\n{result.output}"
-        for i, result in enumerate(reviewer_results)
-    ])
-
-    aggregator = Task(
-        subagent_type="general-purpose",
-        model="haiku",  # Synthesis task, not deep analysis
-        description=f"Aggregate reviews: {task_id}",
-        prompt=aggregator_prompt.format(
-            n_reviews=len(reviewer_results),
-            reviewer_outputs=combined_output
-        )
-    )
-```
-
-Use the aggregator prompt template at `./aggregator-prompt.md`.
-
-**Malformed reviewer output:** If a reviewer returns output that can't be parsed (no severity categories, no verdict), treat all its findings as Important and its verdict as "No". The aggregator should still process what it can extract.
-
-**Reviewer timeout/crash:** If one reviewer fails and the others succeed, aggregate with the available results (N-1). The lone-finding threshold adjusts to the actual number of successful reviews. If <2 reviewers succeed, fall back to the single successful review or retry per SDD's "Reviewer Agent Failure" recovery.
+Full deduplication rules, strengths merging, error handling: see `references/aggregation-details.md`.
 
 ## Output Format
-
-The aggregated report follows the same structure as a single code review, with provenance annotations:
 
 ```
 ## Strengths
@@ -155,46 +93,11 @@ Ready to merge: With fixes
 Reviewers: 2/3 approved, 1 requested changes
 ```
 
-**Provenance rules:**
-- `[Reviewers: 1, 2]` — found by multiple reviewers (no downgrade)
-- `[Reviewer: 2, downgraded from Important]` — lone finding, shows original severity
-- `[Reviewer: 1, security]` — lone finding, NOT downgraded (security/data-loss exemption)
-
-## Metrics
-
-Multi-review adds these metric keys:
-
-```python
-# Individual reviewers
-task_metrics[f"{issue_id}.code.1"] = {...}  # Reviewer 1
-task_metrics[f"{issue_id}.code.2"] = {...}  # Reviewer 2
-task_metrics[f"{issue_id}.code.3"] = {...}  # Reviewer 3
-
-# Aggregation step (if not fast-pathed)
-task_metrics[f"{issue_id}.agg"] = {...}
-```
-
-## Cost Impact
-
-| Component | Single (N=1) | Multi (N=3) |
-|-----------|-------------|-------------|
-| Spec review | 12k tok | 12k tok |
-| Code review(s) | 18k tok | 54k tok |
-| Aggregation | 0 | ~8k tok (when needed) |
-| **Review total** | **~30k tok** | **~62-74k tok** |
-| **Per-task cost** | **~$0.27** | **~$0.56-0.67** |
-
-Pro/api tier unaffected (N=1). Fast path (all agree, no issues) skips aggregation (~62k instead of ~74k).
+Full provenance rules and format spec: see `references/output-provenance.md`.
 
 ## Integration
 
-**Subagent-Driven Development:** Automatically used in the REVIEW state for tiers with N>1. The SDD orchestrator dispatches N reviews, waits for all, then aggregates (or fast-paths).
-
-**Manual use:** For critical changes outside SDD, dispatch N=3 reviews manually following the parallel dispatch pattern above. Useful for:
-- Changes >200 lines
-- Security-sensitive code
-- Pre-merge to main
-- Complex refactoring
+SDD uses this automatically in REVIEW state for tiers with N>1. For manual use on critical changes (>200 lines, security-sensitive, pre-merge to main), dispatch N=3 reviews following the parallel dispatch pattern above.
 
 ## Red Flags
 
@@ -209,3 +112,13 @@ Pro/api tier unaffected (N=1). Fast path (all agree, no issues) skips aggregatio
 - Include reviewer number in each dispatch prompt
 - Use haiku for aggregation (synthesis, not analysis)
 - Record per-reviewer metrics separately
+
+## Reference Files
+
+| File | When to read |
+|------|-------------|
+| `references/dispatch-code.md` | Implementing the full dispatch flow with on_spec_review_pass handler |
+| `references/aggregation-details.md` | Deduplication rules, strengths merging, malformed output, timeout recovery |
+| `references/output-provenance.md` | Provenance annotation rules and full output format specification |
+| `references/metrics-and-cost.md` | Per-reviewer metric keys, cost impact table, per-tier breakdown |
+| `aggregator-prompt.md` | Aggregator Task dispatch prompt template (used by dispatch code) |

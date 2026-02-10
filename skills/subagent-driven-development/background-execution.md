@@ -24,53 +24,60 @@ for issue in parallelizable:
 
 ## Monitor Phase
 
+Sub-agents persist full reports to beads comments. Only structured verdicts flow through TaskOutput.
+
 ```python
 while task_ids:
     for task_id in list(task_ids):
         result = TaskOutput(task_id, block=False, timeout=5000)
         if result.status == "completed":
-            # Capture metrics from <usage> block (default 0 if missing)
-            # On retry: add to existing entry, don't overwrite (see metrics-tracking.md)
-            key = f"{issue_id}.impl"
-            new_metrics = {
-                "total_tokens": getattr(result.usage, "total_tokens", 0),
-                "tool_uses": getattr(result.usage, "tool_uses", 0),
-                "duration_ms": getattr(result.usage, "duration_ms", 0)
-            }
-            if key in task_metrics:  # retry — accumulate
-                for field in new_metrics:
-                    task_metrics[key][field] += new_metrics[field]
+            # Parse structured verdict (5-6 lines, not full report)
+            verdict = parse_verdict(result.output)
+            # Expected fields: VERDICT, COMMIT, FILES, TESTS, SCOPE, REPORT_PERSISTED
+
+            # Capture metrics per metrics-tracking.md keying scheme (accumulate on retry, don't overwrite)
+
+            # Fallback: if REPORT_PERSISTED: NO, re-dispatch for full report
+            if verdict.report_persisted == "NO":
+                dispatch_full_report_fallback(task_id, issue_id)
             else:
-                task_metrics[key] = new_metrics
-            dispatch_review(task_id, result)
+                dispatch_review(task_id, verdict)
             task_ids.remove(task_id)
 
     # Also check review completions
     for review_id in list(pending_reviews):
         result = TaskOutput(review_id, block=False)
         if result.status == "completed":
-            # Capture review metrics (role = "spec" or "code")
-            # On retry: accumulate, don't overwrite
-            key = f"{issue_id}.{review_role}"
-            new_metrics = {
-                "total_tokens": getattr(result.usage, "total_tokens", 0),
-                "tool_uses": getattr(result.usage, "tool_uses", 0),
-                "duration_ms": getattr(result.usage, "duration_ms", 0)
-            }
-            if key in task_metrics:
-                for field in new_metrics:
-                    task_metrics[key][field] += new_metrics[field]
+            # Parse structured verdict (2-3 lines)
+            verdict = parse_verdict(result.output)
+
+            # Capture metrics per metrics-tracking.md keying scheme (accumulate on retry, don't overwrite)
+
+            # Fallback: if REPORT_PERSISTED: NO, re-dispatch for full report
+            if verdict.report_persisted == "NO":
+                dispatch_full_report_fallback(review_id, issue_id)
             else:
-                task_metrics[key] = new_metrics
-            process_review(review_id, result)
+                process_review(review_id, verdict)
 ```
 
-## Benefits
+## REPORT_PERSISTED Fallback
 
-- **True parallelism** - Tasks execute simultaneously, not just dispatched concurrently
-- **Simultaneous monitoring** - Can poll multiple tasks without blocking on any single one
-- **Immediate review dispatch** - Start reviews as soon as implementations complete, even while other implementations are running
-- **Better throughput** - Wave N+1 reviews can overlap with Wave N implementations completing
+If a sub-agent returns `REPORT_PERSISTED: NO`, the full report was not saved to beads. The orchestrator re-dispatches a lightweight agent to retrieve it:
+
+```python
+def dispatch_full_report_fallback(task_id, issue_id):
+    # One-time context cost — only triggers on bd write failure
+    fallback = Task(
+        subagent_type="general-purpose",
+        model="haiku",
+        description=f"Retrieve report: {issue_id}",
+        prompt=f"The previous agent for {issue_id} failed to persist its report. "
+               f"Run: bd comments {issue_id} --json | tail -1 "
+               f"If the report is missing, report MISSING. Otherwise return the report."
+    )
+    # If still missing, orchestrator falls back to old pattern:
+    # re-dispatch the original agent asking for full report via TaskOutput
+```
 
 ## Review Pipeline Parallelism
 
@@ -123,7 +130,13 @@ on_spec_review_pass(task_id, result):
                 model=tier_code_model,
                 run_in_background=True,
                 description=f"Code review {i+1}/{n_reviews}: {task_id}",
-                prompt=code_reviewer_prompt + f"\nYou are Reviewer {i+1} of {n_reviews}. "
+                prompt=code_reviewer_prompt.format(
+                    code_reviewer_path=code_reviewer_path,
+                    issue_id=issue_id,
+                    base_sha=base_sha,
+                    head_sha=head_sha,
+                    wave_number=wave_n
+                ) + f"\nYou are Reviewer {i+1} of {n_reviews}. "
                     "Review independently — do not reference other reviewers."
             )
             reviewer_tasks.append(code_task)
@@ -138,7 +151,13 @@ on_spec_review_pass(task_id, result):
             subagent_type="general-purpose",
             model=tier_code_model,
             run_in_background=True,
-            prompt=code_reviewer_prompt,  # from ./code-quality-reviewer-prompt.md
+            prompt=code_reviewer_prompt.format(
+                code_reviewer_path=code_reviewer_path,
+                issue_id=issue_id,
+                base_sha=base_sha,
+                head_sha=head_sha,
+                wave_number=wave_n
+            ),  # from ./code-quality-reviewer-prompt.md — sub-agent self-reads methodology
             ...
         )
         pending_code_reviews.add(code_task)
