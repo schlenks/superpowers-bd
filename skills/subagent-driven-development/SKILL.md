@@ -521,6 +521,12 @@ on_implementer_complete(task_id, result):
 on_spec_review_pass(task_id, result):
     n_reviews = tier_n_reviews  # 3 for max-20x/max-5x, 1 for pro/api
 
+    # Trivial change override: skip multi-review for tiny diffs
+    diff_stat = run(f"git diff --stat {base_sha}..{head_sha}")
+    diff_lines = parse_insertions_plus_deletions(diff_stat)
+    if diff_lines <= 10 and n_reviews > 1:
+        n_reviews = 1  # Single reviewer sufficient for trivial changes
+
     if n_reviews > 1:
         # Dispatch N independent code reviews in parallel
         # See superpowers:multi-review-aggregation for full algorithm

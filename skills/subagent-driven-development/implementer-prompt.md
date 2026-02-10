@@ -119,7 +119,7 @@ Task tool:
 
     ## Report Format
 
-    When done, report using this EXACT structure:
+    **CRITICAL: Your final message must contain ONLY this report. No preamble, no narrative, no explanation of your process. Just the structured report below.**
 
     ### Evidence
     - **Commit:** [hash from `git rev-parse --short HEAD`]
@@ -128,7 +128,7 @@ Task tool:
     - **Test results:** [pass/fail count and exit code]
 
     ### Summary
-    - What you implemented
+    - What you implemented (1-2 sentences)
     - **Files actually modified** (MUST match allowed list)
     - Self-review findings (if any)
     - Rule-of-five passes applied (if artifact >50 lines)

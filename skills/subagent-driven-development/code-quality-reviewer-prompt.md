@@ -29,4 +29,6 @@ Task tool:
 
 **Code reviewer returns:** Changed Files Manifest, Requirement Mapping, Uncovered Paths, Not Checked, Findings (Critical/Important/Minor/Suggestion), Assessment (Ready to merge: Yes/No/With fixes)
 
+**Concise output:** Append to the prompt: "CRITICAL: Your final message must contain ONLY the structured review report. No preamble, no narrative, no explanation of your review process."
+
 **Multi-review mode (N>1):** For tiers with multi-review (max-20x, max-5x), each reviewer is dispatched independently with this same template plus a reviewer number suffix. Reviews are aggregated afterward. See `superpowers:multi-review-aggregation` for the full algorithm.

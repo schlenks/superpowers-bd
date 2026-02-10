@@ -57,6 +57,8 @@ Task tool:
 
     **Verify by reading code, not by trusting report.**
 
+    **CRITICAL: Your final message must contain ONLY this verdict. No preamble, no narrative, no explanation of your review process.**
+
     Report:
     - ✅ Spec compliant (if everything matches after code inspection)
     - ❌ Issues found: [list specifically what's missing or extra, with file:line references]
