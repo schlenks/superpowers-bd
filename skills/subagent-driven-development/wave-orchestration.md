@@ -9,8 +9,8 @@ conflict_task = TaskCreate(
     activeForm="Checking file conflicts"
 )
 
-# After conflict check, write advisory lock file
-write_file_locks(epic_id, wave_n, parallelizable)  # .claude/file-locks.json
+# After conflict check, build wave file map for {wave_file_map} template slot
+wave_file_map = build_wave_file_map(parallelizable)  # markdown table serialized into each prompt
 
 wave_task = TaskCreate(
     subject="Wave 1: hub-abc.1, hub-abc.2",

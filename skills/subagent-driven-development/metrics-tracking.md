@@ -144,9 +144,3 @@ json.dump(existing, open(metrics_path, "w"), indent=2)
 At epic completion, read `temp/metrics-{epic_id}.json` back for the full report.
 
 Reference post-hoc analysis: The blended $9/M rate is an estimate. For precise input vs output token costs, run `analyze-token-usage.py` on the session JSONL after completion.
-
-Cleanup file-locks.json:
-```bash
-rm -f .claude/file-locks.json
-```
-Advisory locks removed — no agents active.

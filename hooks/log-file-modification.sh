@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # PostToolUse audit logger for Write|Edit tool calls.
 # Reads hook JSON from stdin, extracts tool_name and file_path,
-# appends to $CLAUDE_PROJECT_DIR/.claude/file-modifications.log.
+# appends to $CLAUDE_PROJECT_DIR/temp/file-modifications.log.
 # Always exits 0 (never blocks the agent).
 #
 # Workaround context: This hook is defined in agent frontmatter.
@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-log_dir="${CLAUDE_PROJECT_DIR:-.}/.claude"
+log_dir="${CLAUDE_PROJECT_DIR:-.}/temp"
 log_file="$log_dir/file-modifications.log"
 
 # Read stdin (hook provides JSON with tool_name, tool_input, etc.)
@@ -25,7 +25,8 @@ else
   file_path="unknown"
 fi
 
-mkdir -p "$log_dir"
+# temp/ directory should already exist; create only if missing (e.g. fresh clone)
+[[ -d "$log_dir" ]] || mkdir -p "$log_dir"
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) ${tool_name} ${file_path}" >> "$log_file"
 
 exit 0

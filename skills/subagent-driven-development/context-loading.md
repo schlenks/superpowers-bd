@@ -29,6 +29,7 @@ These fields stay in the dispatch prompt (small, safety-critical):
 | `{issue_id}` | Sub-agent needs to know which issue to `bd show` | 1 line |
 | `{epic_id}` | Sub-agent needs to know which epic for context | 1 line |
 | `{file_ownership_list}` | Must be immediately visible for scope guard | 3-10 lines |
+| `{wave_file_map}` | Shows all agents' file assignments for conflict awareness | 5-15 lines |
 | `{dependency_ids}` | Tells sub-agent which issues are already done | 1-3 lines |
 | `{base_sha}`, `{head_sha}` | Reviewers need these for diff (not in beads) | 2 lines |
 | `{code_reviewer_path}` | Code reviewers read methodology from disk (119 lines not in prompt) | 1 line |

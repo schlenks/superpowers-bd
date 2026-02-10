@@ -28,13 +28,14 @@ Task tool:
     {file_ownership_list}
 
     **CRITICAL:** DO NOT modify any files outside this list.
-    If you discover you need to modify other files, STOP and ask.
+    If you discover you need to modify other files, STOP and report the conflict.
     This constraint enables safe parallel execution with other subagents.
 
-    **Advisory lock file:** `.claude/file-locks.json` lists all file locks for this wave.
-    If you discover you need a file not in your list, check `.claude/file-locks.json` to see
-    if another agent owns it. If locked, STOP and report the conflicting file and its owner.
-    Do NOT read this file routinely — only consult it when you encounter an unexpected file need.
+    ## Wave File Map (All Agents This Wave)
+
+    {wave_file_map}
+
+    If you need a file owned by another agent, STOP and report the conflicting file and its owner.
 
     ## Dependencies (Already Complete)
 
@@ -64,7 +65,7 @@ Task tool:
     **File Scope:**
     - Did I ONLY modify files in my allowed list?
     - If I touched other files, I need to report this as an issue
-    - If I needed a file owned by another agent (per `.claude/file-locks.json`), did I STOP and report it?
+    - If I needed a file owned by another agent (per Wave File Map above), did I STOP and report it?
 
     **Completeness:**
     - Did I fully implement everything in the spec?
@@ -182,7 +183,17 @@ Task tool:
 
     **CRITICAL:** DO NOT modify any files outside this list.
 
-    **Advisory lock file:** `.claude/file-locks.json` lists all file locks for this wave.
+    ## Wave File Map (All Agents This Wave)
+
+    | File | Owner | Action |
+    |------|-------|--------|
+    | apps/api/src/services/auth.service.ts | hub-abc.3 | Create |
+    | apps/api/src/services/index.ts | hub-abc.3 | Modify |
+    | apps/api/src/__tests__/services/auth.service.test.ts | hub-abc.3 | Test |
+    | apps/api/src/utils/jwt.utils.ts | hub-abc.2 | Create |
+    | apps/api/src/utils/index.ts | hub-abc.2 | Modify |
+
+    If you need a file owned by another agent, STOP and report the conflict.
 
     ## Dependencies (Already Complete)
 

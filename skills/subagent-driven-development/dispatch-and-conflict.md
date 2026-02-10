@@ -55,6 +55,7 @@ Task(
         issue_id=task.id,
         epic_id=epic_id,
         file_ownership_list=task.files,
+        wave_file_map=wave_file_map,
         dependency_ids=task.deps,
         wave_number=wave_n,
         code_reviewer_path=code_reviewer_path
@@ -97,18 +98,15 @@ Issue hub-abc.3 files: [auth.service.ts, models/index.ts]  ← CONFLICT with .1!
    - **Defer conflicting issues to next wave** (they stay ready, dispatch after current wave completes)
 6. **Cap at 3 tasks per wave.** If more than 3 are parallelizable, dispatch the lowest-numbered 3 and defer the rest. This prevents the orchestrator from exhausting its context window managing too many agents simultaneously.
 7. **Mark conflict check task as `completed` with conflict report**
-8. **Write `.claude/file-locks.json`** from the file → issue map (parallelizable set only):
-   ```json
-   {
-     "epic": "<epic-id>",
-     "wave": N,
-     "generated_at": "<ISO-8601 timestamp>",
-     "locks": {
-       "<file-path>": {"owner": "<issue-id>", "action": "Create|Modify|Test"}
-     }
-   }
+8. **Serialize wave file map** into each implementer's `{wave_file_map}` template slot:
    ```
-   Overwritten at each wave start. Only includes files from dispatched (non-deferred) issues.
+   | File | Owner | Action |
+   |------|-------|--------|
+   | src/models/user.ts | hub-abc.1 | Create |
+   | src/models/index.ts | hub-abc.1 | Modify |
+   | src/utils/jwt.ts | hub-abc.2 | Create |
+   ```
+   Include files from ALL dispatched (non-deferred) issues so each agent sees who owns what.
 9. Dispatch all non-conflicting issues in parallel
 
 **If `## Files` section is missing:** Treat as conflicting with ALL other issues (cannot parallelize, must dispatch alone).
@@ -142,8 +140,7 @@ PARALLEL (new):
   parallelizable = filter_file_conflicts(ready)
   parallelizable = parallelizable[:3]  # Max 3 per wave — prevents context exhaustion
   TaskUpdate conflict-task status=completed  # with conflict report
-
-  write_file_locks(epic_id, wave_n, parallelizable)  # .claude/file-locks.json
+  wave_file_map = build_wave_file_map(parallelizable)  # markdown table for {wave_file_map} slot
 
   TaskCreate "Wave N: Dispatch [list issues]"
   for issue in parallelizable:

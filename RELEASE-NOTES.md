@@ -20,6 +20,44 @@ No files are reused or overwritten across runs.
 
 ---
 
+### Fix: Eliminate Permission Prompts from File Operations
+
+Systematic elimination of file operations that trigger Claude Code permission prompts in SDD workflows.
+
+**Problems fixed:**
+1. `mkdir -p temp` triggered permission prompts on every plan2beads/SDD run (7 locations across 6 files)
+2. Writing to `.claude/` directory triggered permission prompts (protected directory)
+3. `temp/file-locks.json` overwrite between waves triggered Write tool confirmation prompts
+
+**Solutions:**
+- Removed all `mkdir -p temp` instructions — `temp/` already exists, agents told not to create it
+- Moved `file-modifications.log` from `.claude/` to `temp/`
+- **Replaced file-locks.json entirely** with `{wave_file_map}` prompt template slot — the orchestrator serializes a markdown table of all agents' file assignments directly into each implementer's dispatch prompt. Eliminates all file I/O for lock management, all cleanup at epic end, and all permission prompt risks.
+
+**Wave file map example (embedded in implementer prompt):**
+```
+| File | Owner | Action |
+|------|-------|--------|
+| src/auth.ts | hub-abc.3 | Modify |
+| src/jwt.ts | hub-abc.2 | Create |
+```
+
+**Files Modified (12):**
+- `skills/subagent-driven-development/SKILL.md` — remove file-locks writing/cleanup, add `{wave_file_map}` to template fields
+- `skills/subagent-driven-development/implementer-prompt.md` — replace advisory lock file section with Wave File Map section
+- `skills/subagent-driven-development/dispatch-and-conflict.md` — replace file write step with wave map serialization
+- `skills/subagent-driven-development/wave-orchestration.md` — replace `write_file_locks()` with `build_wave_file_map()`
+- `skills/subagent-driven-development/example-workflow.md` — remove file-locks write and cleanup lines
+- `skills/subagent-driven-development/metrics-tracking.md` — remove file-locks cleanup section
+- `skills/subagent-driven-development/context-loading.md` — add `{wave_file_map}` to orchestrator fields table
+- `skills/epic-verifier/verifier-prompt.md` — remove mkdir instruction
+- `commands/plan2beads.md` — temp dir instruction
+- `hooks/log-file-modification.sh` — moved log to `temp/`
+- `SUPERPOWERS-BD-COMPREHENSIVE-IMPROVEMENTS.md` — update #15 description
+- `docs/IMPROVEMENTS-ARCHIVE.md` — update #15 references
+
+---
+
 ## v4.4.0 (2026-02-10) - Beads Fork
 
 ### Major Feature: Beads-Mediated Stateless Sub-Agents
@@ -414,22 +452,13 @@ Prevents parallel implementers from unknowingly modifying the same files.
 
 **Problem:** In wave-based parallel execution, multiple implementers could modify the same files, causing merge conflicts.
 
-**Solution:** Generate `.claude/file-locks.json` at wave start with file→issue mapping:
-```json
-{
-  "epic": "<epic-id>",
-  "wave": 1,
-  "locks": {
-    "src/auth.ts": {"owner": "hub-abc.3", "action": "Modify"}
-  }
-}
-```
+**Solution:** *(v4.4.1 superseded file-based approach with prompt-embedded wave file map — see v4.4.1 release notes.)*
 
-Implementers consult lock file if they need a file not assigned to them. Cleaned up at epic completion.
+Originally generated `temp/<epic>-wave-<N>-file-locks.json` at wave start. Now the orchestrator serializes a `{wave_file_map}` markdown table directly into each implementer's dispatch prompt, eliminating all file I/O.
 
 **Files Modified (2):**
-- `skills/subagent-driven-development/SKILL.md` — `write_file_locks()` at wave dispatch, cleanup at COMPLETE
-- `skills/subagent-driven-development/implementer-prompt.md` — lock file consultation guidance
+- `skills/subagent-driven-development/SKILL.md` — wave file map at dispatch
+- `skills/subagent-driven-development/implementer-prompt.md` — Wave File Map section in prompt template
 
 ---
 

@@ -113,7 +113,7 @@ Tracked to prevent re-raising. Revisit only when the blocking condition changes.
 - **12 workflow skills** — TDD, debugging, verification, brainstorming, etc.
 - **TaskCompleted hooks** (#5) — hard enforcement quality gates (interactive mode)
 - **Multi-review aggregation** (#46) — N=3 independent reviews, union+severity consensus, 43.67% F1 improvement
-- **Prompt-based file ownership** (#15) — advisory `.claude/file-locks.json` per wave, implementer lock-file lookup on conflict
+- **Prompt-based file ownership** (#15) — `{wave_file_map}` table serialized into each implementer prompt, showing all agents' file assignments per wave
 - **Modern agent frontmatter** (#45) — memory, maxTurns, disallowedTools, command frontmatter, reference docs
 
 **The playbook:** Claude Code stable GA for coordination + superpowers-bd for discipline.
@@ -152,7 +152,7 @@ Rejected, merged, or made obsolete. Completed items move to the [archive](docs/I
 - **#38** (add `memory: project` to agent definitions) — Done (2026-02-08)
 - **#41** (expose native Task metrics for cost tracking) — Done (2026-02-08). Per-task/wave/epic metrics in SDD skill, wave summary costs, epic completion report.
 - **#42** (add hooks in agent/skill frontmatter) — Done (2026-02-08). PostToolUse audit hook on code-reviewer. Plugin hooks workaround via `link-plugin-components.sh` (#17688).
-- **#15** (file ownership in task definitions) — Done (2026-02-08). Advisory `.claude/file-locks.json` written per wave, consulted by implementers on unexpected file needs, cleaned up at epic completion.
+- **#15** (file ownership in task definitions) — Done (2026-02-08). Wave file map (`{wave_file_map}`) serialized into each implementer prompt, showing all agents' file assignments. No file I/O needed — eliminates permission prompts and cleanup.
 - **#25** (linter guards) — Done (2026-02-08). PostToolUse hooks run shellcheck (.sh) and jq (.json) after Write/Edit. Main thread via hooks.json, subagents via code-reviewer frontmatter. Graceful degradation if tools missing.
 - **#46** (multi-review aggregation) — Done (2026-02-08). N=3 independent reviews for max-20x/max-5x tiers with union+severity consensus aggregation. New skill + SDD integration.
 - **#6** (cyclomatic complexity checks) — Done (2026-02-09). Quantitative metrics section in code-reviewer (CC, function length, duplication thresholds). Lizard hook in run-linter.sh with two-pass enforcement (block CC>15/length>100, warn CC>10/length>50). Graceful degradation with install hint.

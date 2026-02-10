@@ -21,12 +21,12 @@ Execute beads epic by dispatching parallel subagents for independent issues, wit
 2. Load epic: `bd show <epic-id>`, parse children and Key Decisions
 3. Verify `temp/` exists (it should — do NOT run `mkdir`)
 4. Get ready tasks: `bd ready`, filter to epic children only
-5. Check file conflicts, cap wave at 3 tasks, write `.claude/file-locks.json`
+5. Check file conflicts, cap wave at 3 tasks, serialize wave file map into implementer prompts
 6. Dispatch implementers in parallel (`run_in_background: true`) — sub-agents self-read from beads
 7. As each returns verdict: spec review → code review → verification → evidence → `bd close`
 8. Post `[WAVE-SUMMARY]` to epic comments, cleanup `temp/<epic>*`, retain 2-line receipt
 9. Repeat from step 4 until all children closed
-10. Print epic completion report, cleanup file-locks.json, run `finishing-a-development-branch`
+10. Print epic completion report, run `finishing-a-development-branch`
 
 ## Budget Tier Selection
 
@@ -44,7 +44,7 @@ Read companion files as needed during execution. Core loop:
 
 ```
 LOADING: bd ready → filter to epic → check file conflicts → cap at 3
-DISPATCH: write file-locks.json → bd update --status=in_progress → dispatch async
+DISPATCH: serialize wave file map into prompts → bd update --status=in_progress → dispatch async
 MONITOR: poll TaskOutput(block=False, timeout=5000) → route completions
 REVIEW: spec review → code review (N reviews if tier allows) → gap closure (max 3 attempts)
 CLOSE: extract evidence → bd close --reason → simplify (if 2+ tasks) → wave summary
@@ -78,7 +78,7 @@ Read these on-demand during execution:
 
 ## Prompt Templates
 
-- `./implementer-prompt.md` — uses `{issue_id}`, `{epic_id}`, `{file_ownership_list}`, `{dependency_ids}`, `{wave_number}` — sub-agent self-reads details from beads
+- `./implementer-prompt.md` — uses `{issue_id}`, `{epic_id}`, `{file_ownership_list}`, `{wave_file_map}`, `{dependency_ids}`, `{wave_number}` — sub-agent self-reads details from beads
 - `./spec-reviewer-prompt.md` — uses `{issue_id}`, `{wave_number}` — self-reads requirements + implementer report from beads
 - `./code-quality-reviewer-prompt.md` — uses `{issue_id}`, `{base_sha}`, `{head_sha}`, `{wave_number}`, `{code_reviewer_path}` — sub-agent self-reads methodology from disk
 - `skills/epic-verifier/verifier-prompt.md` — uses `{epic_id}`, `{base-sha}`, `{head-sha}`, `{test-command}` — sub-agent self-reads epic details and rule-of-five from beads/disk

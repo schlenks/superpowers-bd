@@ -9,7 +9,7 @@ You: I'm using Subagent-Driven Development to execute beads epic hub-abc.
   bd blocked: hub-abc.3 (by .1), hub-abc.4 (by .2, .3)
 
 Wave 1: Tasks 1 and 2 are ready, no file conflicts
-[Write .claude/file-locks.json for hub-abc.1, hub-abc.2]
+[Build wave_file_map table for hub-abc.1, hub-abc.2 → serialized into each prompt]
 
 [bd update hub-abc.1 --status=in_progress]
 [bd update hub-abc.2 --status=in_progress]
@@ -107,8 +107,6 @@ Wave 3: Task 4 is ready
 ║  Duration: 4m 12s wall clock                 ║
 ╚══════════════════════════════════════════════╝
 For precise cost breakdown: analyze-token-usage.py <session>.jsonl
-
-[Cleanup: rm -f .claude/file-locks.json]
 
 [Use superpowers:finishing-a-development-branch]
 

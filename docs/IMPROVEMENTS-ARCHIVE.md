@@ -17,7 +17,7 @@ Each item's # matches the roadmap. Items are grouped by impact tier.
 ### HIGH IMPACT
 
 **#3 — File ownership enforcement via hooks**
-Proactive conflict prevention. `PreToolUse` hook on `Edit|Write` checks `.claude/file-locks.json` and blocks edits to files owned by other agents. **BLOCKED on TWO issues:** (1) `$AGENT_NAME` does not exist for regular subagents ([Issue #16126](https://github.com/anthropics/claude-code/issues/16126)), (2) PreToolUse hooks do not fire for subagent tool calls ([Issue #21460](https://github.com/anthropics/claude-code/issues/21460)). Six related hook enforcement issues span Aug 2025–Jan 2026 with zero Anthropic resolution. Primary approach is now prompt-based (#15), validated by Anthropic's C compiler project at production scale. Hook enforcement is a future defense-in-depth layer. Moved to P5. Source: Hook-based.
+Proactive conflict prevention. `PreToolUse` hook on `Edit|Write` checks wave file map and blocks edits to files owned by other agents. **BLOCKED on TWO issues:** (1) `$AGENT_NAME` does not exist for regular subagents ([Issue #16126](https://github.com/anthropics/claude-code/issues/16126)), (2) PreToolUse hooks do not fire for subagent tool calls ([Issue #21460](https://github.com/anthropics/claude-code/issues/21460)). Six related hook enforcement issues span Aug 2025–Jan 2026 with zero Anthropic resolution. Primary approach is now prompt-based (#15), validated by Anthropic's C compiler project at production scale. Hook enforcement is a future defense-in-depth layer. Moved to P5. Source: Hook-based.
 
 **#4 — Strict SSOT: Query, Don't Track**
 Prevents state drift bugs. Instead of caching task state in skills, always query beads for truth. The SDD skill already follows this pattern (queries `bd ready` at every loop iteration). This is a design principle to codify, not a code change. "Skills MUST NOT cache beads query results across wave boundaries." Source: Distributed systems SSOT principle.
@@ -46,7 +46,7 @@ Reduces code complexity. Qualitative review already covered by 5+ existing skill
 
 **#14** — Completion evidence requirements: Tasks can only close with proof (commit hash, files changed, test results, coverage delta). `TaskCompleted` hook verifies before accepting. Source: Native hooks.
 
-**#15** — File ownership declared in task definition: Conflicts computed at dispatch time. Each task declares owned files in description. Orchestrator writes `.claude/file-locks.json` before spawning agents. Absorbs #2. Prompt-based enforcement validated by [Anthropic's C compiler project](https://www.anthropic.com/engineering/building-c-compiler) at production scale. Source: Hook-based + Anthropic engineering.
+**#15** — File ownership declared in task definition: Conflicts computed at dispatch time. Each task declares owned files in description. Orchestrator serializes `{wave_file_map}` table into each implementer prompt showing all agents' file assignments. No file I/O — eliminates permission prompts and cleanup. Absorbs #2. Prompt-based enforcement validated by [Anthropic's C compiler project](https://www.anthropic.com/engineering/building-c-compiler) at production scale. Source: Hook-based + Anthropic engineering.
 
 **#16** — Artifact-specific rule-of-five variants: Code: Draft→Correctness→Clarity→Edge Cases→Excellence. Plans: Draft→Feasibility→Completeness→Risk→Optimality. Tests: Draft→Coverage→Independence→Speed→Maintainability. Source: Original research.
 
@@ -152,7 +152,7 @@ Quality gates are superpowers-bd's unique value. #1 REMOVED — V2 experiment DE
 
 **File ownership status:**
 - Prompt-based is PRIMARY. Anthropic's [C compiler project](https://www.anthropic.com/engineering/building-c-compiler) used advisory file locks with cooperative agents at production scale.
-- Orchestrator writes `file-locks.json` before dispatch. Subagent prompt includes: "check file-locks.json before editing."
+- Orchestrator serializes `{wave_file_map}` table into each implementer prompt. No file I/O — agents see who owns what directly in their dispatch prompt.
 - Cursor's experience: Traditional file locking bottlenecked 20-agent runs to 2-3 effective agents. Advisory coordination scales better.
 - Hook-based enforcement is defense-in-depth (P5), contingent on upstream fixes.
 
