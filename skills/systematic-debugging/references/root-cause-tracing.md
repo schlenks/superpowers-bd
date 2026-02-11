@@ -86,8 +86,9 @@ async function gitInit(directory: string) {
 
 **Run and capture:**
 ```bash
-npm test 2>&1 | grep 'DEBUG git init'
+npm test 2>&1
 ```
+Search the output for `DEBUG git init`.
 
 **Analyze stack traces:**
 - Look for test file names

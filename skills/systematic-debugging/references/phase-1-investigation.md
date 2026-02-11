@@ -45,7 +45,7 @@
 
    # Layer 2: Build script
    echo "=== Env vars in build script: ==="
-   env | grep IDENTITY || echo "IDENTITY not in environment"
+   env    # then search output for IDENTITY
 
    # Layer 3: Signing script
    echo "=== Keychain state: ==="

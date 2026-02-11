@@ -40,8 +40,9 @@ TaskCreate: "Worktree ready"
 ## 1. Detect Project Name
 
 ```bash
-project=$(basename "$(git rev-parse --show-toplevel)")
+git rev-parse --show-toplevel
 ```
+Extract the project name (last path component) from the output.
 
 ## 2. Create Worktree
 

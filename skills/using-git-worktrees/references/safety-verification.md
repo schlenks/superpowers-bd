@@ -6,8 +6,9 @@
 
 ```bash
 # Check if directory is ignored (respects local, global, and system gitignore)
-git check-ignore -q .worktrees 2>/dev/null || git check-ignore -q worktrees 2>/dev/null
+git check-ignore -q .worktrees
 ```
+If that fails (exit code 1), try `git check-ignore -q worktrees` instead.
 
 **If NOT ignored:**
 

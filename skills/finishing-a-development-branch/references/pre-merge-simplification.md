@@ -15,8 +15,13 @@ TaskCreate: "Pre-merge simplification"
 
 ### 1. Get all changed files vs base branch
 
+First get the merge base SHA:
 ```bash
-git diff --name-only $(git merge-base HEAD main)..HEAD
+git merge-base HEAD main
+```
+Then get changed files:
+```bash
+git diff --name-only <merge-base-sha>..HEAD
 ```
 
 ### 2. Dispatch code-simplifier on the full changeset

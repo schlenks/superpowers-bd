@@ -6,8 +6,9 @@ Step 5 detail: Remove worktree after branch completion.
 
 Check if in worktree:
 ```bash
-git worktree list | grep $(git branch --show-current)
+git worktree list
 ```
+Look for the current branch name in the output.
 
 If yes:
 ```bash

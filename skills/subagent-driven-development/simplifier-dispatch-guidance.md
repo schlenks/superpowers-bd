@@ -33,9 +33,13 @@ redundant abstractions. Preserve all behavior and keep tests green.
 
 **When:** Always, during `finishing-a-development-branch` Step 1.5.
 
-**What files to pass:** All files changed on the branch vs base:
+**What files to pass:** All files changed on the branch vs base (two separate commands):
 ```bash
-git diff --name-only $(git merge-base HEAD main)..HEAD
+git merge-base HEAD main
+```
+Then use the result:
+```bash
+git diff --name-only <merge-base-sha>..HEAD
 ```
 
 **Focus areas:**

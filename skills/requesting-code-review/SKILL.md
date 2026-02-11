@@ -15,7 +15,7 @@ Dispatch superpowers:code-reviewer subagent to catch issues before they cascade.
 
 ## How to Request
 
-1. Get git SHAs: `BASE_SHA=$(git rev-parse HEAD~1)` and `HEAD_SHA=$(git rev-parse HEAD)`
+1. Get git SHAs: run `git rev-parse HEAD~1` for BASE_SHA and `git rev-parse HEAD` for HEAD_SHA
 2. Dispatch code-reviewer subagent using template at `code-reviewer.md`
    - `{PLAN_OR_REQUIREMENTS}` -- plan file path, bd show output, or spec
    - `{BASE_SHA}` / `{HEAD_SHA}` -- commit range
@@ -32,8 +32,9 @@ For critical changes, dispatch N=3 independent reviews and aggregate per `superp
 ## Example
 
 ```
-BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
-HEAD_SHA=$(git rev-parse HEAD)
+git log --oneline -10   # find the commit for Task 1, note the SHA
+BASE_SHA=<sha-from-above>
+HEAD_SHA=<from git rev-parse HEAD>
 [Dispatch superpowers:code-reviewer with plan context + SHAs]
 [Subagent returns: 4/4 requirements mapped, Important: missing progress indicators]
 [Fix -> Continue to next task]
