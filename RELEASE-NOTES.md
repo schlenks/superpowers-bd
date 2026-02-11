@@ -1,5 +1,155 @@
 # Superpowers Release Notes
 
+## v4.5.0 (2026-02-11) - Beads Fork
+
+### Feature: Task Complexity Labels for Per-Task Model Selection
+
+Complexity is now estimated at plan time, persisted as a beads label, and read at dispatch time to route each task to the appropriate model — spreading load across Opus and Sonnet quotas instead of using one model for everything.
+
+**Problem:** All tasks in a wave used the same model (determined by budget tier). Simple config changes consumed Opus quota, while complex architectural tasks sometimes ran on Sonnet. No way to differentiate.
+
+**Solution:** Three-level complexity system: `simple`, `standard`, `complex`. Estimated during planning based on file count and implementation steps, stored as `complexity:simple|standard|complex` beads labels, and read at dispatch time.
+
+**Complexity heuristics:**
+
+| Level | Label | Heuristic |
+|-------|-------|-----------|
+| simple | `complexity:simple` | ≤1 non-test file + ≤1 step. Config/wording changes, adding exports. |
+| standard | `complexity:standard` | 2-3 non-test files + clear requirements. Most tasks. |
+| complex | `complexity:complex` | 4+ files OR new patterns OR security-sensitive OR integration work. |
+
+**Implementer model selection (complexity × tier):**
+
+| Tier | simple | standard | complex |
+|------|--------|----------|---------|
+| max-20x | haiku | sonnet | opus |
+| max-5x | haiku | sonnet | opus |
+| pro/api | haiku | sonnet | sonnet |
+
+Spec reviewers also scale: haiku for simple/standard, sonnet for complex. Code reviewers and verifiers use tier defaults (unchanged by complexity). Default if label missing: `standard`.
+
+**End-to-end flow:**
+1. `writing-plans` — planner adds `**Complexity:** simple|standard|complex` to each task
+2. `plan2beads` — parses complexity line, creates task with `-l "complexity:..."` label
+3. `subagent-driven-development` — reads label at dispatch, selects model from matrix
+
+**Files Modified (8):**
+- `commands/plan2beads.md` — parse `**Complexity:**` line, add label to `bd create`
+- `skills/subagent-driven-development/SKILL.md` — per-complexity model matrices, label read at dispatch
+- `skills/subagent-driven-development/background-execution.md` — model parameter from complexity
+- `skills/subagent-driven-development/dispatch-and-conflict.md` — complexity label in dispatch
+- `skills/subagent-driven-development/implementer-prompt.md` — compressed
+- `skills/subagent-driven-development/spec-reviewer-prompt.md` — compressed
+- `skills/writing-plans/SKILL.md` — `**Complexity:**` required in task template
+- `skills/writing-plans/references/file-lists.md` — complexity estimation heuristics table
+
+---
+
+### Refactor: Compress 27 Files for AI Consumption (~30% Token Reduction)
+
+Systematic compression of all skill, agent, and command files consumed exclusively by AI — removing explanatory prose, motivational paragraphs, redundant restatements, and decorative formatting while preserving all enforcement content verbatim.
+
+**Problem:** Skills accumulated explanatory prose over iterations — "why this matters" paragraphs, redundant bold emphasis, decorative box-drawing characters, duplicate examples, and overview sections restating frontmatter descriptions. This bloated context consumption without improving agent behavior.
+
+**Solution:** Applied a documented compression style guide across 27 files. All enforcement content preserved verbatim: Iron Laws, Red Flags, anti-rationalization tables, Precision Gates, EXTREMELY-IMPORTANT blocks, output format specifications, and reference file listings.
+
+**What was compressed (SAFE):**
+- "Why this matters" paragraphs — deleted (embedded rules extracted first)
+- Markdown tables with 1-2 columns → `key: value` lists
+- Motivational/rhetorical prose — deleted
+- Repeated TaskCreate blocks → compact sequential notation
+- Redundant bold/emphasis inside headings/code blocks — removed
+- Box-drawing/decorative characters — deleted
+- Overview sections restating frontmatter description — deleted
+- Graphviz dot blocks restating textual rules — deleted
+- Duplicate example dispatches — kept one, deleted rest
+
+**What was NOT compressed (NEVER):**
+- Anti-rationalization tables (excuse/reality pairs)
+- Iron Law code blocks
+- Red Flags sections
+- TaskCreate/blockedBy dependency chains
+- Precision gates / gate functions
+- Common Failures tables
+- Output format specifications (VERDICT blocks)
+- EXTREMELY-IMPORTANT blocks
+
+**Results:** 23 files changed, 512 insertions(+), 1,075 deletions(-). Net reduction of ~563 lines across the skill/agent/command corpus.
+
+**Files Modified (23):**
+- 2 agents: `code-reviewer.md`, `epic-verifier.md`
+- 14 skills: `beads`, `brainstorming`, `dispatching-parallel-agents`, `epic-verifier`, `executing-plans`, `finishing-a-development-branch`, `multi-review-aggregation`, `receiving-code-review`, `requesting-code-review`, `rule-of-five`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `verification-before-completion`, `writing-skills`
+- 4 SDD peer files: `code-quality-reviewer-prompt.md`, `implementer-prompt.md`, `spec-reviewer-prompt.md`, `aggregator-prompt.md`
+- 1 template: `skills/requesting-code-review/code-reviewer.md`
+- 1 prompt: `skills/epic-verifier/verifier-prompt.md`
+
+**New File (1):**
+- `docs/compression-style-guide.md` — rules for future compression passes (40 lines)
+
+---
+
+### Fix: Remove Audit Logging from Quality Gate Hook
+
+Removed `log_result()` function and all `.claude/quality-gate.log` writes from `task-completed.sh`. The audit logging wrote to `.claude/`, which is a protected directory that triggers permission prompts.
+
+**Problem:** The TaskCompleted quality gate hook logged every gate result (ALLOWED/BLOCKED) to `.claude/quality-gate.log`. Since `.claude/` is a protected directory, this could trigger permission prompts in some configurations.
+
+**Solution:** Removed all audit logging. The hook still blocks task completion without evidence (exit code 2 with stderr message) — the enforcement mechanism is unchanged. Gate decisions are visible in the conversation transcript, making a separate log redundant.
+
+**Files Modified (2):**
+- `hooks/task-completed.sh` — removed `log_result()`, `LOG_DIR`, `LOG_FILE`, and all log writes (-18 lines)
+- `tests/verification/test-quality-gate-hook.sh` — removed audit log test, renumbered, fixed Test 6 subject
+
+---
+
+### Key Decisions
+
+- **Complexity at plan time, not dispatch time** — Planners have full context about task scope. Dispatch-time estimation would add latency and require reading every task's full description.
+- **Three levels, not continuous** — simple/standard/complex maps cleanly to haiku/sonnet/opus. More granularity would complicate the matrix without improving routing.
+- **Compression preserves enforcement** — The distinction between "safe to compress" and "never compress" ensures agent behavior doesn't regress while reducing token cost.
+- **Remove logging over fixing path** — The quality gate hook's primary value is blocking (exit code 2), not audit logging. Conversation transcripts already capture gate decisions.
+
+### Files Changed (33)
+
+**New Files (1):**
+- `docs/compression-style-guide.md`
+
+**Modified (32):**
+- `commands/plan2beads.md` — complexity parsing + compression
+- `skills/subagent-driven-development/SKILL.md` — complexity model matrices + compression
+- `skills/subagent-driven-development/background-execution.md` — complexity model parameter
+- `skills/subagent-driven-development/dispatch-and-conflict.md` — complexity in dispatch
+- `skills/subagent-driven-development/implementer-prompt.md` — compression
+- `skills/subagent-driven-development/spec-reviewer-prompt.md` — compression
+- `skills/subagent-driven-development/code-quality-reviewer-prompt.md` — compression
+- `skills/writing-plans/SKILL.md` — complexity in task template + compression
+- `skills/writing-plans/references/file-lists.md` — complexity heuristics
+- `skills/multi-review-aggregation/aggregator-prompt.md` — compression
+- `skills/epic-verifier/verifier-prompt.md` — compression
+- `agents/code-reviewer.md` — compression
+- `agents/epic-verifier.md` — compression
+- `skills/beads/SKILL.md` — compression
+- `skills/brainstorming/SKILL.md` — compression
+- `skills/dispatching-parallel-agents/SKILL.md` — compression
+- `skills/epic-verifier/SKILL.md` — compression
+- `skills/executing-plans/SKILL.md` — compression
+- `skills/finishing-a-development-branch/SKILL.md` — compression
+- `skills/multi-review-aggregation/SKILL.md` — compression
+- `skills/receiving-code-review/SKILL.md` — compression
+- `skills/requesting-code-review/SKILL.md` — compression
+- `skills/requesting-code-review/code-reviewer.md` — compression
+- `skills/rule-of-five/SKILL.md` — compression
+- `skills/systematic-debugging/SKILL.md` — compression
+- `skills/test-driven-development/SKILL.md` — compression
+- `skills/using-git-worktrees/SKILL.md` — compression
+- `skills/using-superpowers/SKILL.md` — compression
+- `skills/verification-before-completion/SKILL.md` — compression
+- `skills/writing-skills/SKILL.md` — compression
+- `hooks/task-completed.sh` — remove audit logging
+- `tests/verification/test-quality-gate-hook.sh` — update for removed audit log
+
+---
+
 ## v4.4.1 (2026-02-10) - Beads Fork
 
 ### Fix: Unique Temp Filenames in plan2beads
