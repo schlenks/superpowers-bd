@@ -5,16 +5,9 @@ description: Use when receiving code review feedback, before implementing sugges
 
 # Code Review Reception
 
-## Overview
+Verify before implementing. Ask before assuming. Technical correctness over social comfort.
 
-Code review requires technical evaluation, not emotional performance.
-
-**Core principle:** Verify before implementing. Ask before assuming. Technical correctness over social comfort.
-
-## The Response Pattern
-
-```
-WHEN receiving code review feedback:
+## Response Pattern
 
 1. READ: Complete feedback without reacting
 2. UNDERSTAND: Restate requirement in own words (or ask)
@@ -22,74 +15,46 @@ WHEN receiving code review feedback:
 4. EVALUATE: Technically sound for THIS codebase?
 5. RESPOND: Technical acknowledgment or reasoned pushback
 6. IMPLEMENT: One item at a time, test each
-```
 
 ## Response Task Enforcement
 
-**When receiving code review feedback, create native tasks for each step:**
+Create native tasks for each step (each blocked by previous via addBlockedBy):
 
-1. **"READ: Complete feedback without reacting"** — Read all items completely before doing anything else.
-2. **"UNDERSTAND: Restate requirements"** — Restate each requirement in own words. Ask if unclear. `addBlockedBy: [read-task-id]`
-3. **"VERIFY: Check against codebase"** — Check suggestions against codebase reality. Does current code exist for a reason? `addBlockedBy: [understand-task-id]`
-4. **"EVALUATE: Technical soundness"** — Technically sound for THIS codebase? Violates YAGNI? Conflicts with architecture? `addBlockedBy: [verify-task-id]`
-5. **"IMPLEMENT: Apply changes"** — One item at a time. Test each change. Verify no regressions. `addBlockedBy: [evaluate-task-id]`
+1. **"READ: Complete feedback without reacting"** -- Read all items completely first
+2. **"UNDERSTAND: Restate requirements"** -- Restate each in own words. Ask if unclear
+3. **"VERIFY: Check against codebase"** -- Check suggestions against reality. Does current code exist for a reason?
+4. **"EVALUATE: Technical soundness"** -- Sound for THIS codebase? Violates YAGNI? Conflicts with architecture?
+5. **"IMPLEMENT: Apply changes"** -- One at a time. Test each. Verify no regressions
 
-See `references/task-enforcement-blocks.md` for full TaskCreate blocks with descriptions.
+See `references/task-enforcement-blocks.md` for full TaskCreate blocks.
 
-**ENFORCEMENT:**
-- VERIFY step CANNOT be skipped - it's explicitly blocked until UNDERSTAND completes
-- IMPLEMENT is blocked until EVALUATE completes - no blind implementation
-- If you jump to IMPLEMENT without completing prior steps, TaskList exposes it
-- Mark each task complete only when genuinely done
+**ENFORCEMENT:** VERIFY cannot be skipped (blocked until UNDERSTAND completes). IMPLEMENT blocked until EVALUATE completes. TaskList exposes skipped steps.
 
 ## Forbidden Responses
 
-**NEVER:**
-- "You're absolutely right!" (explicit CLAUDE.md violation)
-- "Great point!" / "Excellent feedback!" (performative)
-- "Let me implement that now" (before verification)
+**NEVER:** "You're absolutely right!" / "Great point!" / "Excellent feedback!" / "Let me implement that now" (before verification)
 
-**INSTEAD:**
-- Restate the technical requirement
-- Ask clarifying questions
-- Push back with technical reasoning if wrong
-- Just start working (actions > words)
+**INSTEAD:** Restate technical requirement, ask clarifying questions, push back with reasoning if wrong, just start working.
 
 ## Handling Unclear Feedback
 
-```
-IF any item is unclear:
-  STOP - do not implement anything yet
-  ASK for clarification on unclear items
+If ANY item unclear: STOP, do not implement anything, ASK for clarification. Items may be related -- partial understanding = wrong implementation.
 
-WHY: Items may be related. Partial understanding = wrong implementation.
-```
-
-**Example:** "Fix 1-6" but you understand 1,2,3,6, unclear on 4,5. Do NOT implement 1,2,3,6 now. Ask about 4,5 first.
+Example: "Fix 1-6" but unclear on 4,5. Do NOT implement 1,2,3,6 now. Ask about 4,5 first.
 
 ## Source-Specific Handling
 
-### From your human partner
-- **Trusted** - implement after understanding
-- **Still ask** if scope unclear
-- **No performative agreement**
-- **Skip to action** or technical acknowledgment
+**From human partner:** Trusted -- implement after understanding. Still ask if scope unclear. No performative agreement. Skip to action.
 
-### From External Reviewers
-
-Before implementing, run 5 checks: technically correct for THIS codebase? Breaks existing functionality? Reason for current implementation? Works on all platforms/versions? Does reviewer understand full context?
-
-If suggestion seems wrong: push back with technical reasoning. If can't verify: say so. If conflicts with your human partner's prior decisions: stop and discuss with your human partner first. See `references/external-reviewer-protocol.md` for full protocol, YAGNI check, and implementation order.
-
-**your human partner's rule:** "External feedback - be skeptical, but check carefully"
+**From external reviewers:** Before implementing, check: technically correct for THIS codebase? Breaks existing functionality? Reason for current implementation? Works on all platforms? Reviewer understands full context? If wrong: push back. If can't verify: say so. If conflicts with partner's decisions: stop and discuss first. See `references/external-reviewer-protocol.md`.
 
 ## When To Push Back
 
-Push back when: breaks existing functionality, reviewer lacks context, violates YAGNI, technically incorrect, legacy/compatibility reasons, or conflicts with your human partner's architectural decisions.
+Push back when: breaks existing functionality, reviewer lacks context, violates YAGNI, technically incorrect, legacy/compatibility reasons, conflicts with architectural decisions.
 
-**How:** Technical reasoning, specific questions, reference working tests/code. See `references/pushback-guide.md` for detailed guidance and graceful correction patterns.
+**How:** Technical reasoning, specific questions, reference working tests/code. See `references/pushback-guide.md`.
 
-**Signal if uncomfortable pushing back out loud:** "Strange things are afoot at the Circle K"
+**Signal if uncomfortable:** "Strange things are afoot at the Circle K"
 
 ## Common Mistakes
 
@@ -105,18 +70,14 @@ Push back when: breaks existing functionality, reviewer lacks context, violates 
 
 ## The Bottom Line
 
-**External feedback = suggestions to evaluate, not orders to follow.**
-
-Verify. Question. Then implement.
-
-No performative agreement. Technical rigor always.
+External feedback = suggestions to evaluate, not orders to follow. Verify. Question. Then implement.
 
 ## Reference Files
 
-| File | When to read |
-|------|-------------|
-| `references/task-enforcement-blocks.md` | Full TaskCreate blocks with descriptions and activeForm fields |
-| `references/external-reviewer-protocol.md` | Full 5-check protocol, YAGNI check, implementation order |
-| `references/pushback-guide.md` | When/how to push back, gracefully correcting pushback |
-| `references/acknowledgment-and-responses.md` | Correct feedback acknowledgment patterns, GitHub thread replies |
-| `references/real-examples.md` | Full examples: performative, technical verification, YAGNI, unclear item |
+- `references/task-enforcement-blocks.md`: Full TaskCreate blocks with descriptions and activeForm fields
+- `references/external-reviewer-protocol.md`: Full 5-check protocol, YAGNI check, implementation order
+- `references/pushback-guide.md`: When/how to push back, gracefully correcting pushback
+- `references/acknowledgment-and-responses.md`: Correct feedback acknowledgment patterns, GitHub thread replies
+- `references/real-examples.md`: Full examples: performative, technical verification, YAGNI, unclear item
+
+<!-- compressed: 2026-02-11, original: 722 words, compressed: 467 words -->

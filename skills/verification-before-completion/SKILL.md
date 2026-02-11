@@ -5,10 +5,6 @@ description: Use when about to claim work is complete, fixed, or passing, before
 
 # Verification Before Completion
 
-## Overview
-
-Claiming work is complete without verification is dishonesty, not efficiency.
-
 **Core principle:** Evidence before claims, always.
 
 **Violating the letter of this rule is violating the spirit of this rule.**
@@ -39,13 +35,13 @@ Skip any step = lying, not verifying
 
 ## Visual Verification (Frontend)
 
-When frontend code is modified and browser tools are available, visual verification is part of the gate function — not optional. Triggers automatically when browser tools exist, frontend files changed (`.tsx`, `.jsx`, `.vue`, `.svelte`, `.css`), and dev server is running. If browser tools unavailable or no frontend files changed, skip silently.
+When frontend code is modified and browser tools are available, visual verification is part of the gate function. Triggers when: browser tools exist, frontend files changed (`.tsx`, `.jsx`, `.vue`, `.svelte`, `.css`), dev server running. Skip silently if not applicable.
 
-See `references/visual-verification.md` for full protocol including file patterns and smoke test procedure.
+See `references/visual-verification.md` for full protocol.
 
 ## Gap Closure Loop
 
-When verification fails, don't just report failure — create a fix task and re-verify:
+When verification fails, don't just report — fix and re-verify:
 
 ```
 IF verification fails:
@@ -57,9 +53,7 @@ IF verification fails:
   6. IF still fails AND attempt >= 3: → ESCALATE to human
 ```
 
-**Why 3 attempts:** Most genuine bugs fix in 1-2 tries. Persistent failure indicates deeper issues needing human judgment.
-
-See `references/gap-closure-protocol.md` for detailed TaskCreate blocks, blockedBy enforcement, and attempt tracking.
+See `references/gap-closure-protocol.md` for TaskCreate blocks and attempt tracking.
 
 ## Verification Task Enforcement
 
@@ -76,8 +70,6 @@ TaskCreate: "Verify: [specific claim]"
 - Task CANNOT be marked `completed` without evidence in the conversation
 - Evidence = actual command output showing pass/fail
 - Subsequent completion claims blocked until verification task completed
-
-**Why this matters:** TaskList exposes unverified completion claims. If you claim "done" without a completed verification task, the lack of evidence is visible.
 
 ## Common Failures
 
@@ -109,21 +101,13 @@ Using "should", "probably", "seems to". Expressing satisfaction before verificat
 | "Partial check is enough" | Partial proves nothing |
 | "Different words so rule doesn't apply" | Spirit over letter |
 
-## The Bottom Line
-
-**No shortcuts for verification.**
-
-Run the command. Read the output. THEN claim the result.
-
-This is non-negotiable.
-
 ## Reference Files
 
-| File | When to read |
-|------|-------------|
-| `references/visual-verification.md` | Full visual/frontend verification protocol with triggers and smoke test |
-| `references/gap-closure-protocol.md` | Detailed gap-fix -> re-verify -> escalate enforcement |
-| `references/key-patterns-examples.md` | Verification patterns with examples for tests, builds, agents, UI |
-| `references/why-this-matters.md` | Context from failure memories — why verification matters |
-| `references/when-to-apply.md` | Full enumeration of when verification is required |
-| `references/SKILL.test.md` | Pressure test scenarios for this skill |
+- `references/visual-verification.md`: Full visual/frontend verification protocol
+- `references/gap-closure-protocol.md`: Gap-fix → re-verify → escalate enforcement
+- `references/key-patterns-examples.md`: Verification patterns with examples
+- `references/why-this-matters.md`: Context from failure memories
+- `references/when-to-apply.md`: When verification is required
+- `references/SKILL.test.md`: Pressure test scenarios
+
+<!-- compressed: 2026-02-11, original: 780 words, compressed: 558 words -->

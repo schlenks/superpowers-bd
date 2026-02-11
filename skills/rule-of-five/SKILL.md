@@ -5,9 +5,7 @@ description: Use when writing 50+ lines of code/docs, creating plans, implementi
 
 # Rule of Five
 
-Jeffrey Emanuel's discovery: LLMs produce better output through focused passes--Draft, Correctness, Clarity, Edge Cases, Excellence--than single-shot generation. See `references/pass-order-rationale.md` for why this order and convergence details.
-
-**Core principle:** Each pass has ONE job. Re-read the entire artifact through that lens.
+Each pass has ONE job. Re-read the entire artifact through that lens. See `references/pass-order-rationale.md` for order rationale and convergence details.
 
 ## Quick Start
 
@@ -49,17 +47,11 @@ For each pass: re-read the full artifact, evaluate through that lens only, make 
 
 ## Detection Triggers
 
-**Invoke this skill when ANY of these are true:**
-- [ ] Writing or modifying >50 lines of code in a single artifact
-- [ ] Creating a new public API, interface, or component
-- [ ] Writing an implementation plan or design document
-- [ ] Complex refactoring affecting multiple files
-- [ ] Security-sensitive code changes
-- [ ] About to claim work is "complete" or "done"
+Invoke when: >50 lines written/modified, new public API/interface/component, implementation plan/design doc, complex multi-file refactoring, security-sensitive changes, or about to claim "done".
 
-**Skip for:** Single-line fixes, typo corrections, trivial changes under 20 lines.
+Skip for: Single-line fixes, typo corrections, trivial changes under 20 lines.
 
-**Announce at start:** "Applying rule-of-five to [artifact]. Starting 5-pass review."
+Announce: "Applying rule-of-five to [artifact]. Starting 5-pass review."
 
 ## The 5 Passes
 
@@ -84,31 +76,20 @@ For each pass: re-read the full artifact, evaluate through that lens only, make 
 
 ## Modifying Existing Code
 
-Shift the Correctness pass: **"Did I break anything?"** matters more than "Does my addition work?"
+Shift Correctness pass: **"Did I break anything?"** matters more than "Does my addition work?"
 
-**Correctness checklist for modifications:**
+Correctness checklist for modifications:
 1. Does my change work correctly?
 2. Did I break the code I modified?
 3. Did I break tests that depend on old behavior?
 4. **Did I break consumers?** (Other code that calls/uses what I changed)
 
-For interface changes and consumer breakage warning signs, see `references/modification-checklist.md`.
-
-## Integration with Other Skills
-
-- **superpowers:writing-plans** -- Apply 5 passes to plans before ExitPlanMode
-- **superpowers:subagent-driven-development** -- Implementer applies to significant artifacts
-- **superpowers:executing-plans** -- Apply to each batch's output
-- **superpowers:verification-before-completion** -- Final quality check before claiming done
-- **superpowers:test-driven-development** -- Applies to tests AND implementation separately
-- **superpowers:requesting-code-review** -- Reviewer can use these lenses; author should have already
-
-These skills invoke rule-of-five automatically for plans >50 lines, significant implementations, and work being marked complete.
+See `references/modification-checklist.md` for interface changes and consumer breakage signs.
 
 ## Reference Files
 
-| File | When to read |
-|------|-------------|
-| `references/example-before-after.md` | Full before/after code example with findings table |
-| `references/pass-order-rationale.md` | Why this order, convergence theory, handling cross-pass issues |
-| `references/modification-checklist.md` | Interface change checklist and consumer breakage warning signs |
+- `references/example-before-after.md`: Full before/after code example with findings table
+- `references/pass-order-rationale.md`: Order rationale, convergence theory, cross-pass issues
+- `references/modification-checklist.md`: Interface change checklist and consumer breakage signs
+
+<!-- compressed: 2026-02-11, original: 700 words, compressed: 547 words -->

@@ -9,8 +9,6 @@ description: Use when starting feature work that needs isolation from current wo
 
 Git worktrees create isolated workspaces sharing the same repository, allowing work on multiple branches simultaneously without switching.
 
-**Core principle:** Systematic directory selection + safety verification = reliable isolation.
-
 **Announce at start:** "I'm using the using-git-worktrees skill to set up an isolated workspace."
 
 ## Directory Selection Process
@@ -28,10 +26,10 @@ See `references/directory-selection.md` for full bash commands and ask-user flow
 For project-local directories only (not needed for global):
 
 1. **Check gitignore** -- `git check-ignore -q .worktrees` to verify directory is ignored
-2. **Add if needed** -- Add to `.gitignore` if not ignored (prevents committing worktree contents)
+2. **Add if needed** -- Add to `.gitignore` if not ignored
 3. **Commit** -- Commit the `.gitignore` change before proceeding
 
-See `references/safety-verification.md` for full verification protocol with commands.
+See `references/safety-verification.md` for full verification protocol.
 
 ## Creation Steps (Task-Tracked)
 
@@ -60,27 +58,22 @@ See `references/creation-steps.md` for full TaskCreate blocks, bash commands, an
 
 ## Common Mistakes
 
-- **Skipping ignore verification** -- Worktree contents get tracked, pollute git status. Always `git check-ignore` first.
-- **Assuming directory location** -- Creates inconsistency. Follow priority: existing > CLAUDE.md > ask.
-- **Proceeding with failing tests** -- Can't distinguish new bugs from pre-existing. Report failures, get permission.
-- **Hardcoding setup commands** -- Breaks on different tools. Auto-detect from project files.
+- **Skipping ignore verification** -- worktree contents pollute git status. Always `git check-ignore` first.
+- **Assuming directory location** -- follow priority: existing > CLAUDE.md > ask.
+- **Proceeding with failing tests** -- report failures, get permission first.
+- **Hardcoding setup commands** -- auto-detect from project files instead.
 
 ## Integration
 
-**Called by:**
-- **brainstorming** (After the Design) - REQUIRED when design is approved and implementation follows
-- Any skill needing isolated workspace
-
-**Pairs with:**
-- **finishing-a-development-branch** - REQUIRED for cleanup after work complete
-- **executing-plans** or **subagent-driven-development** - Work happens in this worktree
+**Called by:** brainstorming (after design), any skill needing isolated workspace
+**Pairs with:** finishing-a-development-branch (cleanup), executing-plans / subagent-driven-development (work happens here)
 
 ## Reference Files
 
-| File | When to read |
-|------|-------------|
-| `references/directory-selection.md` | Full priority order with bash commands and ask-user flow |
-| `references/safety-verification.md` | Full gitignore verification protocol with commands |
-| `references/creation-steps.md` | Full TaskCreate blocks, bash commands, and setup detection |
-| `references/example-workflow.md` | Annotated example of complete worktree setup workflow |
-| `references/red-flags.md` | Never/Always lists for quick self-check |
+- `references/directory-selection.md`: full priority order with bash commands and ask-user flow
+- `references/safety-verification.md`: full gitignore verification protocol with commands
+- `references/creation-steps.md`: full TaskCreate blocks, bash commands, and setup detection
+- `references/example-workflow.md`: annotated example of complete worktree setup workflow
+- `references/red-flags.md`: Never/Always lists for quick self-check
+
+<!-- compressed: 2026-02-11, original: 541 words, compressed: 481 words -->

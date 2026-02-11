@@ -10,9 +10,9 @@ description: Use when creating new skills, editing existing skills, or verifying
 **Writing skills IS Test-Driven Development applied to process documentation.**
 
 Skills use a 3-tier progressive disclosure model:
-1. **Frontmatter** (always loaded, ~30 tokens) — `name` + `description` only
-2. **SKILL.md body** (loaded on trigger, ≤150 lines) — Quick Start, core principles, reference table
-3. **`references/`** (loaded on demand, unlimited) — detailed guides, examples, checklists
+1. **Frontmatter** (always loaded, ~30 tokens) -- `name` + `description` only
+2. **SKILL.md body** (loaded on trigger, <=150 lines) -- Quick Start, core principles, reference table
+3. **`references/`** (loaded on demand, unlimited) -- detailed guides, examples, checklists
 
 This skill demonstrates the pattern it teaches: core workflow here, deep detail in `references/`.
 
@@ -20,37 +20,37 @@ This skill demonstrates the pattern it teaches: core workflow here, deep detail 
 
 ## Quick Start
 
-1. **Confirm need** — Is this a repeated failure pattern? (Not one-off, not project-specific, not already documented)
-2. **Set up** — `skills/skill-name/SKILL.md` + `references/` directory if content exceeds ≤150 line budget
+1. **Confirm need** -- Is this a repeated failure pattern? (Not one-off, not project-specific, not already documented)
+2. **Set up** -- `skills/skill-name/SKILL.md` + `references/` directory if content exceeds <=150 line budget
 3. **Write frontmatter:**
    ```yaml
    ---
    name: skill-name-with-hyphens
-   description: Use when [triggering conditions only, ≤300 chars]
+   description: Use when [triggering conditions only, <=300 chars]
    ---
    ```
-   **THE TRAP:** Description must be triggering conditions ONLY — never summarize workflow. Claude will follow the description instead of reading the full skill body.
+   **THE TRAP:** Description must be triggering conditions ONLY -- never summarize workflow. Claude will follow the description instead of reading the full skill body.
    ```yaml
    # BAD: Claude follows this shortcut instead of reading the skill
    description: Use when executing plans - dispatches subagent per task with code review between tasks
    # GOOD: Forces Claude to read the skill for workflow details
    description: Use when executing implementation plans with independent tasks in the current session
    ```
-4. **RED** — Run pressure scenarios WITHOUT skill → document baseline failures and rationalizations verbatim
-5. **GREEN** — Write SKILL.md addressing those specific failures → verify agents comply with skill present
-6. **REFACTOR** — Close loopholes, build rationalization table, re-test until bulletproof
+4. **RED** -- Run pressure scenarios WITHOUT skill -> document baseline failures and rationalizations verbatim
+5. **GREEN** -- Write SKILL.md addressing those specific failures -> verify agents comply with skill present
+6. **REFACTOR** -- Close loopholes, build rationalization table, re-test until bulletproof
 7. **Validate:**
    ```bash
    npx claude-skills-cli validate <skill-dir> --lenient
    ```
-8. **Rule-of-five** if >50 lines → commit
+8. **Rule-of-five** if >50 lines -> commit
 
 ## SKILL.md Template
 
 ```markdown
 ---
 name: skill-name
-description: Use when [triggering conditions, symptoms, situations — NOT workflow]
+description: Use when [triggering conditions, symptoms, situations -- NOT workflow]
 ---
 
 # Skill Name
@@ -63,7 +63,7 @@ Numbered steps: what to do RIGHT NOW.
 
 ## [Core Content Section]
 The non-negotiable rules, patterns, or techniques.
-Keep this focused — "what do I do now?" belongs here.
+Keep this focused -- "what do I do now?" belongs here.
 "How do I do it well?" belongs in references/.
 
 ## Reference Files
@@ -94,7 +94,7 @@ Write skill before testing? Delete it. Start over.
 
 Testing proved that workflow summaries in descriptions cause Claude to skip reading the full skill body. The description is a trigger, not a summary.
 
-- Start with "Use when..." — third person, ≤300 chars
+- Start with "Use when..." -- third person, <=300 chars
 - Describe the *problem* not *language-specific symptoms*
 - Include concrete triggers, symptoms, situations
 - **NEVER** summarize the skill's process or workflow
@@ -103,19 +103,17 @@ Full guide with examples: `references/description-and-discovery.md`
 
 ## Reference Files
 
-| File | When to read |
-|------|-------------|
-| `references/3-tier-model.md` | Understanding the progressive disclosure model and validation |
-| `references/skill-structure.md` | Directory layout, skill types, frontmatter fields for all components |
-| `references/description-and-discovery.md` | Writing descriptions, CSO, token efficiency, flowcharts, naming |
-| `references/tdd-for-skills.md` | TDD mapping, phase tasks, RED-GREEN-REFACTOR detail, testing by type |
-| `references/bulletproofing.md` | Rationalization tables, loophole closing, anti-patterns |
-| `references/creation-checklist.md` | Full 40-item checklist, STOP directive, validation step |
-| `references/anthropic-best-practices.md` | Official Anthropic skill authoring guidance |
-| `references/testing-skills-with-subagents.md` | Pressure scenario methodology, meta-testing |
-| `references/persuasion-principles.md` | Psychology research behind bulletproofing (Cialdini, Meincke) |
-| `references/graphviz-conventions.dot` | Graphviz style rules for flowcharts |
-| `references/examples/` | Worked examples (CLAUDE_MD_TESTING.md) |
+- `references/3-tier-model.md`: understanding the progressive disclosure model and validation
+- `references/skill-structure.md`: directory layout, skill types, frontmatter fields for all components
+- `references/description-and-discovery.md`: writing descriptions, CSO, token efficiency, flowcharts, naming
+- `references/tdd-for-skills.md`: TDD mapping, phase tasks, RED-GREEN-REFACTOR detail, testing by type
+- `references/bulletproofing.md`: rationalization tables, loophole closing, anti-patterns
+- `references/creation-checklist.md`: full 40-item checklist, STOP directive, validation step
+- `references/anthropic-best-practices.md`: official Anthropic skill authoring guidance
+- `references/testing-skills-with-subagents.md`: pressure scenario methodology, meta-testing
+- `references/persuasion-principles.md`: psychology research behind bulletproofing (Cialdini, Meincke)
+- `references/graphviz-conventions.dot`: Graphviz style rules for flowcharts
+- `references/examples/`: worked examples (CLAUDE_MD_TESTING.md)
 
 ## Validation
 
@@ -125,13 +123,6 @@ Before committing any skill:
 npx claude-skills-cli validate <skill-dir> --lenient
 ```
 
-Must pass. Fix errors, address warnings. Checks: body ≤150 lines, ≤2000 words, valid frontmatter.
+Must pass. Fix errors, address warnings. Checks: body <=150 lines, <=2000 words, valid frontmatter.
 
-## Bottom Line
-
-**Creating skills IS TDD for process documentation.**
-
-Same Iron Law: No skill without failing test first.
-Same cycle: RED (baseline) → GREEN (write skill) → REFACTOR (close loopholes).
-
-Skill documents are significant artifacts (typically >50 lines). Always apply superpowers:rule-of-five before finalizing.
+<!-- compressed: 2026-02-11, original: 702 words, compressed: 638 words -->

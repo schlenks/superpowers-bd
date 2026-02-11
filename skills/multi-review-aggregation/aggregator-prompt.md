@@ -1,8 +1,6 @@
 # Review Aggregator Prompt Template
 
-Use this template when dispatching the aggregation agent after N independent code reviews complete.
-
-**Model:** haiku (synthesis task, not deep analysis)
+Model: haiku (synthesis task, not deep analysis)
 
 ```
 Task tool:
@@ -11,16 +9,14 @@ Task tool:
   description: "Aggregate reviews: [issue-id]"
   prompt: |
     You are a code review aggregator. You have received {n_reviews} independent
-    code reviews of the same implementation. Your job is to produce a single
-    unified review report.
+    code reviews of the same implementation. Produce a single unified review report.
 
     ## Load Reviewer Reports
 
     Run: `bd comments {issue_id} --json`
 
     Find the {n_reviews} entries tagged `[CODE-REVIEW-1/{n_reviews}]` through
-    `[CODE-REVIEW-{n_reviews}/{n_reviews}]` for this wave. These are the
-    independent reviewer reports to aggregate.
+    `[CODE-REVIEW-{n_reviews}/{n_reviews}]` for this wave.
 
     ## Aggregation Rules
 
@@ -42,8 +38,7 @@ Task tool:
       or data loss. Keep original severity and annotate with "security".
 
     ### Strengths
-    Union all strengths. If multiple reviewers mention the same strength in
-    different words, keep the clearest version.
+    Union all strengths. If multiple reviewers mention the same strength, keep clearest version.
 
     ### Verdict
     - "Ready to merge: Yes" → zero Critical, zero Important, AND majority approved
@@ -52,62 +47,50 @@ Task tool:
 
     ## Output Format
 
-    **CRITICAL: Your final message must contain ONLY the structured report below. No preamble, no narrative, no explanation of your aggregation process.**
+    **CRITICAL: Your final message must contain ONLY the structured report below.**
 
-    Produce EXACTLY this format:
-
+    ```
     ## Strengths
     - [strength] [Reviewers: X, Y]
 
     ## Issues
-
     ### Critical
-    - [issue description] [Reviewers: X, Y] — file:line
-    (or "(none)" if no critical issues)
-
+    - [issue] [Reviewers: X, Y] — file:line
+    (or "(none)")
     ### Important
-    - [issue description] [Reviewers: X, Y] — file:line
-    (or "(none)" if no important issues)
-
+    - [issue] [Reviewers: X, Y] — file:line
+    (or "(none)")
     ### Minor
-    - [issue description] [Reviewer: X, downgraded from Important] — file:line
-    (or "(none)" if no minor issues)
-
+    - [issue] [Reviewer: X, downgraded from Important] — file:line
+    (or "(none)")
     ### Suggestion
-    - [issue description] [Reviewer: X, downgraded from Minor] — file:line
-    (or "(none)" if no suggestions)
+    - [issue] [Reviewer: X, downgraded from Minor] — file:line
+    (or "(none)")
 
     ## Assessment
     Ready to merge: [Yes/With fixes/No]
     Reviewers: [X/N approved, Y requested changes]
+    ```
 
     ## Rules
     - Do NOT invent new findings. Only aggregate what reviewers reported.
-    - Do NOT remove findings. Every finding from every reviewer must appear
-      (after deduplication).
+    - Do NOT remove findings. Every finding must appear (after deduplication).
     - Annotate provenance: [Reviewers: 1, 3] or [Reviewer: 2, downgraded from X].
     - Security/data-loss findings are NEVER downgraded, even as lone findings.
 
     ## Write Report to Beads
 
-    After producing the aggregated report, persist it:
-
-    1. Write the full aggregated report to a temp file:
+    1. Write aggregated report to temp file:
        ```bash
        cat > temp/{issue_id}-code-agg.md << 'REPORT'
        [CODE-REVIEW-AGG] {issue_id} wave-{N}
 
-       [Your full aggregated report — Strengths, Issues by severity, Assessment]
+       [Full aggregated report — Strengths, Issues by severity, Assessment]
        REPORT
        ```
 
-    2. Post to beads:
-       ```bash
-       bd comments add {issue_id} -f temp/{issue_id}-code-agg.md
-       ```
-
+    2. Post: `bd comments add {issue_id} -f temp/{issue_id}-code-agg.md`
     3. Verify: `bd comments {issue_id} --json | tail -1`
-
     4. If `bd comments add` fails, retry up to 3 times with `sleep 2` between attempts.
 
     ## Verdict (Final Message)
@@ -121,3 +104,5 @@ Task tool:
     REPORT_PERSISTED: YES|NO
     ```
 ```
+
+<!-- compressed: 2026-02-11, original: 547 words, compressed: 466 words -->

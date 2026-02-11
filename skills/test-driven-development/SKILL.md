@@ -5,10 +5,6 @@ description: Use when implementing any feature or bugfix, before writing impleme
 
 # Test-Driven Development (TDD)
 
-## Overview
-
-Write the test first. Watch it fail. Write minimal code to pass.
-
 **Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
 
 **Violating the letter of the rules is violating the spirit of the rules.**
@@ -53,15 +49,15 @@ For each TDD cycle, create three tracking tasks:
 
 ## RED - Write Failing Test
 
-Write one minimal test showing what should happen. One behavior, clear name, real code (no mocks unless unavoidable). See `references/good-vs-bad-examples.md` for Good/Bad code examples.
+Write one minimal test showing what should happen. One behavior, clear name, real code (no mocks unless unavoidable). See `references/good-vs-bad-examples.md`.
 
 ## Verify RED
 
-**MANDATORY.** Run test, confirm it fails for expected reason (feature missing, not typos). Test passes? You're testing existing behavior -- fix test.
+**MANDATORY.** Run test, confirm it fails for expected reason (feature missing, not typos). Test passes? You're testing existing behavior — fix test.
 
 ## GREEN - Minimal Code
 
-Write simplest code to pass the test. Don't add features, refactor other code, or "improve" beyond the test. See `references/good-vs-bad-examples.md` for Good/Bad code examples.
+Write simplest code to pass the test. Don't add features, refactor other code, or "improve" beyond the test. See `references/good-vs-bad-examples.md`.
 
 ## Verify GREEN
 
@@ -69,17 +65,11 @@ Write simplest code to pass the test. Don't add features, refactor other code, o
 
 ## REFACTOR - Clean Up
 
-After green only:
-- Remove duplication
-- Improve names
-- Extract helpers
-- Reduce nesting depth (flatten conditionals, use early returns)
-- Eliminate redundant abstractions (inline single-use wrappers)
-- Prefer explicit over compact (readability > cleverness)
+After green only: remove duplication, improve names, extract helpers, reduce nesting (flatten conditionals, early returns), eliminate redundant abstractions, prefer explicit over compact.
 
 Keep tests green. Don't add behavior.
 
-**Conditional simplification dispatch:** If this TDD cycle changed >50 lines OR any function has cyclomatic complexity >10, dispatch the `code-simplifier:code-simplifier` agent via Task tool on the changed files. After simplification: re-run tests, verify green, commit separately as `refactor: simplify [area]`. If tests fail, revert simplification.
+**Conditional simplification dispatch:** If >50 lines changed OR cyclomatic complexity >10, dispatch `code-simplifier:code-simplifier` agent on changed files. Re-run tests, verify green, commit as `refactor: simplify [area]`. If tests fail, revert.
 
 ## Good Tests
 
@@ -106,15 +96,13 @@ Can't check all boxes? You skipped TDD. Start over.
 
 ## Reference Files
 
-| File | When to read |
-|------|-------------|
-| `references/tdd-cycle-diagram.dot` | Visualizing the TDD cycle |
-| `references/good-vs-bad-examples.md` | RED/GREEN code examples showing good vs bad tests and implementations |
-| `references/why-order-matters.md` | Rationale for test-first approach and rebuttals to common objections |
-| `references/rationalizations-and-red-flags.md` | Common excuses and stop signals for TDD violations |
-| `references/bug-fix-workflow.md` | Bug fix example and debugging integration |
-| `references/when-stuck.md` | Solutions for common TDD obstacles |
-| `references/testing-anti-patterns.md` | Pitfalls with mocks, test-only methods, dependency misunderstanding |
+- `references/tdd-cycle-diagram.dot`: Visualizing the TDD cycle
+- `references/good-vs-bad-examples.md`: RED/GREEN code examples
+- `references/why-order-matters.md`: Rationale for test-first and rebuttals
+- `references/rationalizations-and-red-flags.md`: Common excuses and stop signals
+- `references/bug-fix-workflow.md`: Bug fix example and debugging integration
+- `references/when-stuck.md`: Solutions for common TDD obstacles
+- `references/testing-anti-patterns.md`: Pitfalls with mocks, test-only methods
 
 ## Final Rule
 
@@ -124,3 +112,5 @@ Otherwise -> not TDD
 ```
 
 No exceptions without your human partner's permission.
+
+<!-- compressed: 2026-02-11, original: 764 words, compressed: 594 words -->
