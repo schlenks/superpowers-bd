@@ -40,6 +40,24 @@ code_reviewer_path = Glob("**/requesting-code-review/code-reviewer.md")[0]
 
 prompt_type, prompt_template = get_prompt_for_task(task)
 
+# Read complexity from beads label (set at plan time)
+task_labels = parse_labels(bd_show_output)  # already loaded for conflict detection
+task_complexity = extract_label(task_labels, "complexity") or "standard"
+
+# Resolve implementer model: complexity selects, tier caps
+COMPLEXITY_TO_IMPL = {"simple": "haiku", "standard": "sonnet", "complex": "opus"}
+TIER_CEILING = {"max-20x": "opus", "max-5x": "opus", "pro/api": "sonnet"}
+MODEL_RANK = {"haiku": 0, "sonnet": 1, "opus": 2}
+
+def min_model(selected, ceiling):
+    return selected if MODEL_RANK[selected] <= MODEL_RANK[ceiling] else ceiling
+
+impl_model = min_model(COMPLEXITY_TO_IMPL[task_complexity], TIER_CEILING[budget_tier])
+
+# Spec reviewer: sonnet only for complex tasks on non-pro tiers; haiku otherwise
+# (used in background-execution.md on_implementer_complete, not in this Task() call)
+spec_model = "sonnet" if task_complexity == "complex" and budget_tier != "pro/api" else "haiku"
+
 # Sub-agents self-read from beads. Orchestrator only provides:
 # - issue_id, epic_id (for bd show/bd comments)
 # - file_ownership_list (safety-critical, must be in prompt)
@@ -48,7 +66,7 @@ prompt_type, prompt_template = get_prompt_for_task(task)
 # - code_reviewer_path (for code reviewers to self-read methodology)
 Task(
     subagent_type="general-purpose",  # Always general-purpose
-    model=tier_verifier if prompt_type == "verifier" else tier_impl,
+    model=tier_verifier if prompt_type == "verifier" else impl_model,
     run_in_background=True,
     description=f"{'Verify' if prompt_type == 'verifier' else 'Implement'}: {task.id}",
     prompt=prompt_template.format(
@@ -63,7 +81,7 @@ Task(
 )
 ```
 
-**Verification prompt:** Use template at `skills/epic-verifier/verifier-prompt.md`. Model selection follows Budget Tier Selection matrix (opus for max-20x, sonnet otherwise).
+**Verification prompt:** Use template at `skills/epic-verifier/verifier-prompt.md`. Model selection follows Budget Tier Selection matrix (tier default, never adjusted by complexity).
 
 ## File Conflict Detection (Task-Tracked)
 

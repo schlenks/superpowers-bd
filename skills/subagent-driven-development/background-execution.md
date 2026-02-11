@@ -9,16 +9,20 @@ Use `run_in_background: true` with TaskOutput polling.
 ## Dispatch Phase
 
 ```python
+pending_tasks = {}  # task_id -> {issue_id, complexity, ...}
 task_ids = []
 for issue in parallelizable:
     bd update <issue.id> --status=in_progress
+    # Read complexity label (set at plan time, see dispatch-and-conflict.md)
+    impl_model = resolve_impl_model(issue.complexity, budget_tier)
     result = Task(
         subagent_type="general-purpose",
-        model=tier_model,
+        model=impl_model,  # complexity-adjusted: see SKILL.md Budget Tier Selection
         run_in_background=True,
         description=f"Implement: {issue.id} {issue.title}",
         prompt=implementer_prompt
     )
+    pending_tasks[result.task_id] = {"issue_id": issue.id, "complexity": issue.complexity}
     task_ids.append(result.task_id)
 ```
 
@@ -102,9 +106,12 @@ Task C:       [implement]────[spec-C]────[code-C×3]──[agg-C
 
 ```python
 on_implementer_complete(task_id, result):
+    # Resolve spec model from stored complexity (sonnet for complex on non-pro; haiku otherwise)
+    task_complexity = pending_tasks[task_id]["complexity"]  # stored at dispatch time
+    spec_model = "sonnet" if task_complexity == "complex" and budget_tier != "pro/api" else "haiku"
     # Immediately dispatch spec review (background)
     spec_task = Task(
-        model=tier_spec_model,
+        model=spec_model,  # complexity-adjusted: see SKILL.md Budget Tier Selection
         run_in_background=True,
         description=f"Spec review: {task_id}",
         ...
@@ -127,7 +134,7 @@ on_spec_review_pass(task_id, result):
         for i in range(n_reviews):
             code_task = Task(
                 subagent_type="general-purpose",
-                model=tier_code_model,
+                model=tier_code_model,  # NEVER adjusted by complexity
                 run_in_background=True,
                 description=f"Code review {i+1}/{n_reviews}: {task_id}",
                 prompt=code_reviewer_prompt.format(
@@ -149,7 +156,7 @@ on_spec_review_pass(task_id, result):
         # Single review (pro/api) — unchanged
         code_task = Task(
             subagent_type="general-purpose",
-            model=tier_code_model,
+            model=tier_code_model,  # NEVER adjusted by complexity
             run_in_background=True,
             prompt=code_reviewer_prompt.format(
                 code_reviewer_path=code_reviewer_path,

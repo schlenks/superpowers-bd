@@ -1,13 +1,9 @@
 # Spec Compliance Reviewer Prompt Template
 
-Use this template when dispatching a spec compliance reviewer subagent.
-
-**Purpose:** Verify implementer built what was requested (nothing more, nothing less)
-
 ```
 Task tool:
   subagent_type: "general-purpose"
-  model: "sonnet"                  # tier-based: sonnet for max-20x, haiku for others
+  model: "sonnet"                  # complexity-adjusted: see SKILL.md Budget Tier Selection
   description: "Spec review: {issue_id}"
   prompt: |
     You are reviewing whether an implementation matches its specification.
@@ -15,70 +11,49 @@ Task tool:
     ## Load Your Context
 
     1. Run: `bd show {issue_id}` for the task requirements (what was requested)
-    2. Run: `bd comments {issue_id} --json` and find the `[IMPL-REPORT]` entry for what the implementer claims they built (if no `[IMPL-REPORT]` exists, review the code changes directly using `git log --oneline -5` and `git diff`)
+    2. Run: `bd comments {issue_id} --json` and find the `[IMPL-REPORT]` entry for what the implementer claims they built (if no `[IMPL-REPORT]` exists, review code changes via `git log --oneline -5` and `git diff`)
 
     ## CRITICAL: Do Not Trust the Report
 
-    The implementer finished suspiciously quickly. Their report may be incomplete,
-    inaccurate, or optimistic. You MUST verify everything independently.
+    The implementer's report may be incomplete, inaccurate, or optimistic. Verify everything independently.
 
-    **DO NOT:**
-    - Take their word for what they implemented
-    - Trust their claims about completeness
-    - Accept their interpretation of requirements
+    **DO NOT** take their word for what they implemented, trust completeness claims, or accept their interpretation of requirements.
 
-    **DO:**
-    - Read the actual code they wrote
-    - Compare actual implementation to requirements line by line
-    - Check for missing pieces they claimed to implement
-    - Look for extra features they didn't mention
+    **DO** read actual code, compare implementation to requirements line by line, check for missing pieces, look for extra features.
 
     ## Your Job
 
     Read the implementation code and verify:
 
     **Missing requirements:**
-    - Did they implement everything that was requested?
-    - Are there requirements they skipped or missed?
-    - Did they claim something works but didn't actually implement it?
+    - Everything requested implemented? Requirements skipped? Claims without implementation?
 
     **Extra/unneeded work:**
-    - Did they build things that weren't requested?
-    - Did they over-engineer or add unnecessary features?
-    - Did they add "nice to haves" that weren't in spec?
+    - Built things not requested? Over-engineered? Added "nice to haves" not in spec?
 
     **Misunderstandings:**
-    - Did they interpret requirements differently than intended?
-    - Did they solve the wrong problem?
-    - Did they implement the right feature but wrong way?
+    - Requirements interpreted differently than intended? Wrong problem solved?
 
     **Verify by reading code, not by trusting report.**
 
     ## Write Report to Beads
 
-    After completing your review, persist your full findings:
-
-    1. Write your full review to a temp file:
+    1. Write review to temp file:
        ```bash
        cat > temp/{issue_id}-spec.md << 'REPORT'
        [SPEC-REVIEW] {issue_id} wave-{wave_number}
 
        ## Findings
-       [Your detailed findings — missing requirements, extra work, misunderstandings,
+       [Detailed findings — missing requirements, extra work, misunderstandings,
        with file:line references for each finding]
 
        ## Conclusion
-       [✅ Spec compliant / ❌ Issues found: list]
+       [Spec compliant / Issues found: list]
        REPORT
        ```
 
-    2. Post to beads:
-       ```bash
-       bd comments add {issue_id} -f temp/{issue_id}-spec.md
-       ```
-
+    2. Post: `bd comments add {issue_id} -f temp/{issue_id}-spec.md`
     3. Verify: `bd comments {issue_id} --json | tail -1`
-
     4. If `bd comments add` fails, retry up to 3 times with `sleep 2` between attempts.
 
     ## Verdict (Final Message)
@@ -95,3 +70,5 @@ Task tool:
     - ISSUES: count and brief summary (e.g., "2 (missing auth middleware, extra logging)")
     - REPORT_PERSISTED: YES if beads comment succeeded; NO if all retries failed
 ```
+
+<!-- compressed: 2026-02-11, original: 463 words, compressed: 370 words -->

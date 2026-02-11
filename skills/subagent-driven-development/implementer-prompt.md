@@ -1,11 +1,9 @@
 # Implementer Subagent Prompt Template
 
-Use this template when dispatching an implementer subagent for a beads issue.
-
 ```
 Task tool:
   subagent_type: "general-purpose"
-  model: "opus"                    # tier-based: opus for max-20x, sonnet for others
+  model: "opus"                    # complexity-adjusted: see SKILL.md Budget Tier Selection
   run_in_background: true          # for parallelism
   description: "Implement Issue: [issue-id] [issue title]"
   prompt: |
@@ -18,9 +16,9 @@ Task tool:
     3. Run: `bd comments {epic_id} --json` and look for `[WAVE-SUMMARY]` entries to learn conventions from previous waves
 
     Parse from `bd show {issue_id}`:
-    - The `## Files` section → your allowed file list (if missing, use the `Files You Own` list below)
-    - The `## Implementation Steps` section → your work plan (if missing, infer steps from the issue description)
-    - Dependencies listed → already completed, their outputs are available
+    - `## Files` section → your allowed file list (fallback: Files You Own below)
+    - `## Implementation Steps` section → your work plan (fallback: infer from description)
+    - Dependencies listed → already completed, outputs available
 
     ## Files You Own
 
@@ -48,53 +46,28 @@ Task tool:
     2. ONLY modify files in your allowed list
     3. Write tests (following TDD if issue says to)
     4. Verify implementation works
-    5. Commit your work (use conventional commit format: `feat:`, `fix:`, `refactor:`, etc.)
-    6. For artifacts >50 lines: Apply rule-of-five passes (Draft, Correctness, Clarity, Edge Cases, Excellence)
-    7. Self-review (see below)
-    8. Report back
+    5. Commit (conventional format: `feat:`, `fix:`, `refactor:`, etc.)
+    6. For artifacts >50 lines: apply rule-of-five (Draft, Correctness, Clarity, Edge Cases, Excellence)
+    7. Self-review, then report back
 
     Work from: {working_directory}
 
     **If you need files outside your allowed list:**
-    STOP immediately and ask. Do not modify them. This would conflict with parallel work.
+    STOP immediately and ask. Do not modify them.
 
     ## Before Reporting Back: Self-Review
 
-    Review your work with fresh eyes. Ask yourself:
+    - **File Scope:** Only modified allowed files? Any wave file map conflicts?
+    - **Completeness:** All requirements implemented? Edge cases handled?
+    - **Quality:** Names clear? Code clean? Rule-of-five applied if >50 lines?
+    - **Discipline:** No overbuilding (YAGNI)? Followed existing codebase patterns?
+    - **Testing:** Tests verify behavior (not mocks)? TDD if required? Comprehensive?
 
-    **File Scope:**
-    - Did I ONLY modify files in my allowed list?
-    - If I touched other files, I need to report this as an issue
-    - If I needed a file owned by another agent (per Wave File Map above), did I STOP and report it?
-
-    **Completeness:**
-    - Did I fully implement everything in the spec?
-    - Did I miss any requirements?
-    - Are there edge cases I didn't handle?
-
-    **Quality:**
-    - Is this my best work?
-    - Are names clear and accurate (match what things do, not how they work)?
-    - Is the code clean and maintainable?
-    - For >50 lines: Did I apply rule-of-five passes?
-
-    **Discipline:**
-    - Did I avoid overbuilding (YAGNI)?
-    - Did I only build what was requested?
-    - Did I follow existing patterns in the codebase?
-
-    **Testing:**
-    - Do tests actually verify behavior (not just mock behavior)?
-    - Did I follow TDD if required?
-    - Are tests comprehensive?
-
-    If you find issues during self-review, fix them now before reporting.
+    Fix any issues found before reporting.
 
     ## Write Report to Beads
 
-    After implementation and self-review, persist your full report to beads:
-
-    1. Write your full report to a temp file:
+    1. Write report to temp file:
        ```bash
        cat > temp/{issue_id}-impl.md << 'REPORT'
        [IMPL-REPORT] {issue_id} wave-{wave_number}
@@ -115,16 +88,8 @@ Task tool:
        REPORT
        ```
 
-    2. Post to beads:
-       ```bash
-       bd comments add {issue_id} -f temp/{issue_id}-impl.md
-       ```
-
-    3. Verify it was persisted:
-       ```bash
-       bd comments {issue_id} --json | tail -1
-       ```
-
+    2. Post: `bd comments add {issue_id} -f temp/{issue_id}-impl.md`
+    3. Verify: `bd comments {issue_id} --json | tail -1`
     4. If `bd comments add` fails, retry up to 3 times with `sleep 2` between attempts.
 
     ## Verdict (Final Message)
@@ -152,59 +117,4 @@ Task tool:
     The orchestrator manages all workflow decisions. Your only job is the verdict.
 ```
 
-## Example Dispatch
-
-```
-Task tool:
-  subagent_type: "general-purpose"
-  model: "opus"                    # tier-based: opus for max-20x, sonnet for others
-  run_in_background: true          # for parallelism
-  description: "Implement Issue: hub-abc.3 Auth Service"
-  prompt: |
-    You are implementing beads issue: hub-abc.3
-
-    ## Load Your Context
-
-    1. Run: `bd show hub-abc.3` for full task details
-    2. Run: `bd show hub-abc | head -30` for epic goal and Key Decisions
-    3. Run: `bd comments hub-abc --json` for [WAVE-SUMMARY] entries → conventions
-
-    Parse from `bd show hub-abc.3`:
-    - The `## Files` section → your allowed file list
-    - The `## Implementation Steps` section → your work plan
-    - Dependencies listed → already completed, their outputs are available
-
-    ## Files You Own
-
-    You are ONLY allowed to modify these files:
-    - apps/api/src/services/auth.service.ts (Create)
-    - apps/api/src/services/index.ts (Modify)
-    - apps/api/src/__tests__/services/auth.service.test.ts (Test)
-
-    **CRITICAL:** DO NOT modify any files outside this list.
-
-    ## Wave File Map (All Agents This Wave)
-
-    | File | Owner | Action |
-    |------|-------|--------|
-    | apps/api/src/services/auth.service.ts | hub-abc.3 | Create |
-    | apps/api/src/services/index.ts | hub-abc.3 | Modify |
-    | apps/api/src/__tests__/services/auth.service.test.ts | hub-abc.3 | Test |
-    | apps/api/src/utils/jwt.utils.ts | hub-abc.2 | Create |
-    | apps/api/src/utils/index.ts | hub-abc.2 | Modify |
-
-    If you need a file owned by another agent, STOP and report the conflict.
-
-    ## Dependencies (Already Complete)
-
-    - hub-abc.1: User Model
-
-    ...
-
-    **STOP after the verdict.** Do NOT:
-    - Ask what to do next
-    - Offer options (commit, push, merge, etc.)
-    - Invoke workflow skills (finishing-a-development-branch, etc.)
-    - Suggest follow-up actions
-    The orchestrator manages all workflow decisions. Your only job is the verdict.
-```
+<!-- compressed: 2026-02-11, original: 1031 words, compressed: 586 words -->
