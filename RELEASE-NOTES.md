@@ -1,5 +1,120 @@
 # Superpowers Release Notes
 
+## v4.6.0 (2026-02-11) - Beads Fork
+
+### Feature: Checkpoint-Based Context Window Recovery for SDD
+
+Automatic checkpoint and recovery system that lets SDD epics survive context window exhaustion (auto-compact, `/clear`, or session crashes) without losing orchestration state.
+
+**Problem:** During long-running SDD epics (5+ waves), the orchestrator's context window could exhaust despite good data hygiene. Auto-compact would summarize context, losing critical state like budget tier, wave receipts, and running metrics. The previous "Compaction Safety Net" (`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70`) didn't actually work.
+
+**Solution:** Write a checkpoint file after every wave CLOSE, with automatic recovery via the SessionStart hook.
+
+**How it works:**
+
+| Scenario | What happens |
+|----------|-------------|
+| Normal (no compaction) | Waves run back-to-back. Checkpoint written but never read. |
+| Auto-compact mid-epic | SessionStart(compact) fires → hook detects checkpoint → injects `<sdd-checkpoint-recovery>` → orchestrator reads checkpoint → resumes at next wave |
+| `/clear` | SessionStart(clear) fires → hook injects recovery notice → user types "execute epic {id}" → INIT loads checkpoint → resumes |
+| Crashed session | SessionStart(startup) fires → hook injects recovery notice → user can resume |
+
+**Checkpoint schema** (`temp/sdd-checkpoint-{epic_id}.json`):
+- `epic_id`, `wave_completed`, `budget_tier`
+- `wave_receipts[]` (2-line receipt strings)
+- `closed_issues[]`, `epic_tokens`, `epic_tool_uses`, `epic_cost`
+- `timestamp`
+
+**Edge cases handled:** Corrupted checkpoint (fall back to beads), stale checkpoint (different epic ignored), partial wave (reset in_progress tasks), multiple checkpoints (most recent by mtime).
+
+**Quick Start reordered:** Load epic → checkpoint check → budget tier (was: budget tier → load epic). Prevents asking budget tier before discovering a checkpoint already has it.
+
+**Replaces:** "Compaction Safety Net" section with broken `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70` env var.
+
+**Files Added (1):**
+- `skills/subagent-driven-development/checkpoint-recovery.md` — schema, write timing, recovery logic, edge cases
+
+**Files Modified (5):**
+- `hooks/session-start.sh` — checkpoint detection in `temp/`, `<sdd-checkpoint-recovery>` injection (+33 lines)
+- `skills/subagent-driven-development/SKILL.md` — INIT checkpoint check, Quick Start reorder, state machine annotations, Context Window Management section, companion file link
+- `skills/subagent-driven-development/wave-orchestration.md` — Checkpoint Write and COMPLETE Cleanup sections
+- `skills/subagent-driven-development/metrics-tracking.md` — COMPLETE Cleanup note
+- `skills/subagent-driven-development/failure-recovery.md` — Compaction or Clear Recovery playbook
+
+---
+
+### Fix: Remove Permission-Triggering Shell Patterns from Skills
+
+Systematic elimination of shell syntax patterns that trigger Claude Code's permission deny-list across 19 skill and prompt files.
+
+**Problem:** Skill files and subagent prompts contained shell examples using heredocs (`<<EOF`), pipes (`|`), command substitutions (`$()`), `||`, and `&&` chaining. Claude Code's permission system pattern-matches raw command strings before shell parsing, so even examples inside markdown code blocks triggered approval prompts when agents copied them.
+
+**Solution:** Three targeted passes across the codebase:
+
+1. **Heredocs and pipes in subagent prompts** (9c613c8) — Replaced `cat <<EOF ... EOF` with direct `Write` tool instructions. Replaced `cmd | jq` pipes with sequential "run cmd, then parse" instructions. Affected: 6 SDD prompt templates + aggregator prompt.
+
+2. **Command substitutions, pipes, and `||` in skill references** (cdfc84f) — Replaced `$(cmd)` with "run cmd, capture output" phrasing. Replaced `cmd1 || cmd2` fallback patterns with "if cmd1 fails, try cmd2" instructions. Affected: 8 skill/reference files across beads, finishing-a-development-branch, requesting-code-review, systematic-debugging, using-git-worktrees, writing-plans.
+
+3. **`&&` chaining in skill examples** (bc71a1d) — Replaced `cmd1 && cmd2` with separate sequential instructions. Affected: 5 files including simplifier-dispatch-guidance, worktree-cleanup, pre-merge-simplification.
+
+**Files Modified (19):**
+- `skills/subagent-driven-development/implementer-prompt.md`
+- `skills/subagent-driven-development/spec-reviewer-prompt.md`
+- `skills/subagent-driven-development/code-quality-reviewer-prompt.md`
+- `skills/subagent-driven-development/background-execution.md`
+- `skills/subagent-driven-development/context-loading.md`
+- `skills/subagent-driven-development/verification-and-evidence.md`
+- `skills/subagent-driven-development/simplifier-dispatch-guidance.md`
+- `skills/multi-review-aggregation/aggregator-prompt.md`
+- `skills/epic-verifier/verifier-prompt.md`
+- `skills/requesting-code-review/SKILL.md`
+- `skills/finishing-a-development-branch/SKILL.md`
+- `skills/finishing-a-development-branch/references/pre-merge-simplification.md`
+- `skills/finishing-a-development-branch/references/worktree-cleanup.md`
+- `skills/beads/references/workflow-patterns.md`
+- `skills/systematic-debugging/references/phase-1-investigation.md`
+- `skills/systematic-debugging/references/root-cause-tracing.md`
+- `skills/using-git-worktrees/references/creation-steps.md`
+- `skills/using-git-worktrees/references/safety-verification.md`
+- `skills/writing-plans/SKILL.md`
+
+---
+
+### Key Decisions
+
+- **Checkpoint over status-line polling** — No API exists to read context usage from within skills. Checkpoint + SessionStart hook is fully automated without needing context percentage detection.
+- **sdd-checkpoint- prefix** — Survives wave cleanup (`rm -f temp/<epic-prefix>*`) because the prefix differs from the epic ID prefix.
+- **Always check, all event types** — Hook checks for checkpoints on startup/resume/compact/clear. Resume is harmless redundancy; the others are the real recovery cases.
+- **Rewrite shell examples, not just document** — Permission pattern matching operates on raw command strings before shell parsing, so even quoted/commented examples can trigger. The only fix is to not emit those patterns.
+
+### Files Changed (20)
+
+**New Files (1):**
+- `skills/subagent-driven-development/checkpoint-recovery.md`
+
+**Modified (19):**
+- `hooks/session-start.sh`
+- `skills/subagent-driven-development/SKILL.md`
+- `skills/subagent-driven-development/wave-orchestration.md`
+- `skills/subagent-driven-development/metrics-tracking.md`
+- `skills/subagent-driven-development/failure-recovery.md`
+- `skills/subagent-driven-development/implementer-prompt.md`
+- `skills/subagent-driven-development/spec-reviewer-prompt.md`
+- `skills/subagent-driven-development/code-quality-reviewer-prompt.md`
+- `skills/subagent-driven-development/background-execution.md`
+- `skills/subagent-driven-development/context-loading.md`
+- `skills/subagent-driven-development/verification-and-evidence.md`
+- `skills/subagent-driven-development/simplifier-dispatch-guidance.md`
+- `skills/multi-review-aggregation/aggregator-prompt.md`
+- `skills/epic-verifier/verifier-prompt.md`
+- `skills/requesting-code-review/SKILL.md`
+- `skills/finishing-a-development-branch/SKILL.md`
+- `skills/finishing-a-development-branch/references/pre-merge-simplification.md`
+- `skills/finishing-a-development-branch/references/worktree-cleanup.md`
+- 5 additional reference files (beads, systematic-debugging, using-git-worktrees, writing-plans)
+
+---
+
 ## v4.5.0 (2026-02-11) - Beads Fork
 
 ### Feature: Task Complexity Labels for Per-Task Model Selection
