@@ -31,7 +31,7 @@ on_code_review_pass(task_id, result):
     # Run verification with gap closure loop
     verification_result = run_verification_with_gap_closure(
         task_id=task_id,
-        verification_command="npm test && npm run build",
+        verification_commands=["npm test", "npm run build"],  # run each separately
         max_attempts=3
     )
 

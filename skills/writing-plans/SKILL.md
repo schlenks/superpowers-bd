@@ -77,7 +77,7 @@ Expected: FAIL
 Run: `pytest tests/path/test.py::test_name -v`
 Expected: PASS
 **Step 5: Commit**
-`git add ... && git commit -m "feat: add specific feature"`
+`git add ...` then `git commit -m "feat: add specific feature"`
 ```
 
 ## Plan Verification Checklist
