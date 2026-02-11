@@ -13,16 +13,17 @@ Execute beads epic by dispatching parallel subagents for independent issues, wit
 
 ## Quick Start
 
-1. Ask budget tier (max-20x / max-5x / pro-api) -- sets model matrix for session
-2. Load epic: `bd show <epic-id>`, parse children and Key Decisions
-3. Verify `temp/` exists (do NOT run `mkdir`)
-4. `bd ready`, filter to epic children
-5. Check file conflicts, cap wave at 3, serialize wave file map into prompts
-6. Dispatch implementers (`run_in_background: true`) -- sub-agents self-read from beads
-7. Each returns: spec review -> code review -> verification -> evidence -> `bd close`
-8. Post `[WAVE-SUMMARY]` to epic comments, cleanup `temp/<epic>*`, retain 2-line receipt
-9. Repeat from 4 until all closed
-10. Print completion report, run `finishing-a-development-branch`
+1. Load epic: `bd show <epic-id>`, parse children and Key Decisions
+2. Check for `temp/sdd-checkpoint-{epic_id}.json` -- if found, restore state (budget_tier, wave_receipts, closed_issues, metrics), print "Resuming epic {id} from wave {N+1}", jump to LOADING (skip step 3)
+3. Ask budget tier (max-20x / max-5x / pro-api) -- sets model matrix for session
+4. Verify `temp/` exists (do NOT run `mkdir`)
+5. `bd ready`, filter to epic children
+6. Check file conflicts, cap wave at 3, serialize wave file map into prompts
+7. Dispatch implementers (`run_in_background: true`) -- sub-agents self-read from beads
+8. Each returns: spec review -> code review -> verification -> evidence -> `bd close`
+9. Post `[WAVE-SUMMARY]` to epic comments, cleanup `temp/<epic>*`, write checkpoint, retain 2-line receipt
+10. Repeat from 5 until all closed
+11. Print completion report, run `finishing-a-development-branch`
 
 ## Budget Tier Selection
 
@@ -80,20 +81,19 @@ CLOSE: extract evidence -> bd close --reason -> simplify (if 2+ tasks) -> wave s
 ## State Machine
 
 ```
-INIT -> LOADING -> DISPATCH -> MONITOR -> REVIEW -> CLOSE -> LOADING (loop)
-                                                          -> COMPLETE (all closed)
+INIT [checkpoint?] -> LOADING (resume at wave N+1)
+INIT -> LOADING -> DISPATCH -> MONITOR -> REVIEW -> CLOSE [+checkpoint] -> LOADING (loop)
+                                                                        -> COMPLETE [cleanup]
 REVIEW -> PENDING_HUMAN (verification >3 attempts)
 ```
 
-## Compaction Safety Net
+## Context Window Management
 
-For large epics (8+ waves), set early compaction:
+After each wave CLOSE, write a checkpoint to `temp/sdd-checkpoint-{epic_id}.json` (see [checkpoint-recovery.md](checkpoint-recovery.md)). This enables seamless recovery after auto-compact or `/clear`.
 
-```bash
-export CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70
-```
+**On seeing `<sdd-checkpoint-recovery>` in session context:** Read the checkpoint file and resume from the next wave. Do NOT re-ask budget tier.
 
-Triggers at 70% context usage instead of default 95%.
+**At COMPLETE:** Delete `temp/sdd-checkpoint-{epic_id}.json` and `temp/metrics-{epic_id}.json`.
 
 ## Prompt Templates
 
@@ -120,6 +120,7 @@ Triggers at 70% context usage instead of default 95%.
 - [example-workflow.md](example-workflow.md): Complete 3-wave worked example
 - [failure-recovery.md](failure-recovery.md): Timeout, rejection loop, deadlock, bd errors
 - [dispatch-and-conflict.md](dispatch-and-conflict.md): Dispatch routing, file conflict algorithm, parallel dispatch
+- [checkpoint-recovery.md](checkpoint-recovery.md): Checkpoint schema, write timing, recovery logic, edge cases
 - [context-loading.md](context-loading.md): Self-read pattern, report tags, orchestrator vs sub-agent responsibilities
 
 <!-- compressed: 2026-02-11, original: 806 words, compressed: 586 words -->

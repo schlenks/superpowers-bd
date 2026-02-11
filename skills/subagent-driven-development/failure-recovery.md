@@ -83,3 +83,32 @@ if bd_command_fails:
     if persistent:
         STOP and ask human for help
 ```
+
+## Compaction or Clear Recovery
+
+When the orchestrator sees `<sdd-checkpoint-recovery>` in session context, or finds a checkpoint file during INIT:
+
+```
+1. Read temp/sdd-checkpoint-{epic_id}.json
+2. Verify epic exists: bd show {epic_id}
+3. Restore state:
+   - budget_tier (skip re-asking)
+   - wave_receipts (list of 2-line receipt strings)
+   - closed_issues (for tracking)
+   - epic_tokens, epic_tool_uses, epic_cost (running metrics)
+4. Check for in_progress tasks: bd show {epic_id}
+   if any tasks are in_progress:
+       bd update --status=open {task_id}  # reset interrupted wave
+5. Resume from LOADING at wave {wave_completed + 1}
+6. Print: "Resuming epic {epic_id} from wave {N} after context recovery."
+```
+
+**Corrupted checkpoint fallback:**
+
+```
+if checkpoint is unreadable or missing expected fields:
+    ignore checkpoint
+    use beads as SSOT: bd show {epic_id} to determine completed vs remaining
+    re-ask budget tier
+    print: "Checkpoint corrupted — falling back to beads. Which budget tier?"
+```

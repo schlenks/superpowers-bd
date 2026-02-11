@@ -53,3 +53,36 @@ After posting the wave summary, remove temp report files: `rm -f temp/<epic-pref
 
 The `temp/` directory already exists at the repo root — do NOT run `mkdir` for it.
 
+## Checkpoint Write
+
+After wave cleanup, write the checkpoint for context recovery:
+
+```python
+import json, datetime
+
+checkpoint = {
+    "epic_id": epic_id,
+    "wave_completed": wave_number,
+    "budget_tier": budget_tier,
+    "wave_receipts": wave_receipts,       # list of 2-line receipt strings
+    "closed_issues": closed_issues,       # all issues closed so far
+    "epic_tokens": epic_tokens,
+    "epic_tool_uses": epic_tool_uses,
+    "epic_cost": round(epic_cost, 2),
+    "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+}
+
+checkpoint_path = f"temp/sdd-checkpoint-{epic_id}.json"
+json.dump(checkpoint, open(checkpoint_path, "w"), indent=2)
+```
+
+The `sdd-checkpoint-` prefix survives wave cleanup (`rm -f temp/<epic-prefix>*`).
+
+## COMPLETE Cleanup
+
+At epic completion, delete ephemeral files:
+
+```bash
+rm -f temp/sdd-checkpoint-{epic_id}.json temp/metrics-{epic_id}.json
+```
+
