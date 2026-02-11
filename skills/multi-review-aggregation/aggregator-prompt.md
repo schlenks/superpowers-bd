@@ -80,17 +80,17 @@ Task tool:
 
     ## Write Report to Beads
 
-    1. Write aggregated report to temp file:
-       ```bash
-       cat > temp/{issue_id}-code-agg.md << 'REPORT'
+    **Each step below MUST be a separate tool call. Never combine into one Bash command.**
+
+    1. Use the **Write** tool to create `temp/{issue_id}-code-agg.md` with content:
+       ```
        [CODE-REVIEW-AGG] {issue_id} wave-{N}
 
        [Full aggregated report — Strengths, Issues by severity, Assessment]
-       REPORT
        ```
 
-    2. Post: `bd comments add {issue_id} -f temp/{issue_id}-code-agg.md`
-    3. Verify: `bd comments {issue_id} --json | tail -1`
+    2. Bash: `bd comments add {issue_id} -f temp/{issue_id}-code-agg.md`
+    3. Bash: `bd comments {issue_id} --json`
     4. If `bd comments add` fails, retry up to 3 times with `sleep 2` between attempts.
 
     ## Verdict (Final Message)

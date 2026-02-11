@@ -35,20 +35,20 @@ The sub-agent reads `code-reviewer.md` from disk (self-read pattern) instead of 
 ```
 ## Write Report to Beads
 
-After completing your review, persist your full report:
+After completing your review, persist your full report.
 
-1. Write review to temp file:
-   ```bash
-   cat > temp/{issue_id}-code-{reviewer_number}.md << 'REPORT'
+**Each step below MUST be a separate tool call. Never combine into one Bash command.**
+
+1. Use the **Write** tool to create `temp/{issue_id}-code-{reviewer_number}.md` with content:
+   ```
    [CODE-REVIEW-{reviewer_number}/{n_reviews}] {issue_id} wave-{wave_number}
 
    [Full structured report — Changed Files Manifest, Requirement Mapping,
    Uncovered Paths, Not Checked, Findings, Assessment]
-   REPORT
    ```
 
-2. Post: `bd comments add {issue_id} -f temp/{issue_id}-code-{reviewer_number}.md`
-3. Verify: `bd comments {issue_id} --json | tail -1`
+2. Bash: `bd comments add {issue_id} -f temp/{issue_id}-code-{reviewer_number}.md`
+3. Bash: `bd comments {issue_id} --json`
 4. If `bd comments add` fails, retry up to 3 times with `sleep 2` between attempts.
 
 ## Verdict (Final Message)

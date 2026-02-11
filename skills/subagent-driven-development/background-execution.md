@@ -76,7 +76,7 @@ def dispatch_full_report_fallback(task_id, issue_id):
         model="haiku",
         description=f"Retrieve report: {issue_id}",
         prompt=f"The previous agent for {issue_id} failed to persist its report. "
-               f"Run: bd comments {issue_id} --json | tail -1 "
+               f"Run: bd comments {issue_id} --json "
                f"If the report is missing, report MISSING. Otherwise return the report."
     )
     # If still missing, orchestrator falls back to old pattern:

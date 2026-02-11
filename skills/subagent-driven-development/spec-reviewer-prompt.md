@@ -38,9 +38,10 @@ Task tool:
 
     ## Write Report to Beads
 
-    1. Write review to temp file:
-       ```bash
-       cat > temp/{issue_id}-spec.md << 'REPORT'
+    **Each step below MUST be a separate tool call. Never combine into one Bash command.**
+
+    1. Use the **Write** tool to create `temp/{issue_id}-spec.md` with content:
+       ```
        [SPEC-REVIEW] {issue_id} wave-{wave_number}
 
        ## Findings
@@ -49,11 +50,10 @@ Task tool:
 
        ## Conclusion
        [Spec compliant / Issues found: list]
-       REPORT
        ```
 
-    2. Post: `bd comments add {issue_id} -f temp/{issue_id}-spec.md`
-    3. Verify: `bd comments {issue_id} --json | tail -1`
+    2. Bash: `bd comments add {issue_id} -f temp/{issue_id}-spec.md`
+    3. Bash: `bd comments {issue_id} --json`
     4. If `bd comments add` fails, retry up to 3 times with `sleep 2` between attempts.
 
     ## Verdict (Final Message)

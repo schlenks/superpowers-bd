@@ -83,18 +83,19 @@ Task tool:
 
     ## Write Report to Beads
 
-    1. Write to temp file (the `temp/` directory already exists — do NOT run `mkdir`):
-       ```bash
-       cat > temp/{epic_id}-verification.md << 'REPORT'
+    **Each step below MUST be a separate tool call. Never combine into one Bash command.**
+    The `temp/` directory already exists — do NOT run `mkdir`.
+
+    1. Use the **Write** tool to create `temp/{epic_id}-verification.md` with content:
+       ```
        [EPIC-VERIFICATION] {epic_id}
 
        [Full Engineering Checklist findings]
        [Full Rule-of-Five findings]
-       REPORT
        ```
 
-    2. Post: `bd comments add {epic_id} -f temp/{epic_id}-verification.md`
-    3. Verify: `bd comments {epic_id} --json | tail -1`
+    2. Bash: `bd comments add {epic_id} -f temp/{epic_id}-verification.md`
+    3. Bash: `bd comments {epic_id} --json`
     4. Retry up to 3 times with `sleep 2` on failure.
 
     ## Part 3: Verdict

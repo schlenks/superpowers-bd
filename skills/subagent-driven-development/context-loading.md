@@ -10,8 +10,8 @@ Sub-agents run these commands at the start of their task:
 # 1. Task details — requirements, files, implementation steps
 bd show <issue-id>
 
-# 2. Epic context — goal and Key Decisions (first ~30 lines)
-bd show <epic-id> | head -30
+# 2. Epic context — goal and Key Decisions (read first ~30 lines of output)
+bd show <epic-id>
 
 # 3. Wave conventions — patterns from previous waves
 bd comments <epic-id> --json

@@ -12,7 +12,7 @@ Task tool:
     ## Load Your Context
 
     1. Run: `bd show {issue_id}` for full task details (requirements, files, steps)
-    2. Run: `bd show {epic_id} | head -30` for epic goal and Key Decisions
+    2. Run: `bd show {epic_id}` and read the first ~30 lines for epic goal and Key Decisions
     3. Run: `bd comments {epic_id} --json` and look for `[WAVE-SUMMARY]` entries to learn conventions from previous waves
 
     Parse from `bd show {issue_id}`:
@@ -67,9 +67,10 @@ Task tool:
 
     ## Write Report to Beads
 
-    1. Write report to temp file:
-       ```bash
-       cat > temp/{issue_id}-impl.md << 'REPORT'
+    **Each step below MUST be a separate tool call. Never combine into one Bash command.**
+
+    1. Use the **Write** tool to create `temp/{issue_id}-impl.md` with content:
+       ```
        [IMPL-REPORT] {issue_id} wave-{wave_number}
 
        ### Evidence
@@ -85,11 +86,10 @@ Task tool:
        - Rule-of-five passes applied (if artifact >50 lines)
        - Any issues or concerns
        - **File scope violations** (if any)
-       REPORT
        ```
 
-    2. Post: `bd comments add {issue_id} -f temp/{issue_id}-impl.md`
-    3. Verify: `bd comments {issue_id} --json | tail -1`
+    2. Bash: `bd comments add {issue_id} -f temp/{issue_id}-impl.md`
+    3. Bash: `bd comments {issue_id} --json`
     4. If `bd comments add` fails, retry up to 3 times with `sleep 2` between attempts.
 
     ## Verdict (Final Message)
