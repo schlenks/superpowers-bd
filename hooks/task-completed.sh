@@ -23,22 +23,8 @@ task_subject=$(echo "$INPUT" | jq -r '.task_subject // ""')
 task_description=$(echo "$INPUT" | jq -r '.task_description // ""')
 task_id=$(echo "$INPUT" | jq -r '.task_id // ""')
 
-# Determine log directory — prefer CLAUDE_PROJECT_DIR, fall back to cwd/.claude
-LOG_DIR="${CLAUDE_PROJECT_DIR:-.}/.claude"
-mkdir -p "$LOG_DIR" 2>/dev/null || true
-LOG_FILE="${LOG_DIR}/quality-gate.log"
-
-log_result() {
-  local result="$1"
-  local reason="$2"
-  local ts
-  ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-  echo "${ts} ${result} task=${task_id} subject=\"${task_subject}\" reason=\"${reason}\"" >> "$LOG_FILE" 2>/dev/null || true
-}
-
 # --- Bypass check ---
 if echo "$task_subject" | grep -qi '\[skip-gate\]'; then
-  log_result "ALLOWED" "skip-gate bypass"
   exit 0
 fi
 
@@ -48,7 +34,6 @@ subject_lower=$(echo "$task_subject" | tr '[:upper:]' '[:lower:]')
 if echo "$subject_lower" | grep -qE '(verify|verification)'; then
   # Check for evidence markers in description
   if [ -z "$task_description" ]; then
-    log_result "BLOCKED" "verification task with empty description"
     echo "BLOCKED: Verification task \"${task_subject}\" has no description. Add evidence of what was verified (e.g., test output, exit codes, confirmation of results) before completing." >&2
     exit 2
   fi
@@ -63,7 +48,6 @@ if echo "$subject_lower" | grep -qE '(verify|verification)'; then
   done
 
   if [ "$evidence_found" = false ]; then
-    log_result "BLOCKED" "verification task without evidence markers"
     echo "BLOCKED: Verification task \"${task_subject}\" lacks evidence. Before completing, update the task description with concrete evidence: test output, exit codes, command results, or confirmation of what was verified." >&2
     exit 2
   fi
@@ -98,12 +82,10 @@ if echo "$subject_lower" | grep -qE '(implement|close evidence)'; then
 
   if [ ${#missing[@]} -gt 0 ]; then
     missing_str=$(IFS=', '; echo "${missing[*]}")
-    log_result "BLOCKED" "implementation task missing: ${missing_str}"
     echo "BLOCKED: Task \"${task_subject}\" lacks completion evidence. Missing: ${missing_str}. Update task description with: commit hash (git rev-parse --short HEAD), files changed (git diff --stat), and test results before completing." >&2
     exit 2
   fi
 fi
 
 # --- All checks passed ---
-log_result "ALLOWED" "all checks passed"
 exit 0

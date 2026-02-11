@@ -77,8 +77,8 @@ run_test "Verification task with evidence: marker passes" \
   0
 
 # --- Test 6: Non-verification task → exit 0 ---
-run_test "Non-verification task always passes" \
-  '{"task_id":"t-006","task_subject":"Implement login form","task_description":"Added form with email/password fields"}' \
+run_test "Non-verification non-implementation task passes" \
+  '{"task_id":"t-006","task_subject":"Update login form styling","task_description":"Added form with email/password fields"}' \
   0
 
 # --- Test 7: Non-verification task with no description → exit 0 ---
@@ -114,32 +114,12 @@ run_test "Verification word in subject triggers check" \
   2 \
   "BLOCKED"
 
-# --- Test 13: Audit log written ---
-run_test "Audit log entry created" \
-  '{"task_id":"t-013","task_subject":"Simple task","task_description":"Done"}' \
-  0
-
-if [ -f "$TEST_DIR/.claude/quality-gate.log" ]; then
-  log_lines=$(wc -l < "$TEST_DIR/.claude/quality-gate.log" | tr -d ' ')
-  if [ "$log_lines" -gt 0 ]; then
-    echo "PASS: Audit log has $log_lines entries"
-    PASS=$((PASS + 1))
-  else
-    echo "FAIL: Audit log exists but is empty"
-    FAIL=$((FAIL + 1))
-  fi
-else
-  echo "FAIL: Audit log not created at $TEST_DIR/.claude/quality-gate.log"
-  FAIL=$((FAIL + 1))
-fi
-TOTAL=$((TOTAL + 1))
-
-# --- Test 14: Verification with 'pass' in description → exit 0 ---
+# --- Test 13: Verification with 'pass' in description → exit 0 ---
 run_test "Verification with pass keyword succeeds" \
-  '{"task_id":"t-014","task_subject":"Verify integration","task_description":"All integration tests pass"}' \
+  '{"task_id":"t-013","task_subject":"Verify integration","task_description":"All integration tests pass"}' \
   0
 
-# --- Test 15: Missing fields handled gracefully ---
+# --- Test 14: Missing fields handled gracefully ---
 run_test "Missing fields handled gracefully" \
   '{}' \
   0
