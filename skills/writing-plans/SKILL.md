@@ -17,6 +17,8 @@ Write comprehensive implementation plans assuming zero codebase context. Documen
 Create these 7 native tasks at plan start (each blocked by previous via addBlockedBy). Cannot call ExitPlanMode with pending tasks:
 
 1. **Write draft plan** -- Initial structure with all tasks, dependencies, file lists
+   - After saving the plan to disk, show a copy-pasteable `/compact` command with the **actual plan file path** substituted (not a placeholder). Format: `Plan written to {actual path}. Run this to free context for verification:` followed by the command on its own line: `/compact Verification phase. Plan saved to {actual path} — re-read it from disk for each verification pass. Next: task 2 (Plan Verification Checklist), then tasks 3-7 (rule-of-five-plans: Draft, Feasibility, Completeness, Risk, Optimality). Drop all research findings, approach comparisons, and decision rationale. The plan speaks for itself.`
+   - Wait for the user to confirm `/compact` is done, then proceed to task 2
 2. **Plan Verification Checklist** -- Complete/Accurate/Commands valid/YAGNI/Minimal/Not over-engineered
 3. **Rule-of-five-plans: Draft pass** -- Shape and structure
 4. **Rule-of-five-plans: Feasibility pass** -- Can every step be executed? Deps available? Paths valid?

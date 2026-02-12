@@ -2,6 +2,20 @@
 
 Announce each verification phase explicitly. This creates a visible audit trail.
 
+## After Draft Plan Saved
+
+After saving the plan file to disk, show a copy-pasteable `/compact` command with the **actual plan file path** (not a placeholder). Example output:
+
+```
+Plan written to docs/plans/2026-02-12-user-auth.md.
+
+Context is heavy from research. Run this to free context for verification:
+
+/compact Verification phase. Plan saved to docs/plans/2026-02-12-user-auth.md — re-read it from disk for each verification pass. Next: task 2 (Plan Verification Checklist), then tasks 3-7 (rule-of-five-plans: Draft, Feasibility, Completeness, Risk, Optimality). Drop all research findings, approach comparisons, and decision rationale. The plan speaks for itself.
+```
+
+Substitute the real path — the user should be able to copy-paste the `/compact` line directly. Wait for user confirmation before proceeding to verification.
+
 ## Before Checklist
 
 Mark "Plan Verification Checklist" todo in_progress, then announce:

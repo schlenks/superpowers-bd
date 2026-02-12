@@ -1,5 +1,23 @@
 # Superpowers Release Notes
 
+## v5.0.1 (2026-02-12) - Beads Fork
+
+### Enhancement: Context Recovery for Plan Verification
+
+Added a `/compact` checkpoint between plan writing and verification in the writing-plans skill. After the draft plan is saved to disk, the skill shows a copy-pasteable `/compact` command that frees research context before the 6 verification steps begin.
+
+**Problem:** After heavy codebase research during planning, context approaches exhaustion before verification (checklist + 5 rule-of-five-plans passes) can run. Research on LLM self-evaluation bias (Wataoka 2024, Xu ACL 2024, Jain 2025) shows same-context self-review suffers from perplexity-based familiarity, autoregressive conditioning, and agreeableness bias. Compaction removes 96-98% of priming context while preserving task state.
+
+**Solution:** After task 1 (Write Draft Plan) saves the plan file, the skill outputs a `/compact` command with targeted instructions: retain the plan path and verification protocol, drop all research findings, approach comparisons, and decision rationale. The plan on disk is the SSOT — each verification pass re-reads it fresh.
+
+**Why /compact over /clear:** 8-analyst consensus (LLM bias, Anthropic best practices, implementation complexity, UX friction, token budget, multi-review research, two devil's advocates). /compact preserves task enforcement model (tasks survive), avoids Issue #20797 (task orphaning after /clear), and requires ~15 lines vs ~100+ for /clear. Quality difference is untested — /clear remains the upgrade path if empirical data warrants it.
+
+**Files Modified (2):**
+- `skills/writing-plans/SKILL.md` — compact checkpoint after task 1
+- `skills/writing-plans/references/announcements-protocol.md` — announcement template with example
+
+---
+
 ## v5.0.0 (2026-02-11) - Beads Fork
 
 ### Feature: Artifact-Specific Rule-of-Five Variants (#16)
