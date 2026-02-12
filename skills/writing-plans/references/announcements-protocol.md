@@ -12,9 +12,11 @@ Plan written to docs/plans/2026-02-12-user-auth.md.
 Context is heavy from research. Run this to free context for verification:
 
 /compact Verification phase. Plan saved to docs/plans/2026-02-12-user-auth.md — re-read it from disk for each verification pass. Next: task 2 (Plan Verification Checklist), then tasks 3-7 (rule-of-five-plans: Draft, Feasibility, Completeness, Risk, Optimality). Drop all research findings, approach comparisons, and decision rationale. The plan speaks for itself.
+
+After compaction finishes, type `continue` to resume verification.
 ```
 
-Substitute the real path — the user should be able to copy-paste the `/compact` line directly. Wait for user confirmation before proceeding to verification.
+Substitute the real path — the user should be able to copy-paste the `/compact` line directly. The last line ("type `continue`") is critical — `/compact` doesn't give the model a turn, so the user must send a follow-up message to restart work.
 
 ## Before Checklist
 
