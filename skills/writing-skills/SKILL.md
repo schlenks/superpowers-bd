@@ -16,7 +16,7 @@ Skills use a 3-tier progressive disclosure model:
 
 This skill demonstrates the pattern it teaches: core workflow here, deep detail in `references/`.
 
-**REQUIRED:** superpowers:test-driven-development, superpowers:rule-of-five
+**REQUIRED:** superpowers:test-driven-development, superpowers:rule-of-five-plans
 
 ## Quick Start
 
@@ -43,7 +43,7 @@ This skill demonstrates the pattern it teaches: core workflow here, deep detail 
    ```bash
    npx claude-skills-cli validate <skill-dir> --lenient
    ```
-8. **Rule-of-five** if >50 lines -> commit
+8. **Rule-of-five-plans** if >50 lines -> commit
 
 ## SKILL.md Template
 

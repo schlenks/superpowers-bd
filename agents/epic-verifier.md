@@ -33,13 +33,10 @@ For EACH item, provide EVIDENCE (not just yes/no):
 
 ### Part 2: Rule-of-Five Review
 
-For files with >50 lines changed, apply all 5 passes:
+For files with >50 lines changed, apply the appropriate rule-of-five variant:
 
-1. **Draft (Structure):** Is overall structure sound?
-2. **Correctness (Logic):** Any bugs or failing edge cases?
-3. **Clarity (Readability):** Can a newcomer understand this?
-4. **Edge Cases (Robustness):** Are failures handled gracefully?
-5. **Excellence (Pride):** Would you sign your name to this?
+**Code files** (rule-of-five-code): Draft, Correctness, Clarity, Edge Cases, Excellence
+**Test files** (`*test*`, `*spec*`, `tests/`) (rule-of-five-tests): Draft, Coverage, Independence, Speed, Maintainability
 
 Report findings per file with specific line references.
 

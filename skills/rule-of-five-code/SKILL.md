@@ -1,9 +1,9 @@
 ---
-name: rule-of-five
-description: Use when writing 50+ lines of code/docs, creating plans, implementing features, or before claiming work complete - apply 5 focused passes (Draft, Correctness, Clarity, Edge Cases, Excellence) to catch issues single-shot generation misses
+name: rule-of-five-code
+description: Use when writing 50+ lines of code, implementing features, refactoring, or before claiming code work complete - apply 5 focused passes (Draft, Correctness, Clarity, Edge Cases, Excellence) to catch issues single-shot generation misses
 ---
 
-# Rule of Five
+# Rule of Five — Code
 
 Each pass has ONE job. Re-read the entire artifact through that lens. See `references/pass-order-rationale.md` for order rationale and convergence details.
 
@@ -47,11 +47,13 @@ For each pass: re-read the full artifact, evaluate through that lens only, make 
 
 ## Detection Triggers
 
-Invoke when: >50 lines written/modified, new public API/interface/component, implementation plan/design doc, complex multi-file refactoring, security-sensitive changes, or about to claim "done".
+Invoke when: >50 lines of code written/modified, new public API/interface/component, complex multi-file refactoring, security-sensitive changes, or about to claim code work "done".
+
+For plans/design docs/skills, use `rule-of-five-plans`. For tests, use `rule-of-five-tests`.
 
 Skip for: Single-line fixes, typo corrections, trivial changes under 20 lines.
 
-Announce: "Applying rule-of-five to [artifact]. Starting 5-pass review."
+Announce: "Applying rule-of-five-code to [artifact]. Starting 5-pass review."
 
 ## The 5 Passes
 

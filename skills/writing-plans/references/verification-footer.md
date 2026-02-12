@@ -19,14 +19,14 @@ Every plan MUST end with this Verification Record. Plans without it will be reje
 | Key Decisions documented | check/cross | [count of decisions] |
 | Context sections present | check/cross | [tasks with Purpose/Not In Scope/Gotchas] |
 
-### Rule-of-Five Passes
+### Rule-of-Five-Plans Passes
 | Pass | Changes Made |
 |------|--------------|
 | Draft | [initial structure, N tasks] |
-| Correctness | [specific fixes or "none needed"] |
-| Clarity | [specific improvements or "none needed"] |
-| Edge Cases | [additions or "none needed"] |
-| Excellence | [polish or "none needed"] |
+| Feasibility | [specific fixes or "none needed"] |
+| Completeness | [gaps filled or "none needed"] |
+| Risk | [mitigations added or "none needed"] |
+| Optimality | [simplifications or "none needed"] |
 ```
 
 This record proves verification happened and documents what changed.

@@ -25,7 +25,7 @@ TaskCreate: "RED: Write failing test (baseline)"
   activeForm: "Running baseline tests"
 
 TaskCreate: "GREEN: Write minimal skill"
-  description: "Write skill addressing specific baseline failures. Run scenarios WITH skill and verify compliance. Apply rule-of-five."
+  description: "Write skill addressing specific baseline failures. Run scenarios WITH skill and verify compliance. Apply rule-of-five-plans."
   activeForm: "Writing skill"
   addBlockedBy: [red-task-id]
 

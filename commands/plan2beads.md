@@ -107,8 +107,8 @@ Record: ___ files changed, ___ insertions, ___ deletions
 - [ ] Build succeeds: `pnpm build` -> Result: ___
 - [ ] Typecheck passes: `pnpm typecheck` -> Result: ___
 
-### Step 3: Rule-of-five on significant changes
-For files with >50 lines changed:
+### Step 3: Rule-of-five-code on significant code changes
+For code files with >50 lines changed:
 - [ ] Pass 1 (Draft): Structure correct?
 - [ ] Pass 2 (Correctness): Any bugs?
 - [ ] Pass 3 (Clarity): Understandable to newcomers?
@@ -127,12 +127,12 @@ Deviations (if any): ___
 
 ### Step 5: Final confirmation
 - [ ] All automated checks pass
-- [ ] Rule-of-five completed on significant changes
+- [ ] Rule-of-five-code completed on significant code changes
 - [ ] Engineering checklist all items marked
 - [ ] Ready for merge/PR
 ```
 
-Create: `bd create --silent --parent hub-abc "Epic Verification" --body-file temp/hub-abc-verification.md --deps "hub-abc.1,hub-abc.2,..." --acceptance "All checks pass; Rule-of-five on >50 lines; Engineering checklist complete; No unmarked items" -p 1`
+Create: `bd create --silent --parent hub-abc "Epic Verification" --body-file temp/hub-abc-verification.md --deps "hub-abc.1,hub-abc.2,..." --acceptance "All checks pass; Rule-of-five-code on >50 lines; Engineering checklist complete; No unmarked items" -p 1`
 `--deps` must include ALL implementation task IDs.
 
 ### Step 4: Verify Dependencies

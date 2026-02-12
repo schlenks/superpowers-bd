@@ -3,7 +3,7 @@
 ## Full Workflow
 
 ```
-writing-plans -> Plan Verification -> rule-of-five -> Human Review -> /clear -> plan2beads -> /clear -> subagent-driven
+writing-plans -> Plan Verification -> rule-of-five-plans -> Human Review -> /clear -> plan2beads -> /clear -> subagent-driven
                       |                   |              |            |        |           |            |
                  Scope check         Quality polish  Approve/Edit  Reclaim  bd verify   Reclaim     Parallel
                                                                    context              context     execution

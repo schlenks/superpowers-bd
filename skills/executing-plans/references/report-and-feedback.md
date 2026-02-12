@@ -6,14 +6,14 @@
 
 ```
 TaskCreate: "Batch N complete - report for feedback"
-  description: "Report: what implemented, verification output, rule-of-five passes applied. Then wait for human feedback."
+  description: "Report: what implemented, verification output, rule-of-five variant passes applied. Then wait for human feedback."
   activeForm: "Reporting batch completion"
 ```
 
 When batch complete:
 - Show what was implemented
 - Show verification output
-- Note any rule-of-five passes applied to significant artifacts
+- Note any rule-of-five variant passes applied to significant artifacts
 - Show newly unblocked issues: `bd ready`
 - Say: "Ready for feedback."
 - **Mark checkpoint task as `completed`**

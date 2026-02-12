@@ -17,10 +17,10 @@ Each item's # matches the roadmap. Items are grouped by impact tier.
 ### HIGH IMPACT
 
 **#3 — File ownership enforcement via hooks**
-Proactive conflict prevention. `PreToolUse` hook on `Edit|Write` checks wave file map and blocks edits to files owned by other agents. **BLOCKED on TWO issues:** (1) `$AGENT_NAME` does not exist for regular subagents ([Issue #16126](https://github.com/anthropics/claude-code/issues/16126)), (2) PreToolUse hooks do not fire for subagent tool calls ([Issue #21460](https://github.com/anthropics/claude-code/issues/21460)). Six related hook enforcement issues span Aug 2025–Jan 2026 with zero Anthropic resolution. Primary approach is now prompt-based (#15), validated by Anthropic's C compiler project at production scale. Hook enforcement is a future defense-in-depth layer. Moved to P5. Source: Hook-based.
+Proactive conflict prevention. `PreToolUse` hook on `Edit|Write` checks wave file map and blocks edits to files owned by other agents. **BLOCKED on TWO issues:** (1) `$AGENT_NAME` does not exist for regular subagents ([Issue #16126](https://github.com/anthropics/claude-code/issues/16126)), (2) PreToolUse hooks do not fire for subagent tool calls ([Issue #21460](https://github.com/anthropics/claude-code/issues/21460)). Six related hook enforcement issues span Aug 2025–Jan 2026 with zero Anthropic resolution. Primary approach is now prompt-based (#15), validated by Anthropic's C compiler project at production scale. Hook enforcement is a future defense-in-depth layer. Moved to P5. Source: Hook-based. **Demoted P5→Icebox (2026-02-11).** Both upstream blockers (#16126, #21460) open 6+ months with zero resolution. Prompt-based approach (#15) provides 4 defense layers: ownership list, wave file map, self-review checkpoint, SCOPE verdict. Hook enforcement is marginal defense-in-depth.
 
 **#4 — Strict SSOT: Query, Don't Track**
-Prevents state drift bugs. Instead of caching task state in skills, always query beads for truth. The SDD skill already follows this pattern (queries `bd ready` at every loop iteration). This is a design principle to codify, not a code change. "Skills MUST NOT cache beads query results across wave boundaries." Source: Distributed systems SSOT principle.
+Prevents state drift bugs. Instead of caching task state in skills, always query beads for truth. The SDD skill already follows this pattern (queries `bd ready` at every loop iteration). This is a design principle to codify, not a code change. "Skills MUST NOT cache beads query results across wave boundaries." Source: Distributed systems SSOT principle. **Removed (2026-02-11).** Already implemented through concrete guard rules: SDD "Always: check bd ready before each wave" (SKILL.md:75), executing-plans "Check bd ready before each batch" (SKILL.md:66), recovery paths "fall back to beads as SSOT" (checkpoint-recovery.md:46, failure-recovery.md:111). Abstract principle adds no enforcement the guard rules don't already provide.
 
 **#5 — TaskCompleted hook for quality gates**
 Hard enforcement at task completion. `TaskCompleted` hook exits with code 2 to block task completion if quality criteria not met. Can use `type: "agent"` for 50-turn code analysis hooks. The only hard enforcement mechanism that works for subagents. GA since v2.1.33. V2 Experiment A (2026-02-08): Headless `claude -p` mode: TaskCompleted NEVER fired (0/10). Manual verification (2026-02-08): Interactive `claude` mode: TaskCompleted FIRES. Conclusion: Interactive mode only. Source: Native hooks.
@@ -30,73 +30,73 @@ Reduces code complexity. Qualitative review already covered by 5+ existing skill
 
 ### MEDIUM IMPACT
 
-**#7** — Checkpoint classification: Binary `requires_human: true/false` flag on plan steps. Simplified from three-way taxonomy. Source: Inspired by get-shit-done.
+**#7** — Checkpoint classification: Binary `requires_human: true/false` flag on plan steps. Simplified from three-way taxonomy. Source: Inspired by get-shit-done. **Demoted P3→Icebox (2026-02-11).** Conflicts with full-automation philosophy — once plan approved and epic created, execution should be fully automated. Existing 3-strike escalation handles genuine blockers. Plans are almost exclusively coding tasks with zero non-automatable steps in practice.
 
-**#8** — Parallelize review pipelines: Reviews for different tasks run concurrently. Throughput parallelism, distinct from multi-review aggregation (#46). Source: Original research.
+**#8** — Parallelize review pipelines: Reviews for different tasks run concurrently. Throughput parallelism, distinct from multi-review aggregation (#46). Source: Original research. **Removed (2026-02-11).** Already implemented in background-execution.md: inter-task review parallelism with event-driven dispatch, run_in_background=True on all reviews, polling loop handles both implementations and reviews concurrently.
 
-**#9** — Parallel bd queries: 6x speedup via goroutines with pre-allocated result slice. 32s → 5s inbox load in Gastown. Source: Gastown §3.5.
+**#9** — Parallel bd queries: 6x speedup via goroutines with pre-allocated result slice. 32s → 5s inbox load in Gastown. Source: Gastown §3.5. **Deprioritized P5→P8 (2026-02-11).** SQLite+daemon migration eliminated the Dolt 32s bottleneck. All bd commands are sub-110ms via RPC. Max 4 sequential calls in SDD hot path. Requires upstream Go binary changes. **Removed — obsolete (2026-02-11).** Even at P8, the 82ms savings per wave is irrelevant against 5-30 min wave execution. Close.
 
-**#10** — Structured agent IDs: Validates task/bead IDs with parsing. Format: `<prefix>-<role>` or `<prefix>-<rig>-<role>-<name>`. Source: Gastown §2.1.
+**#10** — Structured agent IDs: Validates task/bead IDs with parsing. Format: `<prefix>-<role>` or `<prefix>-<rig>-<role>-<name>`. Source: Gastown §2.1. **Demoted P3→Icebox (2026-02-11).** Gastown §2.1 format assumes persistent named agents; superpowers-bd uses ephemeral anonymous Task tool dispatches. 4 of 6 ID types are generated by external systems (bd CLI, Claude Code runtime). $AGENT_NAME unavailable for regular subagents (#16126). No layer where structured IDs would be validated or enforced.
 
-**#11** — --fast mode for status: 60% faster status checks. Skip non-essential operations. 5s → 2s. Source: Gastown §3.1.
+**#11** — --fast mode for status: 60% faster status checks. Skip non-essential operations. 5s → 2s. Source: Gastown §3.1. **Removed — obsolete (2026-02-11).** SQLite migration dropped bd ready from ~5s (Dolt) to 82ms. All status commands sub-110ms. The performance problem no longer exists.
 
-**#12** — Template rendering for prompts: Consistent output formatting. Type-safe data injection. Source: Gastown §4.3.
+**#12** — Template rendering for prompts: Consistent output formatting. Type-safe data injection. Source: Gastown §4.3. **Demoted P6→Icebox (2026-02-11).** No code execution layer — prompts are LLM-interpreted, not machine-rendered. 15 stable template variables with manual registry in context-loading.md. Gastown §4.3 was for Go code templates, not applicable.
 
-**#13** — Health checks (doctor): Check for orphaned worktrees, prefix mismatches, stale agent beads, slow operations. Auto-fix common issues. Source: Gastown §2.2.
+**#13** — Health checks (doctor): Check for orphaned worktrees, prefix mismatches, stale agent beads, slow operations. Auto-fix common issues. Source: Gastown §2.2. **Removed — already done (2026-02-11).** bd doctor v0.49.6 runs 68 checks covering prefix mismatches, stale molecules, test pollution, sync status, and git state. Supports --fix auto-repair. Only minor gap is git-worktree orphan detection.
 
 **#14** — Completion evidence requirements: Tasks can only close with proof (commit hash, files changed, test results, coverage delta). `TaskCompleted` hook verifies before accepting. Source: Native hooks.
 
 **#15** — File ownership declared in task definition: Conflicts computed at dispatch time. Each task declares owned files in description. Orchestrator serializes `{wave_file_map}` table into each implementer prompt showing all agents' file assignments. No file I/O — eliminates permission prompts and cleanup. Absorbs #2. Prompt-based enforcement validated by [Anthropic's C compiler project](https://www.anthropic.com/engineering/building-c-compiler) at production scale. Source: Hook-based + Anthropic engineering.
 
-**#16** — Artifact-specific rule-of-five variants: Code: Draft→Correctness→Clarity→Edge Cases→Excellence. Plans: Draft→Feasibility→Completeness→Risk→Optimality. Tests: Draft→Coverage→Independence→Speed→Maintainability. Source: Original research.
+**#16** — Artifact-specific rule-of-five variants: Code (`rule-of-five-code`): Draft→Correctness→Clarity→Edge Cases→Excellence. Plans (`rule-of-five-plans`): Draft→Feasibility→Completeness→Risk→Optimality. Tests (`rule-of-five-tests`): Draft→Coverage→Independence→Speed→Maintainability. **DONE** (2026-02-11). Three separate skills with consistent naming, no router. Updated ~25 files (callers, docs, permissions). Source: Original research.
 
 ### LOWER IMPACT
 
-**#17** — DAG visualization: Tree view with status icons, tier view for parallel opportunities, critical path analysis. Source: Gastown §1.3.
+**#17** — DAG visualization: Tree view with status icons, tier view for parallel opportunities, critical path analysis. Source: Gastown §1.3. **Demoted P8→Icebox (2026-02-11).** bd graph already provides tree view with status icons and parallel tier identification (layer system). Only critical path analysis missing — low value for typical 4-8 task graphs.
 
-**#18** — Complexity scoring: 0-1 scale with estimated duration and confidence. Enables SLA tracking. Source: claude-flow.
+**#18** — Complexity scoring: 0-1 scale with estimated duration and confidence. Enables SLA tracking. Source: claude-flow. **Demoted P8→Icebox (2026-02-11).** 3-level complexity system (simple/standard/complex) already captures actionable value — maps to 3 model tiers. 0-1 continuous scale adds no routing decisions. LLM duration estimation unreliable. SLA tracking doesn't fit use case.
 
-**#19** — Adversarial security review: Test injection, auth bypass, privilege escalation, data leakage, DoS. Source: loom.
+**#19** — Adversarial security review: Test injection, auth bypass, privilege escalation, data leakage, DoS. Source: loom. **Demoted P8→Icebox (2026-02-11).** Security already covered by code-reviewer (trust boundary tracing, Critical severity), epic-verifier (Section 1.6 security scan), and multi-review aggregation (security findings protected from downgrade). External tools (Semgrep, CodeQL) better suited for dedicated adversarial review.
 
-**#20** — External verification (GPT 5.2-codex): Second opinion on critical code. Self-Agg may be as effective (SWR-Bench). Source: Original research.
+**#20** — External verification (GPT 5.2-codex): Second opinion on critical code. Self-Agg may be as effective (SWR-Bench). Source: Original research. **Demoted P8→Icebox (2026-02-11).** Self-Agg (#46, DONE) matches Multi-Agg per SWR-Bench (arXiv 2509.01494). No integration mechanism for external model APIs from Claude Code skills (no HTTP client, no API key management).
 
-**#21** — Agent-agnostic zombie detection: Read GT_AGENT env var, look up process names for Claude/Gemini/Codex/Cursor/etc. Source: Gastown §1.5.
+**#21** — Agent-agnostic zombie detection: Read GT_AGENT env var, look up process names for Claude/Gemini/Codex/Cursor/etc. Source: Gastown §1.5. **Demoted P8→Icebox (2026-02-11).** GT_AGENT is Gastown/tmux-specific. Claude Code's Task tool manages subagent lifecycle. Existing SDD failure recovery covers stuck subagents (polling loop, 3-strike escalation). Process-level detection not applicable.
 
-**#22** — Memorable agent identities: Adjective+noun names (GreenCastle, BlueLake). 4,278 unique combinations. Source: Research.
+**#22** — Memorable agent identities: Adjective+noun names (GreenCastle, BlueLake). 4,278 unique combinations. Source: Research. **Demoted P8→Icebox (2026-02-11).** Same blockers as #10. Subagents are ephemeral Task tool dispatches with no persistent identity. $AGENT_NAME unavailable (#16126). No UI surface — agents tracked by issue_id + role.
 
-**#23** — Git-backed context audit trail: `.context/` directory with JSON files, git commits on each update, SQLite index for queries. Source: Research.
+**#23** — Git-backed context audit trail: `.context/` directory with JSON files, git commits on each update, SQLite index for queries. Source: Research. **Demoted P8→Icebox (2026-02-11).** Five existing audit layers: file-modification log, TaskCompleted gate, bd close --reason, beads comments, session transcripts (.jsonl). RELEASE-NOTES explicitly removed redundant audit logging. Narrow remaining gap (cross-session queryable design decisions) doesn't justify complexity.
 
-**#24** — Pre-planning file conflict analysis: Compute waves during planning, not runtime. Pre-compute optimal groupings, surface in plan header. Source: Gastown + original research.
+**#24** — ~~Pre-planning file conflict analysis~~ **OBSOLETE** (2026-02-11): Superseded by `file-lists.md` (planners already told "shared files = no parallel"), SDD's `dispatch-and-conflict.md` (runtime conflict deferral), #15's `{wave_file_map}` (runtime visibility), and rule-of-five-plans Risk pass ("parallel conflicts"). Original proposal: Compute waves during planning, not runtime. Pre-compute optimal groupings, surface in plan header. Source: Gastown + original research.
 
 ### FROM SWE-AGENT RESEARCH
 
 **#25** — Linter guards on all edits: Run linter after edit (PostToolUse hook), surface error to Claude, prompt retry. SWE-agent ablation: 3pp improvement (15.0% → 18.0%). Frontmatter hooks verified working for subagents (2026-02-07). **DONE (2026-02-08):** `hooks/run-linter.sh` runs shellcheck (.sh) and jq (.json) after Write/Edit. Main thread coverage via `hooks/hooks.json` PostToolUse. Subagent coverage via `agents/code-reviewer.md` frontmatter hook chain. Graceful degradation if tools not installed. 8/8 unit tests pass. Source: SWE-agent ACI.
 
-**#26** — Succinct search results (max 50): Prevents context overflow in subagents. Source: SWE-agent ACI.
+**#26** — Succinct search results (max 50): Prevents context overflow in subagents. Source: SWE-agent ACI. **Removed — obsolete (2026-02-11).** Claude Code Grep tool has head_limit parameter + automatic truncation at 30K characters. Same reasoning as already-demoted #28.
 
-**#27** — Integrated edit feedback: Show file diff immediately after edit. Source: SWE-agent ACI.
+**#27** — Integrated edit feedback: Show file diff immediately after edit. Source: SWE-agent ACI. **Removed — obsolete (2026-02-11).** Claude Code Edit tool returns modified content in tool results natively. PostToolUse linter hooks (#25, DONE) provide additional feedback beyond SWE-agent's proposal.
 
 **#28** — 100-line file chunks: Mostly redundant — Claude Code's Read tool supports `offset`/`limit` natively. Demoted to P8. Source: SWE-agent ACI.
 
 ### FROM GASTOWN
 
-**#30** — Atomic spawn (NewSessionWithCommand): Eliminates race conditions in subagent spawning. Source: Gastown §15.
+**#30** — Atomic spawn (NewSessionWithCommand): Eliminates race conditions in subagent spawning. Source: Gastown §15. **Removed — obsolete (2026-02-11).** Task tool is a single atomic Claude Code primitive. Gastown's two-step tmux spawn race condition cannot occur. Archive already notes "Process termination: REMOVED — Gastown tmux-specific."
 
-**#31** — Validation tests for hook/skill configs: Prevents silent failures from misconfigured skills. Source: Gastown §11.
+**#31** — Validation tests for hook/skill configs: Prevents silent failures from misconfigured skills. Source: Gastown §11. **Demoted P7→Icebox (2026-02-11).** All 20 skills currently well-formed. Config changes rare post-v4.1.2. Claude Code validates at runtime. Revisit if adding new skills or hooks.
 
-**#32** — Batch lookups with SessionSet pattern: O(1) repeated queries instead of N+1 subprocess calls. Source: Gastown §3.4.
+**#32** — Batch lookups with SessionSet pattern: O(1) repeated queries instead of N+1 subprocess calls. Source: Gastown §3.4. **Deprioritized P5→P8 (2026-02-11).** Daemon RPC over Unix socket eliminates subprocess startup overhead. Max N=5 sequential calls in practice. Inherently sequential patterns (plan2beads creates with dependency chaining) cannot be batched. Requires upstream Go binary changes. **Removed — obsolete (2026-02-11).** Max N=5, inherently sequential patterns (plan2beads dependency chaining) can't be batched. Close.
 
 ### OPUS 4.6 & CLAUDE CODE 2.1.33+
 
 **#33** — 1M context: BETA ONLY. Monitor for GA release. Source: Opus 4.6.
 
-**#34** — 128K output: Available now. Full plans and reviews in single response. Source: Opus 4.6.
+**#34** — 128K output: Available now. Full plans and reviews in single response. Source: Opus 4.6. **Demoted P6→Icebox (2026-02-11).** Claude Code caps output at 32-64K tokens (bugs #24159, #24313 open). No skills constrain output length. When the cap is lifted, skills benefit automatically — nothing to implement.
 
 **#35** — Native agent teams: DEFERRED. ~7x token cost impractical for Max subscribers. Enable via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. Source: Opus 4.6.
 
-**#36** — Map task type to effort level: Claude Code's Task tool doesn't expose `output_config.effort` yet. Source: Opus 4.6 adaptive thinking.
+**#36** — Map task type to effort level: Claude Code's Task tool doesn't expose `output_config.effort` yet. Source: Opus 4.6 adaptive thinking. **Updated (2026-02-11).** Partially unblocked: session-level effort exists via CLAUDE_CODE_EFFORT_LEVEL (low/medium/high) and /model slider. Task tool still lacks per-subagent effort parameter. Existing model matrix (haiku/sonnet/opus by complexity) is a functional workaround. Per-Task effort dispatch remains the blocker. **Demoted P6→Icebox (2026-02-11).** Nothing to implement until Anthropic ships the feature. Model routing is the functional workaround.
 
-**#37** — Exploit ARC AGI 2 leap: Route complex problems to Opus 4.6 (68.8% ARC vs 37.6% before). Available now. Source: Opus 4.6 benchmarks.
+**#37** — Exploit ARC AGI 2 leap: Route complex problems to Opus 4.6 (68.8% ARC vs 37.6% before). Available now. Source: Opus 4.6 benchmarks. **Removed — already done (2026-02-11).** Complexity-based model routing (v4.5.0) routes complex→Opus on max-20x/max-5x tiers via COMPLEXITY_TO_IMPL matrix. ARC AGI 2 improvements are inherent to the Opus model, not something the plugin activates.
 
 **#38** — `memory` frontmatter: Persistent agent memory. Scopes: `user`, `project`, `local`. Source: Claude Code v2.1.33.
 
@@ -108,9 +108,9 @@ Reduces code complexity. Qualitative review already covered by 5+ existing skill
 
 **#42** — Hooks in frontmatter: Per-agent hooks bypassing [Issue #21460](https://github.com/anthropics/claude-code/issues/21460). VERIFIED (2026-02-07, Claude Code 2.1.37): Frontmatter PostToolUse hooks DO fire for subagent tool calls via `--agents`. 3/3 runs confirmed. Foundation for #25 and #3. Source: Claude Code v2.1.33.
 
-**#43** — --from-pr flag: Sessions auto-link to PRs. Source: Claude Code v2.1.27.
+**#43** — --from-pr flag: Sessions auto-link to PRs. Source: Claude Code v2.1.27. **Demoted P6→Icebox (2026-02-11).** --from-pr is a user CLI startup flag, not a plugin config. Review pipeline uses git SHAs not PR objects. User controls push timing so PRs may not exist during reviews.
 
-**#44** — Skill character budget scaling: 2% of context window. Source: Claude Code v2.1.32.
+**#44** — Skill character budget scaling: 2% of context window. Source: Claude Code v2.1.32. **Demoted P6→Icebox (2026-02-11).** All 20 skills well within frontmatter (80-250 chars of 1024 max) and body (52-128 lines of 150 max) budgets. 3-tier progressive disclosure model already handles overflow. Longer descriptions would hurt discovery.
 
 **#45** — Modernize agent frontmatter: SCOPE CORRECTED — `memory`, `maxTurns`, `tools` are agent-only fields. Actual scope: 2 agent definitions + 1 command + writing-skills guide. ~1.5 hours. Source: Codebase audit.
 

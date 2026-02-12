@@ -1,5 +1,88 @@
 # Superpowers Release Notes
 
+## v5.0.0 (2026-02-11) - Beads Fork
+
+### Feature: Artifact-Specific Rule-of-Five Variants (#16)
+
+The single `rule-of-five` skill has been split into three artifact-aware variants, each with tailored 5-pass definitions.
+
+**Problem:** The original rule-of-five applied code-centric passes (Correctness, Edge Cases) to all artifacts. Plans, skills, and test files have different quality dimensions — a plan needs feasibility and risk analysis, not edge case handling.
+
+**Solution:** Three variants with consistent naming:
+
+| Variant | Passes | Use for |
+|---------|--------|---------|
+| `rule-of-five-code` | Draft, Correctness, Clarity, Edge Cases, Excellence | Code files (renamed from `rule-of-five`) |
+| `rule-of-five-plans` | Draft, Feasibility, Completeness, Risk, Optimality | Plans, design docs, skills |
+| `rule-of-five-tests` | Draft, Coverage, Independence, Speed, Maintainability | Test files |
+
+**Routing:** Callers pick the variant by artifact type. The epic-verifier auto-routes: code files get `rule-of-five-code`, test files (`*test*`, `*spec*`, `tests/`) get `rule-of-five-tests`.
+
+**Callers updated (~25 files):**
+- `writing-plans` — 7 mandatory tasks now use plans variant (Feasibility/Completeness/Risk/Optimality instead of Correctness/Clarity/Edge Cases/Excellence)
+- `executing-plans` — routes to code or tests variant based on file type
+- `writing-skills` — skills are plans, now use plans variant
+- `epic-verifier` agent — auto-routes per file type
+- `plan2beads` — verification template uses code variant
+- `subagent-driven-development` — implementer prompt routes per file type
+
+**New Files (2 skill directories):**
+- `skills/rule-of-five-plans/SKILL.md` + `references/`
+- `skills/rule-of-five-tests/SKILL.md` + `references/`
+
+**Renamed:**
+- `skills/rule-of-five/` → `skills/rule-of-five-code/` (SKILL.md updated, references preserved)
+
+**Modified (~25 files):**
+- `CLAUDE.md`, `AGENTS.md`, `README.md` — directory listing and documentation
+- `agents/epic-verifier.md` — variant-aware routing
+- `commands/plan2beads.md` — verification template
+- `skills/epic-verifier/SKILL.md` + `verifier-prompt.md`
+- `skills/executing-plans/SKILL.md` + 2 references
+- `skills/subagent-driven-development/SKILL.md` + `implementer-prompt.md`
+- `skills/writing-plans/SKILL.md` + 4 references
+- `skills/writing-skills/SKILL.md` + 2 references
+
+---
+
+### Roadmap Complete (v6.9)
+
+All 9 active improvement items are DONE. The current roadmap is now complete — no open work items remain, for now!
+
+**Changes:**
+- P6, P7, P8 sections all marked DONE (empty)
+- #31 (validation tests) and #36 (per-subagent effort) demoted to Icebox — both blocked on external conditions
+- #9 (parallel bd queries) and #32 (batch lookups) removed as obsolete — SQLite migration eliminated the performance problems they targeted
+- New **Watch List** section: 6 iceboxed items with specific upstream triggers and "How to check" instructions for periodic review
+- "Next up" now reads: "None — roadmap complete"
+
+---
+
+### Key Decisions
+
+- **Three variants, no router** — Each caller picks the variant explicitly. A router skill would add indirection without value since the artifact type is always known at the call site.
+- **Plans variant for skills** — Skills are design documents, not code. Feasibility/Completeness/Risk/Optimality are more useful than Correctness/Edge Cases for skill authoring.
+- **Rename over alias** — `rule-of-five` → `rule-of-five-code` with no backward compatibility shim. Clean break prevents ambiguity about which variant to use.
+- **Roadmap complete, not abandoned** — Watch List with triggers keeps deferred items visible without cluttering the active roadmap.
+
+### Files Changed (~30)
+
+**New Files (2 directories):**
+- `skills/rule-of-five-plans/` (SKILL.md + references)
+- `skills/rule-of-five-tests/` (SKILL.md + references)
+
+**Renamed (1 directory):**
+- `skills/rule-of-five/` → `skills/rule-of-five-code/`
+
+**Modified (~25):**
+- Plugin manifests (version bump to 5.0.0)
+- `CLAUDE.md`, `AGENTS.md`, `README.md`
+- `SUPERPOWERS-BD-COMPREHENSIVE-IMPROVEMENTS.md` (v6.9, roadmap complete)
+- `docs/IMPROVEMENTS-ARCHIVE.md` (closure notes for #9, #31, #32, #36)
+- 2 agent/command files, 8 skill SKILL.md files, ~10 skill reference files
+
+---
+
 ## v4.6.0 (2026-02-11) - Beads Fork
 
 ### Feature: Checkpoint-Based Context Window Recovery for SDD

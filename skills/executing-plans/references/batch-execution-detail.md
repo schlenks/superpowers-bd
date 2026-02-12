@@ -16,8 +16,10 @@ For each ready issue:
 5. **REQUIRED BEFORE COMMIT:** Check for significant changes:
    - Run `git diff --cached --stat` (or `git diff --stat` if not yet staged)
    - For any file with >50 lines added/changed: **STOP**
-   - Invoke `Skill(superpowers:rule-of-five)` on each significant file
-   - Complete all 5 passes (Draft, Correctness, Clarity, Edge Cases, Excellence)
+   - Invoke the appropriate rule-of-five variant on each significant file:
+     - Code files: `Skill(superpowers:rule-of-five-code)` (Draft, Correctness, Clarity, Edge Cases, Excellence)
+     - Test files (`*test*`, `*spec*`, `tests/`): `Skill(superpowers:rule-of-five-tests)` (Draft, Coverage, Independence, Speed, Maintainability)
+   - Complete all 5 passes for the chosen variant
    - Stage any improvements from the review
    - Only THEN proceed to commit
 6. Commit the work

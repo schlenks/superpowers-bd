@@ -55,7 +55,9 @@ skills/                     # Core skill definitions (SKILL.md files)
   systematic-debugging/        # 4-phase root cause analysis
   verification-before-completion/  # Evidence before assertions
   epic-verifier/               # Post-implementation verification
-  rule-of-five/                # 5-pass quality review
+  rule-of-five-code/            # 5-pass code quality review
+  rule-of-five-plans/           # 5-pass plan/design doc review
+  rule-of-five-tests/           # 5-pass test quality review
   ...
 
 agents/                     # Subagent definitions for Task tool
@@ -103,7 +105,7 @@ Integration tests run headless Claude Code sessions and verify behavior by parsi
 
 2. **subagent-driven-development** uses state machine: `INIT → LOADING → DISPATCH → MONITOR → REVIEW → CLOSE → COMPLETE`
 
-3. **epic-verifier** runs engineering checklist (YAGNI, drift, tests, docs, security) and rule-of-five on files >50 lines changed
+3. **epic-verifier** runs engineering checklist (YAGNI, drift, tests, docs, security) and variant-aware rule-of-five on files >50 lines changed
 
 ## Writing Skills
 
@@ -112,7 +114,7 @@ Skills live in `skills/<skill-name>/SKILL.md`. Key conventions:
 - **Frontmatter**: Only `name` and `description` fields (max 1024 chars total)
 - **Description**: Must start with "Use when..." describing triggering conditions only (never summarize workflow)
 - **Testing required**: No skill without failing baseline test first
-- **Apply rule-of-five**: Skills >50 lines need 5-pass review (Draft→Correctness→Clarity→Edge Cases→Excellence)
+- **Apply rule-of-five variant**: Code >50 lines uses rule-of-five-code (Draft→Correctness→Clarity→Edge Cases→Excellence), plans/skills use rule-of-five-plans, tests use rule-of-five-tests
 
 See `skills/writing-skills/SKILL.md` for complete guide.
 

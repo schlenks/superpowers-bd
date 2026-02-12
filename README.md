@@ -46,20 +46,19 @@ Beads tracks **WHAT** work to do (features/epics, 1-4 hours). Claude's native ta
 
 12 skills enforce quality gates with task dependencies:
 - `systematic-debugging` - 4 phase tasks enforce "NO FIXES BEFORE ROOT CAUSE"
-- `rule-of-five` - 5 sequential pass tasks with dependencies
+- `rule-of-five-code` / `rule-of-five-plans` / `rule-of-five-tests` - 5 sequential pass tasks with dependencies (variant-aware)
 - `test-driven-development` - RED/GREEN/REFACTOR per feature
-- `writing-plans` - 7 tasks (draft + checklist + rule-of-five)
+- `writing-plans` - 7 tasks (draft + checklist + rule-of-five-plans)
 
 Skipping phases becomes visible in TaskList. Blocked tasks cannot be marked in_progress.
 
-### Rule-of-Five Quality Review (v4.0.4)
+### Rule-of-Five Quality Review (v4.0.4, variants v4.2.0)
 
-5-pass review required for any artifact >50 lines:
-1. **Draft** - Get it working
-2. **Correctness** - Verify logic and edge cases
-3. **Clarity** - Improve readability
-4. **Edge Cases** - Handle failures gracefully
-5. **Excellence** - Polish for production
+5-pass review required for any artifact >50 lines, with artifact-specific variants:
+
+**Code** (`rule-of-five-code`): Draft, Correctness, Clarity, Edge Cases, Excellence
+**Plans** (`rule-of-five-plans`): Draft, Feasibility, Completeness, Risk, Optimality
+**Tests** (`rule-of-five-tests`): Draft, Coverage, Independence, Speed, Maintainability
 
 Integrated into `writing-plans`, `executing-plans`, `writing-skills`, and implementer prompts.
 
@@ -80,7 +79,7 @@ Integrated into `writing-plans`, `executing-plans`, `writing-skills`, and implem
 
 **Solution:** Dedicated `epic-verifier` agent runs AFTER all implementation tasks close:
 - Engineering checklist: YAGNI, drift, test coverage, regressions, docs, security
-- Rule-of-five on files with >50 lines changed
+- Variant-aware rule-of-five on files with >50 lines changed
 - Produces PASS/FAIL verdict with file:line evidence
 - Does NOT fix issues - reports them for implementers to fix
 
@@ -204,7 +203,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/obra/superp
 
 6. **test-driven-development** - Activates during implementation. Enforces RED-GREEN-REFACTOR: write failing test, watch it fail, write minimal code, watch it pass, commit.
 
-7. **epic-verifier** - Activates when all implementation tasks close. Dedicated verification agent runs engineering checklist (YAGNI, drift, tests, docs, security) and rule-of-five on significant files. Produces PASS/FAIL verdict with evidence.
+7. **epic-verifier** - Activates when all implementation tasks close. Dedicated verification agent runs engineering checklist (YAGNI, drift, tests, docs, security) and variant-aware rule-of-five on significant files. Produces PASS/FAIL verdict with evidence.
 
 8. **finishing-a-development-branch** - Activates after verification passes. Presents options (merge/PR/keep/discard), cleans up worktree.
 
@@ -233,8 +232,10 @@ Fetch and follow instructions from https://raw.githubusercontent.com/obra/superp
 - **subagent-driven-development** - Wave-based orchestration with state machine, background execution, budget tier selection, and failure recovery
 
 **Verification**
-- **epic-verifier** - Dedicated agent for epic completion verification (YAGNI, drift, tests, docs, security, rule-of-five)
-- **rule-of-five** - 5-pass review for significant artifacts (Draft, Correctness, Clarity, Edge Cases, Excellence)
+- **epic-verifier** - Dedicated agent for epic completion verification (YAGNI, drift, tests, docs, security, variant-aware rule-of-five)
+- **rule-of-five-code** - 5-pass review for code (Draft, Correctness, Clarity, Edge Cases, Excellence)
+- **rule-of-five-plans** - 5-pass review for plans/design docs (Draft, Feasibility, Completeness, Risk, Optimality)
+- **rule-of-five-tests** - 5-pass review for tests (Draft, Coverage, Independence, Speed, Maintainability)
 
 **Beads Integration**
 - **beads** - Git-backed issue tracking skill

@@ -108,7 +108,7 @@ After each wave CLOSE, write a checkpoint to `temp/sdd-checkpoint-{epic_id}.json
 - **plan2beads** -- must run first to create epic
 - **superpowers:finishing-a-development-branch** -- after COMPLETE state
 - **superpowers:test-driven-development** -- subagents use for implementation
-- **superpowers:rule-of-five** -- subagents use for artifacts >50 lines
+- **superpowers:rule-of-five-code** / **rule-of-five-tests** -- subagents use for artifacts >50 lines (code or test variant)
 - **superpowers:executing-plans** -- alternative for parallel session
 
 ## Companion Files

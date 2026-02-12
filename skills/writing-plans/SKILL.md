@@ -10,7 +10,7 @@ Write comprehensive implementation plans assuming zero codebase context. Documen
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 **Context:** Run in a dedicated worktree (created by brainstorming skill).
 **Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
-**REQUIRED:** Before ExitPlanMode, run Plan Verification Checklist, then rule-of-five. Verify *what* before polishing *how* -- scope errors caught early save wasted polish on deleted tasks.
+**REQUIRED:** Before ExitPlanMode, run Plan Verification Checklist, then rule-of-five-plans. Verify *what* before polishing *how* -- scope errors caught early save wasted polish on deleted tasks.
 
 ## Mandatory Tasks (Enforcement)
 
@@ -18,11 +18,11 @@ Create these 7 native tasks at plan start (each blocked by previous via addBlock
 
 1. **Write draft plan** -- Initial structure with all tasks, dependencies, file lists
 2. **Plan Verification Checklist** -- Complete/Accurate/Commands valid/YAGNI/Minimal/Not over-engineered
-3. **Rule-of-five: Draft pass** -- Shape and structure
-4. **Rule-of-five: Correctness pass** -- Logic, accuracy, file paths
-5. **Rule-of-five: Clarity pass** -- Can someone unfamiliar follow this?
-6. **Rule-of-five: Edge Cases pass** -- What's missing? Error handling? Rollback?
-7. **Rule-of-five: Excellence pass** -- Polish for senior colleague
+3. **Rule-of-five-plans: Draft pass** -- Shape and structure
+4. **Rule-of-five-plans: Feasibility pass** -- Can every step be executed? Deps available? Paths valid?
+5. **Rule-of-five-plans: Completeness pass** -- Every requirement traced to a task?
+6. **Rule-of-five-plans: Risk pass** -- What could go wrong? Migration, breaking changes?
+7. **Rule-of-five-plans: Optimality pass** -- Simplest approach? YAGNI?
 
 See `references/task-enforcement-examples.md` for full TaskCreate blocks.
 
@@ -82,7 +82,7 @@ Expected: PASS
 
 ## Plan Verification Checklist
 
-Before rule-of-five, verify scope and accuracy:
+Before rule-of-five-plans, verify scope and accuracy:
 
 - **Complete** -- All requirements from brainstorming addressed?
 - **Accurate** -- File paths verified? (existing files exist, new files in correct locations)
@@ -101,7 +101,7 @@ Before rule-of-five, verify scope and accuracy:
 - Reference relevant skills by name
 - **Every task needs `Depends on:`, `Complexity:`, and `Files:`**
 - **Include `Purpose:`, `Not In Scope:`, `Gotchas:` where needed**
-- **Run Plan Verification Checklist before rule-of-five**
+- **Run Plan Verification Checklist before rule-of-five-plans**
 - **Announce each verification phase** (see `references/announcements-protocol.md`)
 - **Plan MUST end with Verification Record** (see `references/verification-footer.md`)
 - **After approval, follow execution handoff** (see `references/execution-handoff.md`)

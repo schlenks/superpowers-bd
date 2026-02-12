@@ -18,11 +18,11 @@ Running Plan Verification Checklist...
 - Context sections present: check/cross [tasks with Purpose/Not In Scope/Gotchas]
 ```
 
-## Before Each Rule-of-Five Pass
+## Before Each Rule-of-Five-Plans Pass
 
 Mark corresponding todo in_progress, then announce:
 
 ```
-Rule-of-five pass N: [Pass Name]
+Rule-of-five-plans pass N: [Pass Name]
 Changes made: [list specific changes or "none needed"]
 ```

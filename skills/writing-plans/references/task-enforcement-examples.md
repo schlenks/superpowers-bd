@@ -12,30 +12,30 @@ TaskCreate: "Plan Verification Checklist"
   activeForm: "Running verification checklist"
   addBlockedBy: [draft-task-id]
 
-TaskCreate: "Rule-of-five: Draft pass"
-  description: "Shape and structure. Get the outline right."
+TaskCreate: "Rule-of-five-plans: Draft pass"
+  description: "Shape and structure. All sections sketched, task list complete."
   activeForm: "Draft pass"
   addBlockedBy: [checklist-task-id]
 
-TaskCreate: "Rule-of-five: Correctness pass"
-  description: "Logic, accuracy, file paths. Does everything work?"
-  activeForm: "Correctness pass"
+TaskCreate: "Rule-of-five-plans: Feasibility pass"
+  description: "Can every step be executed? Deps available? Paths valid? Estimates realistic?"
+  activeForm: "Feasibility pass"
   addBlockedBy: [draft-pass-id]
 
-TaskCreate: "Rule-of-five: Clarity pass"
-  description: "Can someone unfamiliar follow this? Simplify."
-  activeForm: "Clarity pass"
-  addBlockedBy: [correctness-pass-id]
+TaskCreate: "Rule-of-five-plans: Completeness pass"
+  description: "Every requirement traced to a task? Gaps? Missing rollback?"
+  activeForm: "Completeness pass"
+  addBlockedBy: [feasibility-pass-id]
 
-TaskCreate: "Rule-of-five: Edge Cases pass"
-  description: "What's missing? Error handling? Rollback?"
-  activeForm: "Edge cases pass"
-  addBlockedBy: [clarity-pass-id]
+TaskCreate: "Rule-of-five-plans: Risk pass"
+  description: "What could go wrong? Migration, data loss, breaking changes, parallel conflicts?"
+  activeForm: "Risk pass"
+  addBlockedBy: [completeness-pass-id]
 
-TaskCreate: "Rule-of-five: Excellence pass"
-  description: "Polish. Would you show this to a senior colleague?"
-  activeForm: "Excellence pass"
-  addBlockedBy: [edge-cases-pass-id]
+TaskCreate: "Rule-of-five-plans: Optimality pass"
+  description: "Simplest approach? YAGNI? Could tasks be combined? Defend every task."
+  activeForm: "Optimality pass"
+  addBlockedBy: [risk-pass-id]
 ```
 
 ## Enforcement

@@ -74,8 +74,8 @@ Task tool:
     git diff --stat {base-sha}..{head-sha}
     ```
 
-    For files with >50 lines changed, you MUST apply the rule-of-five methodology.
-    Read the methodology: `skills/rule-of-five/SKILL.md`
+    For files with >50 lines changed, you MUST apply the appropriate rule-of-five variant.
+    Route per file: code files use `skills/rule-of-five-code/SKILL.md`, test files (`*test*`, `*spec*`, `tests/`) use `skills/rule-of-five-tests/SKILL.md`.
     Apply all 5 passes to each qualifying file. Your verdict is INVALID if Part 2 is skipped.
 
     If no files >50 lines changed:

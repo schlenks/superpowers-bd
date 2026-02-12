@@ -47,7 +47,7 @@ Task tool:
     3. Write tests (following TDD if issue says to)
     4. Verify implementation works
     5. Commit (conventional format: `feat:`, `fix:`, `refactor:`, etc.)
-    6. For artifacts >50 lines: apply rule-of-five (Draft, Correctness, Clarity, Edge Cases, Excellence)
+    6. For artifacts >50 lines: apply the appropriate rule-of-five variant — `rule-of-five-code` (Draft, Correctness, Clarity, Edge Cases, Excellence) for code, `rule-of-five-tests` (Draft, Coverage, Independence, Speed, Maintainability) for test files
     7. Self-review, then report back
 
     Work from: {working_directory}
@@ -59,7 +59,7 @@ Task tool:
 
     - **File Scope:** Only modified allowed files? Any wave file map conflicts?
     - **Completeness:** All requirements implemented? Edge cases handled?
-    - **Quality:** Names clear? Code clean? Rule-of-five applied if >50 lines?
+    - **Quality:** Names clear? Code clean? Rule-of-five variant applied if >50 lines?
     - **Discipline:** No overbuilding (YAGNI)? Followed existing codebase patterns?
     - **Testing:** Tests verify behavior (not mocks)? TDD if required? Comprehensive?
 
@@ -83,7 +83,7 @@ Task tool:
        - What you implemented (1-2 sentences)
        - **Files actually modified** (MUST match allowed list)
        - Self-review findings (if any)
-       - Rule-of-five passes applied (if artifact >50 lines)
+       - Rule-of-five variant passes applied (if artifact >50 lines)
        - Any issues or concerns
        - **File scope violations** (if any)
        ```
