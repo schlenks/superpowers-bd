@@ -9,7 +9,7 @@
     {
       "name": "superpowers-bd",
       "description": "Beads-integrated fork of Superpowers: TDD, debugging, collaboration patterns with git-backed issue tracking and wave-based parallel execution",
-      "version": "5.0.1",
+      "version": "5.0.2",
       "source": "./",
       "author": {
         "name": "Doug Schlenker",

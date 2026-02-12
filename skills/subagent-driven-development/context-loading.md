@@ -31,7 +31,7 @@ These fields stay in the dispatch prompt (small, safety-critical):
 | `{file_ownership_list}` | Must be immediately visible for scope guard | 3-10 lines |
 | `{wave_file_map}` | Shows all agents' file assignments for conflict awareness | 5-15 lines |
 | `{dependency_ids}` | Tells sub-agent which issues are already done | 1-3 lines |
-| `{base_sha}`, `{head_sha}` | Reviewers need these for diff (not in beads) | 2 lines |
+| `{base_sha}`, `{head_sha}` | Reviewers need these for diff (not in beads). `base_sha` = `git rev-parse HEAD` captured before wave dispatch. `head_sha` = implementer's COMMIT verdict field. See dispatch-and-conflict.md. | 2 lines |
 | `{code_reviewer_path}` | Code reviewers read methodology from disk (119 lines not in prompt) | 1 line |
 | `{wave_number}` | For tagging beads comments | 1 line |
 

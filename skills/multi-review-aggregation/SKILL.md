@@ -39,7 +39,8 @@ ALL N reviewers return `VERDICT: APPROVE` with `CRITICAL: 0` and `IMPORTANT: 0` 
 |-----------|--------|
 | All reviewers agree on severity | Keep that severity |
 | Reviewers disagree | Use highest severity |
-| **Lone finding** (found by only 1 of N) | Downgrade one level |
+| **Lone finding** Critical or Important | **Keep original severity** (no downgrade) |
+| **Lone finding** Minor | Downgrade to Suggestion |
 | Lone finding BUT security or data-loss | **Keep original severity** (no downgrade) |
 
 Severity levels: Critical > Important > Minor > Suggestion

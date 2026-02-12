@@ -1,5 +1,52 @@
 # Superpowers Release Notes
 
+## v5.0.2 (2026-02-12) - Beads Fork
+
+### Fix: Code Reviewer Methodology Deduplication
+
+Eliminated duplicate methodology between `agents/code-reviewer.md` and `skills/requesting-code-review/code-reviewer.md`. The agent body now delegates to the canonical file via self-read instead of duplicating 65 lines of methodology.
+
+**Problem:** Both files contained identical 7-step review methodology, precision gate, severity levels, and evidence protocol. Any edit to one required manually updating the other — drift was inevitable.
+
+**Solution:** `agents/code-reviewer.md` body replaced with a 4-line self-read instruction: Glob for `**/requesting-code-review/code-reviewer.md`, Read, follow. The canonical methodology lives in one place. The parity test (`test-reviewer-prompt-parity.sh`) now verifies the delegation contract instead of content identity.
+
+**Files Modified (2):**
+- `agents/code-reviewer.md` — replaced duplicated methodology with self-read delegation
+- `tests/claude-code/test-reviewer-prompt-parity.sh` — updated to verify delegation contract
+
+---
+
+### Fix: Lone Finding Downgrade Scoped to Minor Only
+
+Changed multi-review aggregation so lone Critical and Important findings are never downgraded. Previously, any lone finding (found by only 1 of N reviewers) was downgraded one severity level, which could bury real bugs.
+
+**Problem:** A genuine Important logic error found by one reviewer became Minor after aggregation. The security/data-loss exception protected the worst cases, but non-security bugs at Critical or Important severity were still silently softened.
+
+**Solution:** Only Minor lone findings are downgraded (to Suggestion). Critical and Important lone findings keep their original severity — a real bug found by one reviewer is still a real bug. The security/data-loss exception remains for Minor findings.
+
+**Files Modified (4):**
+- `skills/multi-review-aggregation/SKILL.md` — severity voting table
+- `skills/multi-review-aggregation/references/aggregation-details.md` — detailed rules and prose
+- `skills/multi-review-aggregation/aggregator-prompt.md` — aggregator sub-agent prompt
+- `skills/multi-review-aggregation/references/output-provenance.md` — provenance annotation examples
+
+---
+
+### Fix: Explicit base_sha Capture in SDD Pipeline
+
+Added explicit documentation for when and where `base_sha` and `head_sha` are captured during wave dispatch and review pipeline.
+
+**Problem:** `base_sha` and `head_sha` were used in review dispatch pseudocode but never assigned — orchestrators had to improvise capture timing, risking incorrect diff ranges.
+
+**Solution:** `wave_base_sha` captured via `git rev-parse HEAD` before any implementer dispatches, stored per-task. `head_sha` extracted from implementer's `COMMIT` verdict field in `on_implementer_complete`, then retrieved explicitly in `on_spec_review_pass`. Known limitation documented: parallel commits in same wave cause bounded diff noise (non-overlapping files by design).
+
+**Files Modified (3):**
+- `skills/subagent-driven-development/background-execution.md` — dispatch phase capture, event handler retrieval
+- `skills/subagent-driven-development/dispatch-and-conflict.md` — wave_base_sha in parallel dispatch pseudocode
+- `skills/subagent-driven-development/context-loading.md` — documented capture timing in orchestrator fields table
+
+---
+
 ## v5.0.1 (2026-02-12) - Beads Fork
 
 ### Enhancement: Context Recovery for Plan Verification

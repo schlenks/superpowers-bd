@@ -15,12 +15,13 @@ Two findings are the same if they reference:
 |-----------|--------|
 | All reviewers agree on severity | Keep that severity |
 | Reviewers disagree | Use highest severity |
-| **Lone finding** (found by only 1 of N) | Downgrade one level |
+| **Lone finding** Critical or Important | **Keep original severity** (no downgrade) |
+| **Lone finding** Minor | Downgrade to Suggestion |
 | Lone finding BUT security or data-loss | **Keep original severity** (no downgrade) |
 
 Severity levels: Critical > Important > Minor > Suggestion
 
-Lone-finding downgrade: Critical -> Important, Important -> Minor, Minor -> Suggestion. Suggestion is the floor -- lone Suggestions stay at Suggestion.
+Lone-finding downgrade: Only Minor -> Suggestion. Critical and Important are never downgraded -- a real bug found by one reviewer is still a real bug. Suggestion is the floor -- lone Suggestions stay at Suggestion.
 
 ## Strengths Merging
 

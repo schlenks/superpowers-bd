@@ -7,7 +7,8 @@ Detailed provenance annotation rules and full format specification for aggregate
 Every finding in the aggregated report must include provenance showing which reviewers found it:
 
 - `[Reviewers: 1, 2]` -- found by multiple reviewers (no downgrade)
-- `[Reviewer: 2, downgraded from Important]` -- lone finding, shows original severity
+- `[Reviewer: 2]` -- lone Critical or Important finding (never downgraded)
+- `[Reviewer: 2, downgraded from Minor]` -- lone Minor finding, downgraded to Suggestion
 - `[Reviewer: 1, security]` -- lone finding, NOT downgraded (security/data-loss exemption)
 
 ## Full Output Format Specification
@@ -29,7 +30,7 @@ The aggregated report follows the same structure as a single code review:
 (or "(none)" if no important issues)
 
 ### Minor
-- [issue description] [Reviewer: X, downgraded from Important] -- file:line
+- [issue description] [Reviewers: X, Y] -- file:line
 (or "(none)" if no minor issues)
 
 ### Suggestion

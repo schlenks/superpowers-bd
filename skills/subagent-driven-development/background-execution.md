@@ -9,8 +9,14 @@ Use `run_in_background: true` with TaskOutput polling.
 ## Dispatch Phase
 
 ```python
-pending_tasks = {}  # task_id -> {issue_id, complexity, ...}
+pending_tasks = {}  # task_id -> {issue_id, complexity, base_sha, ...}
 task_ids = []
+
+# Capture pre-implementation SHA (see dispatch-and-conflict.md)
+# Note: all tasks in wave share this base. If A commits before B, B's review
+# diff will include A's files — non-overlapping by design, bounded noise.
+wave_base_sha = run("git rev-parse HEAD")
+
 for issue in parallelizable:
     bd update <issue.id> --status=in_progress
     # Read complexity label (set at plan time, see dispatch-and-conflict.md)
@@ -22,7 +28,11 @@ for issue in parallelizable:
         description=f"Implement: {issue.id} {issue.title}",
         prompt=implementer_prompt
     )
-    pending_tasks[result.task_id] = {"issue_id": issue.id, "complexity": issue.complexity}
+    pending_tasks[result.task_id] = {
+        "issue_id": issue.id,
+        "complexity": issue.complexity,
+        "base_sha": wave_base_sha  # stored for review dispatch
+    }
     task_ids.append(result.task_id)
 ```
 
@@ -106,6 +116,13 @@ Task C:       [implement]────[spec-C]────[code-C×3]──[agg-C
 
 ```python
 on_implementer_complete(task_id, result):
+    # Extract head_sha from implementer's COMMIT verdict field
+    head_sha = result.COMMIT  # e.g., "a7e2d4f" — from implementer-prompt.md structured verdict
+    base_sha = pending_tasks[task_id]["base_sha"]  # captured before wave dispatch
+
+    # Store SHAs for review pipeline (spec → code reviews use same range)
+    pending_tasks[task_id]["head_sha"] = head_sha
+
     # Resolve spec model from stored complexity (sonnet for complex on non-pro; haiku otherwise)
     task_complexity = pending_tasks[task_id]["complexity"]  # stored at dispatch time
     spec_model = "sonnet" if task_complexity == "complex" and budget_tier != "pro/api" else "haiku"
@@ -119,6 +136,8 @@ on_implementer_complete(task_id, result):
     pending_spec_reviews.add(spec_task)
 
 on_spec_review_pass(task_id, result):
+    base_sha = pending_tasks[task_id]["base_sha"]  # captured before wave dispatch
+    head_sha = pending_tasks[task_id]["head_sha"]   # from implementer's COMMIT verdict
     n_reviews = tier_n_reviews  # 3 for max-20x/max-5x, 1 for pro/api
 
     # Trivial change override: skip multi-review for tiny diffs

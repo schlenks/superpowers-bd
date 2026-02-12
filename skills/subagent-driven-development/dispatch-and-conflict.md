@@ -160,9 +160,13 @@ PARALLEL (new):
   TaskUpdate conflict-task status=completed  # with conflict report
   wave_file_map = build_wave_file_map(parallelizable)  # markdown table for {wave_file_map} slot
 
+  # Capture pre-implementation SHA BEFORE any implementer starts
+  wave_base_sha = run("git rev-parse HEAD")  # snapshot for all tasks in this wave
+
   TaskCreate "Wave N: Dispatch [list issues]"
   for issue in parallelizable:
     bd update <id> --status=in_progress
+    pending_tasks[issue.id]["base_sha"] = wave_base_sha  # store per-task for review dispatch
     dispatch_async(issue)  # Don't wait!
 
   while any_running:
