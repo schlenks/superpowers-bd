@@ -44,3 +44,22 @@ TaskCreate: "Rule-of-five-plans: Optimality pass"
 - Each task is blocked by the previous, enforcing the sequence
 - TaskList shows exactly where you are in the process
 - Skipping tasks is visible - blocked tasks cannot be marked in_progress
+
+## Sub-Agent Dispatch
+
+After compact + "continue", the main session drives this loop for tasks 2-7:
+
+```
+TaskUpdate(id, status: "in_progress")
+→ Announce: "Dispatching verification sub-agent: {pass_name}..."
+→ Task(subagent_type: "general-purpose", model: "sonnet",
+       description: "Verify plan: {pass_name}",
+       prompt: <verification template with pass definition inlined>)
+→ Collect verdict
+→ Announce: "{pass_name} verdict: {STATUS} — {SUMMARY}"
+→ If BLOCKED/FAIL: stop, report to user
+→ TaskUpdate(id, status: "completed")
+→ Next task
+```
+
+See `references/verification-dispatch.md` for full prompt templates and pass definitions.

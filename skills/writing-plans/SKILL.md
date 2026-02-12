@@ -27,7 +27,9 @@ Create these 7 native tasks at plan start (each blocked by previous via addBlock
 6. **Rule-of-five-plans: Risk pass** -- What could go wrong? Migration, breaking changes?
 7. **Rule-of-five-plans: Optimality pass** -- Simplest approach? YAGNI?
 
-See `references/task-enforcement-examples.md` for full TaskCreate blocks.
+**Tasks 2-7: Sub-Agent Dispatch.** After user types "continue", dispatch each pass sequentially as a **sonnet** sub-agent using the template in `references/verification-dispatch.md`. Mark each native task in_progress before dispatch, completed after collecting verdict. If any verdict is BLOCKED/FAIL, stop and report to user. After all 6 verdicts collected, assemble Verification Record (see `references/verification-footer.md`) and append to plan file.
+
+See `references/task-enforcement-examples.md` for full TaskCreate blocks and dispatch loop.
 
 ## Bite-Sized Task Granularity
 
@@ -115,6 +117,7 @@ Before rule-of-five-plans, verify scope and accuracy:
 - `references/dependency-analysis.md`: Identifying and expressing task dependencies
 - `references/file-lists.md`: File list format, parallel execution rules, and complexity estimation
 - `references/announcements-protocol.md`: Required announcement templates for verification phases
+- `references/verification-dispatch.md`: Sub-agent prompt templates and dispatch flow for verification passes
 - `references/verification-footer.md`: Plan Document Footer template (Verification Record)
 - `references/execution-handoff.md`: Post-plan workflow: plan2beads -> subagent-driven-development
 
