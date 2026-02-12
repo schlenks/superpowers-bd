@@ -1,6 +1,6 @@
 ---
 name: finishing-a-development-branch
-description: Use ONLY when ALL tasks in an epic or branch are closed and you are ready to integrate the entire body of work - never after individual task completions, never mid-epic
+description: Use when ALL tasks in an epic or branch are closed and you are ready to integrate the entire body of work - never after individual task completions, never mid-epic
 ---
 
 # Finishing a Development Branch
