@@ -4,7 +4,7 @@ description: "Import a Superpowers plan (Markdown) or Shortcut story into Beads 
 
 # plan2beads
 
-**REQUIRED BACKGROUND:** You MUST understand `superpowers:beads` before using this command.
+**REQUIRED BACKGROUND:** You MUST understand `superpowers-bd:beads` before using this command.
 
 > **Permission Avoidance Rules:**
 > - Use `--body-file temp/*.md` for multi-line descriptions (avoids newline issues)

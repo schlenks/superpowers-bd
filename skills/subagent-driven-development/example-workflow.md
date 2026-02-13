@@ -108,7 +108,7 @@ Wave 3: Task 4 is ready
 ╚══════════════════════════════════════════════╝
 For precise cost breakdown: analyze-token-usage.py <session>.jsonl
 
-[Use superpowers:finishing-a-development-branch]
+[Use superpowers-bd:finishing-a-development-branch]
 
 Done!
 ```

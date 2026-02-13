@@ -7,7 +7,7 @@ description: Use when user says "execute epic [id]" or when executing beads epic
 
 Execute beads epic by dispatching parallel subagents for independent issues, with two-stage review after each completion.
 
-**REQUIRED BACKGROUND:** You MUST understand `superpowers:beads` before using this skill.
+**REQUIRED BACKGROUND:** You MUST understand `superpowers-bd:beads` before using this skill.
 **Preconditions:** Beads epic exists with dependencies set. If not -> `plan2beads` first. If separate session -> `executing-plans` instead.
 **Announce at start:** "I'm using Subagent-Driven Development to execute beads epic [epic-id]."
 
@@ -106,10 +106,10 @@ After each wave CLOSE, write a checkpoint to `temp/sdd-checkpoint-{epic_id}.json
 ## Integration
 
 - **plan2beads** -- must run first to create epic
-- **superpowers:finishing-a-development-branch** -- after COMPLETE state
-- **superpowers:test-driven-development** -- subagents use for implementation
-- **superpowers:rule-of-five-code** / **rule-of-five-tests** -- subagents use for artifacts >50 lines (code or test variant)
-- **superpowers:executing-plans** -- alternative for parallel session
+- **superpowers-bd:finishing-a-development-branch** -- after COMPLETE state
+- **superpowers-bd:test-driven-development** -- subagents use for implementation
+- **superpowers-bd:rule-of-five-code** / **rule-of-five-tests** -- subagents use for artifacts >50 lines (code or test variant)
+- **superpowers-bd:executing-plans** -- alternative for parallel session
 
 ## Companion Files
 

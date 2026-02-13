@@ -53,7 +53,7 @@ Then say:
 
 ## Step 4: Execute
 
-**REQUIRED SUB-SKILL:** Use `superpowers:subagent-driven-development`
+**REQUIRED SUB-SKILL:** Use `superpowers-bd:subagent-driven-development`
 - Reads from beads epic (not markdown)
 - Parallel dispatch of non-conflicting tasks
 - Dependency-aware execution

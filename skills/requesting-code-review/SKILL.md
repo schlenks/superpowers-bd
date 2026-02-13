@@ -5,7 +5,11 @@ description: Use when completing tasks, implementing major features, or before m
 
 # Requesting Code Review
 
-Dispatch superpowers:code-reviewer subagent to catch issues before they cascade.
+Dispatch superpowers-bd:code-reviewer subagent to catch issues before they cascade.
+
+## Quick Access
+
+For ad-hoc review outside SDD: `/superpowers-bd:cr` (single) or `/superpowers-bd:cr N` (N independent reviewers, aggregated, max 10).
 
 ## When to Request Review
 
@@ -23,7 +27,7 @@ Dispatch superpowers:code-reviewer subagent to catch issues before they cascade.
 
 ## Multi-Review Mode
 
-For critical changes, dispatch N=3 independent reviews and aggregate per `superpowers:multi-review-aggregation` (118% recall improvement per SWR-Bench).
+For critical changes, dispatch N=3 independent reviews and aggregate per `superpowers-bd:multi-review-aggregation` (118% recall improvement per SWR-Bench).
 
 **When:** Changes >200 lines, security-sensitive, pre-merge to main, complex refactoring.
 
@@ -35,7 +39,7 @@ For critical changes, dispatch N=3 independent reviews and aggregate per `superp
 git log --oneline -10   # find the commit for Task 1, note the SHA
 BASE_SHA=<sha-from-above>
 HEAD_SHA=<from git rev-parse HEAD>
-[Dispatch superpowers:code-reviewer with plan context + SHAs]
+[Dispatch superpowers-bd:code-reviewer with plan context + SHAs]
 [Subagent returns: 4/4 requirements mapped, Important: missing progress indicators]
 [Fix -> Continue to next task]
 ```

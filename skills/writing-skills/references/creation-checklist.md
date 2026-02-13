@@ -26,7 +26,7 @@ Must complete before REFACTOR:
 - [ ] One excellent example (not multi-language)
 - [ ] Body ≤150 lines, reference table pointing to `references/` if needed
 - [ ] Run scenarios WITH skill — verify agents now comply
-- [ ] **Apply superpowers:rule-of-five-plans to skill document** (Draft→Feasibility→Completeness→Risk→Optimality)
+- [ ] **Apply superpowers-bd:rule-of-five-plans to skill document** (Draft→Feasibility→Completeness→Risk→Optimality)
 - [ ] Mark GREEN task as `completed`
 
 ## REFACTOR Phase — Close Loopholes

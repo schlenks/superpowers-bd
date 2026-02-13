@@ -7,7 +7,7 @@ description: Use when all implementation tasks in an epic are closed, before cal
 
 Dedicated verification agent for epic completion. Runs after all implementation tasks close, before finishing-a-development-branch. Builders build, verifiers verify -- separation prevents self-certification.
 
-**REQUIRED BACKGROUND:** Read `superpowers:verification-before-completion`, `superpowers:rule-of-five-code`, and `superpowers:rule-of-five-tests` SKILL.md files.
+**REQUIRED BACKGROUND:** Read `superpowers-bd:verification-before-completion`, `superpowers-bd:rule-of-five-code`, and `superpowers-bd:rule-of-five-tests` SKILL.md files.
 
 **Trigger:** All implementation tasks in epic show `status: closed`
 

@@ -17,7 +17,7 @@ The existing dispatch → review → close flow works unchanged for verification
 
 ## Verification Gap Closure
 
-After both reviews pass, apply `superpowers:verification-before-completion` with gap closure:
+After both reviews pass, apply `superpowers-bd:verification-before-completion` with gap closure:
 
 ```python
 on_code_review_pass(task_id, result):

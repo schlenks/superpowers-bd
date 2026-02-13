@@ -8,7 +8,7 @@ description: Use when you have a written implementation plan to execute in a sep
 Load beads epic, review critically, execute tasks in dependency-aware batches, report for review between batches.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
-**REQUIRED BACKGROUND:** Read `superpowers:beads` SKILL.md first (bd CLI usage, permission avoidance, dependency management).
+**REQUIRED BACKGROUND:** Read `superpowers-bd:beads` SKILL.md first (bd CLI usage, permission avoidance, dependency management).
 **Prerequisites:** Beads epic exists (via plan2beads), dependencies set (`bd blocked` shows expected blockers).
 
 ## The Process
@@ -22,7 +22,7 @@ Load beads epic, review critically, execute tasks in dependency-aware batches, r
 Batch = all currently ready issues (no blockers). For each:
 1. `bd update <id> --status=in_progress` then `bd show <id>`
 2. Follow each step exactly; run verifications as specified
-3. **REQUIRED:** `git diff --cached --stat` -- any file >50 lines changed -> apply the appropriate rule-of-five variant: `Skill(superpowers:rule-of-five-code)` for code, `Skill(superpowers:rule-of-five-tests)` for test files. Complete all 5 passes before proceeding
+3. **REQUIRED:** `git diff --cached --stat` -- any file >50 lines changed -> apply the appropriate rule-of-five variant: `Skill(superpowers-bd:rule-of-five-code)` for code, `Skill(superpowers-bd:rule-of-five-tests)` for test files. Complete all 5 passes before proceeding
 4. Commit the work
 5. `bd close <id>` -- unblocks dependent issues
 
@@ -38,7 +38,7 @@ Create blocked feedback + execution tasks to enforce checkpoint. Do NOT proceed 
 
 ### Step 5: Complete Development
 
-All epic issues closed -> verify with `bd show <epic-id>` -> hand off to `superpowers:finishing-a-development-branch`. See `references/completion-protocol.md`.
+All epic issues closed -> verify with `bd show <epic-id>` -> hand off to `superpowers-bd:finishing-a-development-branch`. See `references/completion-protocol.md`.
 
 ## Dependency-Aware Batching
 
@@ -73,8 +73,8 @@ STOP when: blocker mid-batch, no ready issues but open issues remain, unclear in
 ## Integration
 
 - **plan2beads** -- creates the epic (must run first)
-- **superpowers:finishing-a-development-branch** -- after all issues
-- **superpowers:subagent-driven-development** -- alternative: same session, parallel execution
+- **superpowers-bd:finishing-a-development-branch** -- after all issues
+- **superpowers-bd:subagent-driven-development** -- alternative: same session, parallel execution
 
 ## Reference Files
 

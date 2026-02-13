@@ -16,7 +16,7 @@ Skills use a 3-tier progressive disclosure model:
 
 This skill demonstrates the pattern it teaches: core workflow here, deep detail in `references/`.
 
-**REQUIRED:** superpowers:test-driven-development, superpowers:rule-of-five-plans
+**REQUIRED:** superpowers-bd:test-driven-development, superpowers-bd:rule-of-five-plans
 
 ## Quick Start
 

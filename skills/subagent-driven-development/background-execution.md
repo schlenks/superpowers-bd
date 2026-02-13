@@ -148,7 +148,7 @@ on_spec_review_pass(task_id, result):
 
     if n_reviews > 1:
         # Dispatch N independent code reviews in parallel
-        # See superpowers:multi-review-aggregation for full algorithm
+        # See superpowers-bd:multi-review-aggregation for full algorithm
         reviewer_tasks = []
         for i in range(n_reviews):
             code_task = Task(

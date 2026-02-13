@@ -92,9 +92,9 @@ git commit -m "..."                         # 6. Commit changes
 
 ## Integration with Skills
 
-- `superpowers:plan2beads`: convert markdown plan to epic with child tasks
-- `superpowers:writing-plans`: create plans with `Depends on:` and `Files:` sections
-- `superpowers:subagent-driven-development`: parallel execution with dependency awareness
+- `superpowers-bd:plan2beads`: convert markdown plan to epic with child tasks
+- `superpowers-bd:writing-plans`: create plans with `Depends on:` and `Files:` sections
+- `superpowers-bd:subagent-driven-development`: parallel execution with dependency awareness
 
 ## Reference Files
 

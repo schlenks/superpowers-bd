@@ -60,6 +60,6 @@ CRITICAL: Your final message must contain ONLY this structured verdict. No pream
     REPORT_PERSISTED: YES|NO
 ```
 
-**Multi-review mode (N>1):** Each reviewer dispatched independently with reviewer number suffix. Each persists own report. Reviews aggregated afterward via `superpowers:multi-review-aggregation`.
+**Multi-review mode (N>1):** Each reviewer dispatched independently with reviewer number suffix. Each persists own report. Reviews aggregated afterward via `superpowers-bd:multi-review-aggregation`.
 
 <!-- compressed: 2026-02-11, original: 460 words, compressed: 327 words -->
