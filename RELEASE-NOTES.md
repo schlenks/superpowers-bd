@@ -1,5 +1,41 @@
 # Superpowers Release Notes
 
+## v5.1.0 (2026-02-13) - Beads Fork
+
+### Feature: Ad-hoc Code Review Command (`/cr`)
+
+New slash command for on-demand code reviews outside the SDD pipeline. Supports single reviewer (`/cr`) or multi-reviewer with aggregation (`/cr N`, max 10).
+
+**Problem:** Code review was only available through the SDD pipeline's built-in review step. Quick reviews of uncommitted changes, single commits, or branch diffs required manually constructing reviewer prompts.
+
+**Solution:** `/cr` walks through scope selection (uncommitted changes, last commit, since last push, branch diff, or custom refs) and requirements source (beads task, commit messages, inline description, or skip), then dispatches review(s). Multi-review mode dispatches N independent reviewers in parallel with `run_in_background: true`, waits for all to complete, and aggregates findings using the canonical `aggregator-prompt.md` with ad-hoc overrides (no beads integration, no machine-readable verdict). Includes: `WORKING_TREE` sentinel for uncommitted changes, fallback chains for `@{push}` and `HEAD~1`, replacement reviewer path for single-failure recovery, and always-aggregate rule (no fast path that drops reports).
+
+**Files Added (2):**
+- `commands/cr.md` — slash command definition (193 lines)
+- `docs/plans/2026-02-13-review-command-design.md` — design document
+
+**Files Modified (1):**
+- `skills/requesting-code-review/SKILL.md` — added Quick Access section pointing to `/superpowers-bd:cr`
+
+---
+
+### Fix: Plugin Namespace Consistency (`superpowers:` → `superpowers-bd:`)
+
+Renamed all runtime skill/command cross-references from legacy `superpowers:` prefix to the correct `superpowers-bd:` prefix matching `plugin.json`.
+
+**Problem:** Plugin manifest declares namespace `superpowers-bd`, but ~25 runtime files still referenced skills and agents using the legacy `superpowers:` prefix. This caused silent resolution failures when Claude Code tried to match fully-qualified skill names.
+
+**Solution:** Updated all runtime cross-references across commands, skills, and references. Historical records (RELEASE-NOTES.md) and other-platform configs (.codex/, .opencode/) intentionally left unchanged.
+
+**Files Modified (25):**
+- `commands/brainstorm.md`, `write-plan.md`, `execute-plan.md`, `plan2beads.md` — command references
+- `skills/subagent-driven-development/SKILL.md` + 4 reference files — SDD pipeline references
+- `skills/epic-verifier/SKILL.md`, `writing-skills/SKILL.md`, `writing-plans/SKILL.md`, `executing-plans/SKILL.md`, `brainstorming/SKILL.md`, `beads/SKILL.md` — skill cross-references
+- `skills/writing-skills/references/` (3 files), `writing-plans/references/` (1 file), `executing-plans/references/` (2 files), `systematic-debugging/references/` (1 file) — reference files
+- `tests/subagent-driven-dev/go-fractals/plan.md`, `svelte-todo/plan.md` — test fixtures
+
+---
+
 ## v5.0.2 (2026-02-12) - Beads Fork
 
 ### Fix: Code Reviewer Methodology Deduplication
