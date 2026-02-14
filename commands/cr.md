@@ -96,6 +96,12 @@ Present the reviewer's structured report to the user. Done.
 
 ### Multi-Review (N>1)
 
+**Generate run ID:** Before dispatching, generate a timestamp for this run:
+```bash
+date +%Y%m%d-%H%M%S
+```
+Capture the output as `{RUN_TS}`. All reviewers in this run share the same timestamp, producing files like `temp/cr-review-1-20260214-153042.md`.
+
 **Dispatch N reviewers in parallel:**
 
 Send a single message with N Task tool calls, each with `run_in_background: true`:
@@ -114,9 +120,31 @@ Task (for each i from 1 to N):
     - PLAN_OR_REQUIREMENTS: {resolved_requirements}
 
     {UNCOMMITTED_OVERRIDE if HEAD_SHA == WORKING_TREE}
+
+    ## Report Persistence (MANDATORY)
+
+    Background task outputs are truncated by the platform. You MUST persist
+    your final structured report to a file as your LAST action before your
+    final message.
+
+    After completing your review and composing your structured report, write
+    it to this exact path using Bash. The heredoc delimiter MUST start at
+    column 0 (no leading spaces):
+
+    ```
+    cat <<'REPORT_EOF' > temp/cr-review-{i}-{RUN_TS}.md
+    [your complete structured report]
+    REPORT_EOF
+    ```
+
+    Then output the same report as your final message (normal behavior).
+    The file is the primary delivery mechanism — the final message is a
+    backup that may be truncated.
 ```
 
 **Wait for all N to complete.** Poll background tasks until all finish.
+
+**Collect reports:** For each reviewer (i from 1 to N), Read `temp/cr-review-{i}-{RUN_TS}.md`. If the file exists and is non-empty, use its content as that reviewer's report. If missing or empty (reviewer failed to persist), fall back to the TaskOutput content. If neither source has the report, mark that reviewer as failed.
 
 **Handle failures:** If any reviewer task fails or times out, exclude it from aggregation. If exactly 1 reviewer succeeded, present that reviewer's report and offer to dispatch a replacement reviewer. If the user accepts, dispatch one replacement (same SHAs, requirements, and UNCOMMITTED_OVERRIDE; use identity "Reviewer 2 of 2"); when it completes, aggregate the two reports as if N=2. If the user declines, done. If 0 reviewers succeeded, warn the user and offer to re-run with the same N.
 
@@ -124,7 +152,7 @@ Task (for each i from 1 to N):
 
 **Dispatch aggregator:**
 
-Before dispatching, construct `combined_output` by joining all successful reviewer outputs:
+Before dispatching, construct `combined_output` by joining the collected reports (from `temp/cr-review-{i}-{RUN_TS}.md` files, or TaskOutput fallback):
 
 ```
 ## Reviewer 1 Output
