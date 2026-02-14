@@ -39,9 +39,9 @@ Run `git rev-parse HEAD~1`. If it fails (single-commit repo with no parent), inf
 
 ### Since last push
 
-Fallback chain: try each in order, use the first that succeeds.
-1. `git rev-parse @{push}`
-2. `git merge-base origin/main HEAD`
+Fallback chain — run each as a **separate Bash call** (no `||` or `&&` chaining):
+1. Run `git rev-parse @{push}`. If it succeeds (exit 0), use that SHA.
+2. If step 1 failed, run `git merge-base origin/main HEAD`. If it succeeds, use that SHA.
 3. If both fail, inform the user and suggest "Branch diff vs main" or "Custom" instead.
 
 ### Branch diff vs main
