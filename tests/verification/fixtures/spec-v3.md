@@ -319,11 +319,7 @@ Each task update is atomic — either all fields are applied or none. The entire
 }
 ```
 
-### 8.2 Bulk Create
-
-**POST /tasks/bulk** accepts an array of task objects. Each task follows the same validation as `POST /tasks`. Returns 207 with per-item results.
-
-### 8.3 Bulk Delete
+### 8.2 Bulk Delete
 
 **DELETE /tasks/bulk** accepts an array of task IDs.
 
@@ -346,13 +342,13 @@ Bulk delete must validate all IDs in a single pass before deleting any. Return `
 **Errors:**
 - `404` if any task ID does not exist (no deletions performed)
 
-### 8.4 Bulk Limits
+### 8.3 Bulk Limits
 
-Bulk operations are limited to 100 items per request. Requests exceeding this limit return `400 BULK_LIMIT_EXCEEDED`. This applies to bulk create, bulk update, and bulk delete equally.
+Bulk operations are limited to 100 items per request. Requests exceeding this limit return `400 BULK_LIMIT_EXCEEDED`. This applies to bulk update and bulk delete equally.
 
 ## 9. Audit Logging
 
-### 9.1 Scope
+### 9.1 Non-Blocking Writes
 
 All mutating operations (POST, PATCH, DELETE) must be recorded in the audit log. The audit log captures:
 - `timestamp` (ISO-8601, UTC)
@@ -362,17 +358,7 @@ All mutating operations (POST, PATCH, DELETE) must be recorded in the audit log.
 - `action` (e.g., `task.created`, `task.updated`, `task.deleted`)
 - `changes` (for updates: object with before/after values for changed fields)
 
-### 9.2 Non-Blocking Writes
-
 Audit logging must not block request processing. Log writes must be non-blocking (async queue or fire-and-forget). Synchronous writes to audit storage that delay the HTTP response are not permitted.
-
-### 9.3 Retention
-
-Audit log entries are retained for 90 days. Entries older than 90 days may be purged.
-
-### 9.4 Access
-
-Audit logs are accessible only to admin-scoped tokens via `GET /audit` (out of scope for this API version).
 
 ## 10. CORS Policy
 
@@ -385,10 +371,6 @@ Specifically:
 
 ## 11. Implementation Requirements
 
-### 11.1 Idempotency
-
-All `DELETE` operations are idempotent. Deleting an already-deleted (or never-existing) task returns `404 NOT_FOUND`. A second delete of the same task is not a server error — it returns `404`.
-
-### 11.2 Repository Encapsulation
+### 11.1 Repository Encapsulation
 
 Repository layer must enforce encapsulation. Callers must not be able to mutate stored state without going through repository methods. Repository methods must return copies or frozen objects — not direct references to internal store entries. Direct mutation of returned task objects by callers must not affect stored state.
