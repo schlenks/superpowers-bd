@@ -39,7 +39,7 @@ run_claude_session() {
     local status="failed"
     local duration=0
 
-    while [ $attempt -lt $max_retries ]; do
+    while [ "$attempt" -lt "$max_retries" ]; do
         attempt=$((attempt + 1))
 
         # Clean up artifacts from prior attempts (set by caller)
@@ -53,7 +53,7 @@ run_claude_session() {
         start_ms=$(python3 -c "import time; print(int(time.time() * 1000))")
 
         local exit_code=0
-        timeout "$timeout_secs" "$@" > "$output_file" 2>&1 || exit_code=$?
+        timeout "$timeout_secs" env -u CLAUDECODE "$@" > "$output_file" 2>&1 || exit_code=$?
 
         local end_ms
         end_ms=$(python3 -c "import time; print(int(time.time() * 1000))")
@@ -72,13 +72,13 @@ run_claude_session() {
             echo "    [FAILED] Attempt $attempt exited with code $exit_code"
         fi
 
-        if [ $attempt -lt $max_retries ]; then
+        if [ "$attempt" -lt "$max_retries" ]; then
             echo "    Retrying (attempt $((attempt + 1))/$max_retries)..."
         fi
     done
 
     local pass_label="first-pass"
-    if [ $attempt -gt 1 ] && [ "$status" = "succeeded" ]; then
+    if [ "$attempt" -gt 1 ] && [ "$status" = "succeeded" ]; then
         pass_label="retry-pass"
     fi
 
