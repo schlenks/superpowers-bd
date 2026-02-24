@@ -356,7 +356,7 @@ Your expertise is identifying performance problems in API implementations: algor
 - **Algorithmic complexity:** Are operations O(N) when a pre-built index makes O(1) possible? Does the code bypass an existing index and fall back to a full scan? Are secondary indexes maintained but never used at the call site?
 - **Blocking operations:** Does synchronous I/O or CPU-bound work block the event loop before calling `next()`? Does a middleware function perform serialization or storage writes that delay the HTTP response?
 - **Memory growth patterns:** Are in-memory collections unbounded? Does serialization cost grow with total accumulated data (e.g., JSON.stringify on the entire array on every write)? Do writes append to a structure that is never pruned?
-- **Sequential vs. batch operations:** Does a bulk handler process items one at a time in a loop when a single-pass approach is required? Does it perform N sequential operations for N items without early termination when the spec requires all-or-nothing semantics?
+- **Sequential vs. batch operations:** Does a bulk handler process items one at a time in a loop when a single-pass approach is required? Does it perform N sequential operations for N items without early termination when the spec requires all-or-nothing semantics? A sequential loop that continues past the first failure silently violates early-exit semantics.
 - **Missed optimization opportunities:** Are there indexes defined in the data layer that are not used by the query layer? Do list operations load all items and filter afterward rather than using indexed lookup?
 
 **Your task — follow these steps in order:**
@@ -369,13 +369,14 @@ Your expertise is identifying performance problems in API implementations: algor
 7. Produce findings with location, complexity analysis, and expected impact at scale.
 
 **Precision gate — no finding unless tied to at least one of:**
-- A spec requirement that mandates efficient behavior (indexed lookup, non-blocking writes)
-- A demonstrable O(N) or worse path where a faster path exists and is unused
-- A blocking operation that measurably delays request processing
+- A spec requirement that mandates efficient behavior (indexed lookup, non-blocking writes, bounded memory)
+- A demonstrable O(N) or worse path where a faster O(1) or O(log N) path exists in the codebase and is unused at the call site
+- A blocking synchronous operation in a middleware hot path that measurably delays every request passing through it
+- A bulk handler that performs sequential per-item work where the spec requires a single-pass or early-exit strategy
 
 **Severity levels:**
-- Critical (must fix): Spec-required performance constraint violated, O(N) when O(1) index exists
-- Important (should fix): Synchronous blocking of request thread, memory growth without bound
+- Critical (must fix): Spec-required performance constraint violated, O(N) when O(1) index exists, early-exit semantics missing when spec requires all-or-nothing
+- Important (should fix): Synchronous blocking of request thread, memory growth without bound, sequential bulk processing with no short-circuit
 - Minor (consider): Suboptimal but not spec-violating, low-traffic impact
 - Suggestion (nice to have): Only if zero Critical/Important/Minor findings
 PERF_EOF
@@ -652,7 +653,8 @@ for cycle in $(seq 1 $NUM_CYCLES); do
     echo "=== Cycle $cycle / $NUM_CYCLES ==="
 
     # Randomize condition order for this cycle to prevent systematic bias
-    mapfile -t shuffled < <(printf '%s\n' "${CONDITIONS[@]}" | sort -R)
+    # Use Python-based shuffle (portable — BSD sort does not support -R on macOS)
+    mapfile -t shuffled < <(python3 -c "import random,sys; c=sys.argv[1:]; random.shuffle(c); print('\n'.join(c))" "${CONDITIONS[@]}")
 
     for condition in "${shuffled[@]}"; do
         echo "--- $condition (cycle $cycle) ---"
@@ -697,7 +699,18 @@ $JSON_SUFFIX"
     done
 done
 
-# ── Step 8: Analysis invocation ──────────────────────────────────────
+# ── Step 8: Persist results before analysis ──────────────────────────
+# Copy raw data FIRST so it is preserved even if the analyzer fails.
+
+cp "$TEST_DIR/scores.csv" "$SCRIPT_DIR/decorrelated-v3-results.csv"
+cp "$TEST_DIR/aggregates.csv" "$SCRIPT_DIR/decorrelated-v3-aggregate.csv"
+
+echo ""
+echo "Results saved to:"
+echo "  tests/verification/decorrelated-v3-results.csv"
+echo "  tests/verification/decorrelated-v3-aggregate.csv"
+
+# ── Step 9: Analysis invocation ──────────────────────────────────────
 
 echo ""
 echo "========================================"
@@ -706,6 +719,12 @@ echo "========================================"
 echo ""
 
 python3 "$SCRIPT_DIR/analyze-v3.py" "$TEST_DIR/scores.csv" "$TEST_DIR/aggregates.csv"
+
+# Copy summary JSON if analyzer created it
+if [ -f "$TEST_DIR/aggregates-summary.json" ]; then
+    cp "$TEST_DIR/aggregates-summary.json" "$SCRIPT_DIR/decorrelated-v3-summary.json"
+    echo "  tests/verification/decorrelated-v3-summary.json"
+fi
 
 # ── Inline summary for reporting contract ────────────────────────────
 
@@ -785,20 +804,4 @@ parse_rate = parse_failures / total_scored if total_scored > 0 else 0
 print(f"Individual parse failure rate: {parse_rate:.1%}")
 PYEOF
 
-# ── Step 9: Save results ─────────────────────────────────────────────
-
-cp "$TEST_DIR/scores.csv" "$SCRIPT_DIR/decorrelated-v3-results.csv" 2>/dev/null || true
-cp "$TEST_DIR/aggregates.csv" "$SCRIPT_DIR/decorrelated-v3-aggregate.csv" 2>/dev/null || true
-
-# Copy summary JSON if analyzer created it
-if [ -f "$TEST_DIR/aggregates-summary.json" ]; then
-    cp "$TEST_DIR/aggregates-summary.json" "$SCRIPT_DIR/decorrelated-v3-summary.json" 2>/dev/null || true
-fi
-
 rm -rf "$TEST_DIR"
-
-echo ""
-echo "Results saved to:"
-echo "  tests/verification/decorrelated-v3-results.csv"
-echo "  tests/verification/decorrelated-v3-aggregate.csv"
-echo "  tests/verification/decorrelated-v3-summary.json"
