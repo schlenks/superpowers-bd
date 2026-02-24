@@ -123,7 +123,7 @@
       "difficulty": "very_hard",
       "expected_single_reviewer_rate": 0.20,
       "location": "middleware-v3.ts, auditLogger middleware, writeAuditLog function",
-      "spec_reference": "spec-v3.md Section 9.2: 'Audit logging must not block request processing. Log writes must be non-blocking (async queue or fire-and-forget).'",
+      "spec_reference": "spec-v3.md Section 9.1: 'Audit logging must not block request processing. Log writes must be non-blocking (async queue or fire-and-forget).'",
       "code_behavior": "The auditLogger middleware calls writeAuditLog() synchronously before calling next(). writeAuditLog appends to an in-memory array and calls JSON.stringify(auditLog) on the ENTIRE array on every write — O(N) serialization cost per request where N grows with total audit entries. Both the synchronous call and the full-array serialization block the request thread. Under load, audit logging becomes the bottleneck for all API throughput.",
       "cross_file_notes": "D10 (server time vs UTC) and D15 (user agent logging) are in the same middleware and look like compliance issues but are correct.",
       "adjacent_decoys": ["D10", "D15"]
@@ -137,7 +137,7 @@
       "difficulty": "medium",
       "expected_single_reviewer_rate": 0.70,
       "location": "api-v3.ts, DELETE /tasks/bulk handler",
-      "spec_reference": "spec-v3.md Section 8.3: 'Bulk delete must validate all IDs in a single pass before deleting any. Return 404 if any ID is not found (atomic: all-or-nothing).'",
+      "spec_reference": "spec-v3.md Section 8.2: 'Bulk delete must validate all IDs in a single pass before deleting any. Return 404 if any ID is not found (atomic: all-or-nothing).'",
       "code_behavior": "The bulk delete handler iterates over the ID array and calls taskRepo.delete(id) for each ID in sequence. On 404, it continues iterating rather than returning early — calling delete() on subsequent IDs even though the spec requires atomic all-or-nothing semantics. The spec-required behavior is to validate all IDs first, then delete all or none. The current implementation may partially delete tasks before encountering a 404.",
       "cross_file_notes": "D11 (100-item cap) is adjacent and looks like an arbitrary limit but is correct per spec.",
       "adjacent_decoys": ["D11"]
@@ -151,7 +151,7 @@
       "difficulty": "hard",
       "expected_single_reviewer_rate": 0.35,
       "location": "repository-v3.ts, TaskRepository.findAll and TaskRepository.findById methods",
-      "spec_reference": "spec-v3.md Section 11.2: 'Repository layer must enforce encapsulation. Callers must not be able to mutate stored state without going through repository methods.'",
+      "spec_reference": "spec-v3.md Section 11.1: 'Repository layer must enforce encapsulation. Callers must not be able to mutate stored state without going through repository methods.'",
       "code_behavior": "TaskRepository.findAll() returns `Array.from(this.tasks.values())` which creates a new array but the task objects inside are still the same references. TaskRepository.findById() returns the direct Map entry. Callers that mutate the returned task objects (e.g., `task.status = 'done'`) bypass all validation, index maintenance, and audit logging. The methods should return deep copies or frozen objects.",
       "cross_file_notes": "D9 (Map-based store) is adjacent and looks like an architectural problem but is an acceptable in-memory implementation pattern.",
       "adjacent_decoys": ["D9"]
@@ -290,10 +290,10 @@
       "is_bug": false,
       "domain": "performance",
       "category": "correct implementation (bulk operation limit)",
-      "summary": "Bulk endpoint caps at 100 items — correct per spec Section 8.4",
+      "summary": "Bulk endpoint caps at 100 items — correct per spec Section 8.3",
       "adjacent_to_bug": "B9",
       "why_it_looks_suspicious": "Adjacent to B9's non-atomic bulk delete. A reviewer might flag the 100-item cap as an unrequested constraint or question whether it's enforced correctly.",
-      "why_its_correct": "spec-v3.md Section 8.4: 'Bulk operations are limited to 100 items per request. Requests exceeding this limit return 400 BULK_LIMIT_EXCEEDED.' The 100-item cap is spec-required and correctly enforced before any processing begins."
+      "why_its_correct": "spec-v3.md Section 8.3: 'Bulk operations are limited to 100 items per request. Requests exceeding this limit return 400 BULK_LIMIT_EXCEEDED.' The 100-item cap is spec-required and correctly enforced before any processing begins."
     },
     "D12": {
       "id": "D12",
