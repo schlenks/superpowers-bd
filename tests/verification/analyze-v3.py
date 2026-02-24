@@ -61,7 +61,7 @@ if _v2 is not None:
 else:
     # Fallback: minimal local copies (analyze-v2.py not found on path)
 
-    def bootstrap_ci(values, stat_fn=np.mean, n_resamples=10_000, ci=0.95, seed=42):
+    def bootstrap_ci(values, stat_fn=np.median, n_resamples=10_000, ci=0.95, seed=42):
         """Bootstrap CI. Fallback copy from analyze-v2.py."""
         values = np.asarray(values, dtype=float)
         n = len(values)
@@ -204,78 +204,6 @@ def _sort_key(cycle_str):
 
 
 # ---------------------------------------------------------------------------
-# Aggregate scorer helpers
-# ---------------------------------------------------------------------------
-
-def _parse_scores_by_cycle(scores_rows):
-    """Group score rows into {(cycle, condition): [entry | None]}.
-
-    Each entry is {"per_area": dict, "reviewer": int} or None for parse fails.
-    """
-    by_cycle_cond = defaultdict(list)
-    for row in scores_rows:
-        cycle, condition = row["cycle"], row["condition"]
-        per_area = _safe_parse_area(row)
-        if per_area is None:
-            by_cycle_cond[(cycle, condition)].append(None)
-        else:
-            try:
-                reviewer_num = int(row.get("reviewer", 0))
-            except (ValueError, TypeError):
-                reviewer_num = 0
-            by_cycle_cond[(cycle, condition)].append(
-                {"per_area": per_area, "reviewer": reviewer_num}
-            )
-    return by_cycle_cond
-
-
-def _union_aggregate_for_entries(entries):
-    """Compute union-rule aggregate metrics over a list of parsed entries.
-
-    Args:
-        entries: list of {"per_area": dict, "reviewer": int}
-
-    Returns:
-        dict with tp, fp, fn, score, precision, recall, agg_found
-    """
-    agg_found = {
-        area_id: any(
-            e["per_area"].get(area_id, {}).get("found", False)
-            for e in entries
-        )
-        for area_id in AREA_IDS
-    }
-    tp = sum(1 for a in AREA_IDS if agg_found[a] and a in REAL_BUGS)
-    fp = sum(1 for a in AREA_IDS if agg_found[a] and a in DECOYS)
-    fn = sum(1 for a in AREA_IDS if not agg_found[a] and a in REAL_BUGS)
-    score = tp - fp
-    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    return {
-        "tp": tp, "fp": fp, "fn": fn, "score": score,
-        "precision": precision, "recall": tp / TOTAL_BUGS,
-        "agg_found": agg_found,
-    }
-
-
-def compute_aggregate_from_scores(scores_rows):
-    """Compute union-rule aggregates per (cycle, condition) from scores.csv.
-
-    Returns:
-        dict: {(cycle, condition): aggregate_metrics_dict}
-    """
-    by_cycle_cond = _parse_scores_by_cycle(scores_rows)
-    aggregates = {}
-    for (cycle, condition), entries in by_cycle_cond.items():
-        parsed = [e for e in entries if e is not None]
-        agg = _union_aggregate_for_entries(parsed)
-        agg["n_parsed"] = len(parsed)
-        agg["all_parsed"] = (len(entries) == 4 and len(parsed) == 4)
-        agg["entries"] = parsed
-        aggregates[(cycle, condition)] = agg
-    return aggregates
-
-
-# ---------------------------------------------------------------------------
 # Primary analysis helpers
 # ---------------------------------------------------------------------------
 
@@ -324,9 +252,8 @@ def _build_paired_arrays(by_cycle):
         tp_g.append(gen["tp"])
         fp_s.append(spec["fp"])
         fp_g.append(gen["fp"])
-        if spec["recall"] is not None:
+        if spec["recall"] is not None and gen["recall"] is not None:
             rec_s.append(spec["recall"])
-        if gen["recall"] is not None:
             rec_g.append(gen["recall"])
 
     return (
@@ -350,7 +277,7 @@ def _compute_primary_stats(n_paired, spec_arr, gen_arr, delta):
     stdev_s = float(np.std(spec_arr, ddof=1)) if n_paired > 1 else 0.0
     stdev_g = float(np.std(gen_arr, ddof=1)) if n_paired > 1 else 0.0
     pooled = (mean_s + mean_g) / 2 if n_paired > 0 else 1
-    stdev_ratio = max(stdev_s, stdev_g) / pooled if pooled > 0 else float("inf")
+    stdev_ratio = max(stdev_s, stdev_g) / abs(pooled) if abs(pooled) > 1e-9 else float("inf")
 
     wsr = wilcoxon_signed_rank(spec_arr, gen_arr)
     delta_ci = bootstrap_ci(delta, stat_fn=np.mean) if n_paired > 0 else bootstrap_ci([])
@@ -489,6 +416,8 @@ def _domain_union_recalls(by_cycle_cond, bug_ids):
     for cycle in sorted(by_cycle_cond.keys(), key=_sort_key):
         spec_ent = by_cycle_cond[cycle].get("specialist", [])
         gen_ent = by_cycle_cond[cycle].get("generalist", [])
+        if not spec_ent or not gen_ent:
+            continue
         spec_found = {b: any(e.get(b, {}).get("found", False) for e in spec_ent)
                       for b in bug_ids}
         gen_found = {b: any(e.get(b, {}).get("found", False) for e in gen_ent)
