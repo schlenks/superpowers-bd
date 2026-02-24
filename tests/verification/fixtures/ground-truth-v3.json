@@ -1,0 +1,400 @@
+{
+  "fixture_version": "3.0",
+  "created": "2026-02-24",
+  "purpose": "Scoring reference for V3 Decorrelated Specialization experiment. NOT shown to model under review.",
+  "total_areas": 28,
+  "total_bugs": 12,
+  "total_decoys": 16,
+  "domains": ["correctness", "security", "performance", "architecture"],
+  "scoring": {
+    "TP": "Model correctly identifies a bug (is_bug=true area marked as found)",
+    "FP": "Model incorrectly flags a decoy as a bug (is_bug=false area marked as found)",
+    "FN": "Model misses a real bug (is_bug=true area not marked as found)",
+    "score": "TP - FP",
+    "precision": "TP / (TP + FP)",
+    "recall": "TP / 12",
+    "aggregate_rule": "Area is 'found' if ANY of 4 reviewers marked it found (union rule)"
+  },
+  "areas": {
+    "B1": {
+      "id": "B1",
+      "is_bug": true,
+      "domain": "correctness",
+      "category": "state-transition ordering",
+      "summary": "Bulk update applies field updates in wrong order — priority set before status causes closed_at race",
+      "difficulty": "medium",
+      "expected_single_reviewer_rate": 0.70,
+      "location": "api-v3.ts, PATCH /tasks/bulk handler, field application loop",
+      "spec_reference": "spec-v3.md Section 8.1: 'Bulk update applies status last to ensure derived fields (closed_at) are computed from final state'",
+      "code_behavior": "The bulk update loop iterates over fields in declaration order: priority first, then status. When status transitions to 'done', closed_at should be computed against the already-updated priority — but because priority is applied first in the loop, a race exists where concurrent reads between the priority write and status write observe inconsistent state. The correct order is status last.",
+      "cross_file_notes": "impl-v3.md claims 'bulk updates are atomic per task' but does not describe field application order. The race is only visible in the ordering of Map writes inside the loop.",
+      "adjacent_decoys": ["D3"]
+    },
+    "B2": {
+      "id": "B2",
+      "is_bug": true,
+      "domain": "correctness",
+      "category": "counter reset logic",
+      "summary": "Webhook retry resets counter on partial success — delivery never exceeds retry limit",
+      "difficulty": "hard",
+      "expected_single_reviewer_rate": 0.35,
+      "location": "api-v3.ts, deliverWebhook function, retry loop",
+      "spec_reference": "spec-v3.md Section 7.3: 'Retry count increments on every failed attempt including partial success. Maximum 3 retries total.'",
+      "code_behavior": "The retry loop increments retryCount only when the HTTP response status is >= 500. If the delivery endpoint returns 206 Partial Content (a partial success), the code logs the partial delivery but resets retryCount to 0 — interpreting partial success as a signal to restart the retry window. This means a flaky endpoint returning alternating 206/500 responses never exceeds the retry limit.",
+      "cross_file_notes": "impl-v3.md states 'webhook delivery includes retry logic with exponential backoff'. D5 (fire-and-forget pattern) is nearby and looks suspicious but is correct.",
+      "adjacent_decoys": ["D5"]
+    },
+    "B3": {
+      "id": "B3",
+      "is_bug": true,
+      "domain": "correctness",
+      "category": "pagination under concurrency",
+      "summary": "Pagination cursor based on created_at causes duplicates under concurrent inserts",
+      "difficulty": "medium",
+      "expected_single_reviewer_rate": 0.65,
+      "location": "api-v3.ts, GET /tasks handler, pagination cursor block",
+      "spec_reference": "spec-v3.md Section 3.1: 'Pagination cursor must be stable under concurrent writes. Use opaque cursor encoding task ID, not timestamp.'",
+      "code_behavior": "The pagination implementation encodes the last item's created_at timestamp as the cursor. On the next page request, it filters tasks where created_at > cursor. Under concurrent inserts, two tasks can share the same created_at millisecond — one is included in the current page, the other is silently skipped when the next page cursor advances past both. The spec requires an ID-based opaque cursor, not a timestamp-based one.",
+      "cross_file_notes": "D14 (empty array for out-of-range page) is adjacent — returning empty for page 99 looks suspicious but is correct per spec.",
+      "adjacent_decoys": ["D14"]
+    },
+    "B4": {
+      "id": "B4",
+      "is_bug": true,
+      "domain": "security",
+      "category": "resource exhaustion via shared pools",
+      "summary": "Rate limiter keys on raw Authorization header, not extracted user ID — shared token pools exhaust each other",
+      "difficulty": "easy",
+      "expected_single_reviewer_rate": 0.85,
+      "location": "middleware-v3.ts, rateLimiter middleware, key derivation line",
+      "spec_reference": "spec-v3.md Section 6.2: 'Rate limits are per-user. Key must be derived from the authenticated user identity, not the request credential.'",
+      "code_behavior": "The rate limiter uses `req.headers.authorization` as the map key. When multiple clients share a service account token (a common pattern in service-to-service auth), they exhaust a single rate limit bucket together — each client's requests count against all other clients using the same token. The key should be the authenticated user ID extracted after token validation.",
+      "cross_file_notes": "impl-v3.md openly states 'rate limiting is keyed on the Authorization header for simplicity'. D2 (in-memory store) is adjacent and looks like a concurrency issue, but is correct.",
+      "adjacent_decoys": ["D2"]
+    },
+    "B5": {
+      "id": "B5",
+      "is_bug": true,
+      "domain": "security",
+      "category": "resource existence disclosure",
+      "summary": "Auth error response includes internal task ID, leaking resource existence to unauthenticated users",
+      "difficulty": "hard",
+      "expected_single_reviewer_rate": 0.40,
+      "location": "middleware-v3.ts, authMiddleware function, 401 error handler",
+      "spec_reference": "spec-v3.md Section 6.1: 'Authentication errors must not reveal resource existence. Return generic 401 for all unauthenticated access.'",
+      "code_behavior": "When a request arrives for /tasks/:id without a valid auth token, the middleware first looks up the task to generate a helpful error message ('Task abc-123 requires authentication'). This lookup reveals whether the task ID exists to unauthenticated callers — a valid ID returns 'Task [id] requires authentication' while an invalid ID returns a generic 401. An attacker can enumerate valid task IDs by probing the auth error message.",
+      "cross_file_notes": "D1 (token length check) and D12 (admin scope for webhook registration) are nearby in the same middleware file. D12 in particular looks like a security gap but is correct.",
+      "adjacent_decoys": ["D1", "D12"]
+    },
+    "B6": {
+      "id": "B6",
+      "is_bug": true,
+      "domain": "security",
+      "category": "CORS misconfiguration",
+      "summary": "CORS allows credentials with wildcard origin — browsers reject, spec says restricted",
+      "difficulty": "medium",
+      "expected_single_reviewer_rate": 0.60,
+      "location": "middleware-v3.ts, corsMiddleware function, header configuration",
+      "spec_reference": "spec-v3.md Section 10: 'CORS must restrict Access-Control-Allow-Origin to approved origins. Credentials mode requires explicit origin allowlist.'",
+      "code_behavior": "The CORS middleware sets `Access-Control-Allow-Origin: *` and `Access-Control-Allow-Credentials: true` simultaneously. The CORS specification (RFC 6454, Fetch Standard) prohibits this combination — browsers will reject credentialed requests to wildcard origins. Additionally, the spec requires an approved-origins allowlist, not a wildcard. The implementation would cause all credentialed cross-origin requests to silently fail in browsers while appearing to work in curl/Postman.",
+      "cross_file_notes": "D6 (204 preflight response) is adjacent in the same function and looks like a protocol error but is spec-compliant.",
+      "adjacent_decoys": ["D6"]
+    },
+    "B7": {
+      "id": "B7",
+      "is_bug": true,
+      "domain": "performance",
+      "category": "missing index pushdown",
+      "summary": "GET /tasks with status filter loads ALL tasks then filters in-memory — no index pushdown",
+      "difficulty": "medium",
+      "expected_single_reviewer_rate": 0.65,
+      "location": "repository-v3.ts, TaskRepository.findByStatus method",
+      "spec_reference": "spec-v3.md Section 3.1: 'Status filtering must use indexed lookup. Full table scans are not acceptable at scale.'",
+      "code_behavior": "TaskRepository.findByStatus() iterates over the entire tasks Map and filters entries where task.status === status. With N tasks, this is O(N) per request. The repository already maintains a secondary index (statusIndex: Map<string, Set<string>>) that maps status to task IDs — but findByStatus does not use it. The caller (GET /tasks handler) passes the status to findByStatus expecting an indexed lookup.",
+      "cross_file_notes": "D4 (type assertion in sort) is adjacent in the same repository file and looks like a type safety issue but is correct.",
+      "adjacent_decoys": ["D4"]
+    },
+    "B8": {
+      "id": "B8",
+      "is_bug": true,
+      "domain": "performance",
+      "category": "synchronous blocking I/O",
+      "summary": "Audit log writes are synchronous, blocking requests — unbounded array + JSON.stringify per write",
+      "difficulty": "very_hard",
+      "expected_single_reviewer_rate": 0.20,
+      "location": "middleware-v3.ts, auditLogger middleware, writeAuditLog function",
+      "spec_reference": "spec-v3.md Section 9.2: 'Audit logging must not block request processing. Log writes must be non-blocking (async queue or fire-and-forget).'",
+      "code_behavior": "The auditLogger middleware calls writeAuditLog() synchronously before calling next(). writeAuditLog appends to an in-memory array and calls JSON.stringify(auditLog) on the ENTIRE array on every write — O(N) serialization cost per request where N grows with total audit entries. Both the synchronous call and the full-array serialization block the request thread. Under load, audit logging becomes the bottleneck for all API throughput.",
+      "cross_file_notes": "D10 (server time vs UTC) and D15 (user agent logging) are in the same middleware and look like compliance issues but are correct.",
+      "adjacent_decoys": ["D10", "D15"]
+    },
+    "B9": {
+      "id": "B9",
+      "is_bug": true,
+      "domain": "performance",
+      "category": "sequential operation without early termination",
+      "summary": "Bulk delete does N sequential Map lookups, no early termination on 404, no batch operation",
+      "difficulty": "medium",
+      "expected_single_reviewer_rate": 0.70,
+      "location": "api-v3.ts, DELETE /tasks/bulk handler",
+      "spec_reference": "spec-v3.md Section 8.3: 'Bulk delete must validate all IDs in a single pass before deleting any. Return 404 if any ID is not found (atomic: all-or-nothing).'",
+      "code_behavior": "The bulk delete handler iterates over the ID array and calls taskRepo.delete(id) for each ID in sequence. On 404, it continues iterating rather than returning early — calling delete() on subsequent IDs even though the spec requires atomic all-or-nothing semantics. The spec-required behavior is to validate all IDs first, then delete all or none. The current implementation may partially delete tasks before encountering a 404.",
+      "cross_file_notes": "D11 (100-item cap) is adjacent and looks like an arbitrary limit but is correct per spec.",
+      "adjacent_decoys": ["D11"]
+    },
+    "B10": {
+      "id": "B10",
+      "is_bug": true,
+      "domain": "architecture",
+      "category": "encapsulation violation",
+      "summary": "Repository exposes raw Map references (not copies) — callers can mutate store directly",
+      "difficulty": "hard",
+      "expected_single_reviewer_rate": 0.35,
+      "location": "repository-v3.ts, TaskRepository.findAll and TaskRepository.findById methods",
+      "spec_reference": "spec-v3.md Section 11.2: 'Repository layer must enforce encapsulation. Callers must not be able to mutate stored state without going through repository methods.'",
+      "code_behavior": "TaskRepository.findAll() returns `Array.from(this.tasks.values())` which creates a new array but the task objects inside are still the same references. TaskRepository.findById() returns the direct Map entry. Callers that mutate the returned task objects (e.g., `task.status = 'done'`) bypass all validation, index maintenance, and audit logging. The methods should return deep copies or frozen objects.",
+      "cross_file_notes": "D9 (Map-based store) is adjacent and looks like an architectural problem but is an acceptable in-memory implementation pattern.",
+      "adjacent_decoys": ["D9"]
+    },
+    "B11": {
+      "id": "B11",
+      "is_bug": true,
+      "domain": "architecture",
+      "category": "API contract violation",
+      "summary": "Spec requires webhook payload with changed_fields array — impl only sends task_id + event_type",
+      "difficulty": "easy",
+      "expected_single_reviewer_rate": 0.85,
+      "location": "api-v3.ts, buildWebhookPayload function",
+      "spec_reference": "spec-v3.md Section 7.2: 'Webhook payload must include: task_id, event_type, timestamp, task (full task object), changed_fields (array of field names that changed)'",
+      "code_behavior": "buildWebhookPayload returns `{ task_id, event_type, timestamp }` — omitting both the full `task` object and the `changed_fields` array that the spec requires. Webhook consumers relying on the spec cannot determine what changed without fetching the full task separately. The impl-v3.md mentions 'webhook payloads include event details' which is technically true but obscures the missing fields.",
+      "cross_file_notes": "D7 (body size limit) is in the same webhook section and looks like an unrequested constraint but is spec-compliant.",
+      "adjacent_decoys": ["D7"]
+    },
+    "B12": {
+      "id": "B12",
+      "is_bug": true,
+      "domain": "architecture",
+      "category": "test-suite blind spot",
+      "summary": "Test suite has 0 tests for webhook endpoint — 62 tests, none for POST /webhooks or delivery",
+      "difficulty": "very_hard",
+      "expected_single_reviewer_rate": 0.25,
+      "location": "tests-v3.md, test listing (absence of webhook tests)",
+      "spec_reference": "spec-v3.md Section 7: Webhooks (entire section — registration, delivery, retry, payload) has no test coverage",
+      "code_behavior": "The test suite lists 62 tests covering all CRUD endpoints, validation, error handling, rate limiting, and bulk operations — but zero tests for POST /webhooks/register, webhook delivery, retry behavior, or payload format. This blind spot means B2 (retry counter reset) and B11 (missing changed_fields) are untestable in CI. The test summary does not mention webhook coverage gaps.",
+      "cross_file_notes": "D13 (mock clock usage) is adjacent — it looks like suspicious test infrastructure but is correct practice for time-dependent tests.",
+      "adjacent_decoys": ["D13"]
+    },
+
+    "D1": {
+      "id": "D1",
+      "is_bug": false,
+      "domain": "security",
+      "category": "correct implementation (token validation)",
+      "summary": "Auth middleware rejects tokens shorter than 10 characters — correct minimum-length guard",
+      "adjacent_to_bug": "B5",
+      "why_it_looks_suspicious": "The 10-character minimum looks like an arbitrary magic number. A reviewer might think this is too short to be meaningful security or that the check is in the wrong place (before vs after signature verification). It's adjacent to B5's resource-existence leak, so a reviewer finding B5 may over-scrutinize the entire auth block.",
+      "why_its_correct": "The 10-char check is a fast-reject guard that prevents feeding obviously invalid tokens to the expensive signature verification step. The spec does not mandate a minimum token length, so this is a valid implementation choice. The check does not bypass full validation."
+    },
+    "D2": {
+      "id": "D2",
+      "is_bug": false,
+      "domain": "performance",
+      "category": "correct implementation (rate limit storage)",
+      "summary": "Rate limit uses in-memory store (not Redis) — correct for single-process in-memory implementation",
+      "adjacent_to_bug": "B4",
+      "why_it_looks_suspicious": "In-memory rate limiting doesn't survive process restarts and doesn't work across multiple instances. A reviewer might flag this as a scalability gap or architectural concern.",
+      "why_its_correct": "The spec does not require distributed rate limiting. The fixture is a single-process implementation. In-memory Map storage is consistent with the rest of the repository layer. The spec says 120 req/min per user, and the in-memory counter correctly enforces this within a process."
+    },
+    "D3": {
+      "id": "D3",
+      "is_bug": false,
+      "domain": "correctness",
+      "category": "correct implementation (priority validation)",
+      "summary": "Priority validation `< 1 || > 5` is correct — not an off-by-one despite adjacency to B1",
+      "adjacent_to_bug": "B1",
+      "why_it_looks_suspicious": "Located near the bulk update code containing B1. A reviewer who finds B1 (field ordering bug) may scrutinize nearby validation for similar boundary errors. The `< 1 || > 5` range check could look like it might pass 0 or 6.",
+      "why_its_correct": "validatePriority checks `priority < 1 || priority > 5`, which correctly rejects 0 and 6 while accepting 1-5 inclusive. The boundary conditions are correct. This matches spec-v3.md Section 4.2: 'Priority must be integer 1-5 inclusive.'"
+    },
+    "D4": {
+      "id": "D4",
+      "is_bug": false,
+      "domain": "performance",
+      "category": "correct implementation (dynamic sort)",
+      "summary": "Sort key uses `(a as any)[sortKey]` type assertion — correct for dynamic property access on typed objects",
+      "adjacent_to_bug": "B7",
+      "why_it_looks_suspicious": "The `as any` cast suppresses TypeScript's type safety. A reviewer might think this hides a runtime error when sortKey doesn't match a task property, or that the sort direction logic is inverted.",
+      "why_its_correct": "The sortKey is validated against a whitelist before reaching the sort function. The `as any` is the standard TypeScript pattern for dynamic property access on interface types. Sort direction logic (aTime - bTime for asc, bTime - aTime for desc) is correct."
+    },
+    "D5": {
+      "id": "D5",
+      "is_bug": false,
+      "domain": "correctness",
+      "category": "correct implementation (webhook delivery pattern)",
+      "summary": "Webhook delivery uses fire-and-forget Promise — correct for non-blocking async delivery",
+      "adjacent_to_bug": "B2",
+      "why_it_looks_suspicious": "Fire-and-forget Promises discard errors silently. A reviewer scanning the webhook retry logic (containing B2) may flag the unhandled Promise as a reliability gap. The pattern looks like a swallowed error.",
+      "why_its_correct": "The webhook delivery function handles its own errors internally — the fire-and-forget is correct at the call site because delivery is async and intentionally non-blocking. Errors are caught inside deliverWebhook and written to the audit log. The spec does not require synchronous delivery confirmation."
+    },
+    "D6": {
+      "id": "D6",
+      "is_bug": false,
+      "domain": "security",
+      "category": "correct implementation (CORS preflight)",
+      "summary": "CORS preflight returns 204 No Content — correct per CORS spec, not an error",
+      "adjacent_to_bug": "B6",
+      "why_it_looks_suspicious": "Adjacent to B6's wildcard CORS bug. A reviewer finding B6 may scrutinize the entire CORS block and flag the 204 response as suspicious, expecting 200.",
+      "why_its_correct": "RFC 7231 and the Fetch Standard both allow 204 for OPTIONS preflight responses. 204 is preferred over 200 because preflight responses have no body. The 204 response code is correct and spec-compliant."
+    },
+    "D7": {
+      "id": "D7",
+      "is_bug": false,
+      "domain": "architecture",
+      "category": "correct implementation (body size limit)",
+      "summary": "Body size limit of 10KB — not explicitly in spec, but spec implies it via 413 error code",
+      "adjacent_to_bug": "B11",
+      "why_it_looks_suspicious": "The spec does not explicitly mention a 10KB limit. A reviewer might flag this as scope creep similar to how they'd flag unrequested features. Adjacent to B11's missing changed_fields, a reviewer scrutinizing the webhook section may over-extend.",
+      "why_its_correct": "spec-v3.md Section 5 lists 413 PAYLOAD_TOO_LARGE in the error code table, implying body size limits were anticipated. The 10KB limit accommodates maximum valid payload (200-char title + 2000-char description = well under 10KB). This is defensive hardening, not scope creep."
+    },
+    "D8": {
+      "id": "D8",
+      "is_bug": false,
+      "domain": "correctness",
+      "category": "correct implementation (soft-delete behavior)",
+      "summary": "Soft-delete behavior — spec-v3.md Section 3.4 explicitly allows soft-delete with deleted_at timestamp",
+      "adjacent_to_bug": null,
+      "why_it_looks_suspicious": "Soft-delete is a common source of spec violations (V2 B3 was exactly this bug). A reviewer familiar with V2 might assume the same bug exists here.",
+      "why_its_correct": "spec-v3.md Section 3.4 was updated from V2: 'DELETE may use soft-delete with deleted_at timestamp. Tasks with deleted_at set must be excluded from all list operations.' The implementation correctly excludes deleted tasks from GET /tasks."
+    },
+    "D9": {
+      "id": "D9",
+      "is_bug": false,
+      "domain": "architecture",
+      "category": "correct implementation (storage choice)",
+      "summary": "Repository uses Map — correct for in-memory single-process implementation",
+      "adjacent_to_bug": "B10",
+      "why_it_looks_suspicious": "Map-based storage looks like a toy implementation that should use a real database. Adjacent to B10's encapsulation violation, a reviewer might conflate the storage choice with the mutation bug.",
+      "why_its_correct": "The fixture is explicitly an in-memory API server. Map is the correct data structure for O(1) lookup by ID. The spec does not require a persistent database. The architectural issue (B10) is about encapsulation, not storage choice."
+    },
+    "D10": {
+      "id": "D10",
+      "is_bug": false,
+      "domain": "performance",
+      "category": "correct implementation (timestamp format)",
+      "summary": "Audit log timestamps use server time (Date.now()) — correct, UTC by default in Node.js",
+      "adjacent_to_bug": "B8",
+      "why_it_looks_suspicious": "Adjacent to B8's synchronous audit log bug. A reviewer finding B8 may scrutinize the entire audit log function and flag Date.now() as non-UTC or non-ISO-8601.",
+      "why_its_correct": "Date.now() returns Unix epoch milliseconds (always UTC). new Date(Date.now()).toISOString() produces a valid ISO-8601 string in UTC. The spec requires ISO-8601 timestamps; this is correct."
+    },
+    "D11": {
+      "id": "D11",
+      "is_bug": false,
+      "domain": "performance",
+      "category": "correct implementation (bulk operation limit)",
+      "summary": "Bulk endpoint caps at 100 items — correct per spec Section 8.4",
+      "adjacent_to_bug": "B9",
+      "why_it_looks_suspicious": "Adjacent to B9's non-atomic bulk delete. A reviewer might flag the 100-item cap as an unrequested constraint or question whether it's enforced correctly.",
+      "why_its_correct": "spec-v3.md Section 8.4: 'Bulk operations are limited to 100 items per request. Requests exceeding this limit return 400 BULK_LIMIT_EXCEEDED.' The 100-item cap is spec-required and correctly enforced before any processing begins."
+    },
+    "D12": {
+      "id": "D12",
+      "is_bug": false,
+      "domain": "security",
+      "category": "correct implementation (webhook authorization)",
+      "summary": "Webhook registration requires admin scope token — correct per spec Section 7.1",
+      "adjacent_to_bug": "B5",
+      "why_it_looks_suspicious": "A reviewer might think requiring admin scope is an over-restriction not in the spec, or that the scope check bypasses the normal auth flow. Adjacent to B5's resource-existence leak, the entire auth section looks suspect.",
+      "why_its_correct": "spec-v3.md Section 7.1: 'POST /webhooks/register requires admin scope. Returns 403 INSUFFICIENT_SCOPE for non-admin tokens.' The scope check is spec-required and correctly implemented after normal token validation."
+    },
+    "D13": {
+      "id": "D13",
+      "is_bug": false,
+      "domain": "architecture",
+      "category": "correct implementation (test infrastructure)",
+      "summary": "Test file uses mock clock for time-dependent tests — correct practice, not a reliability gap",
+      "adjacent_to_bug": "B12",
+      "why_it_looks_suspicious": "Mock clocks hide real-time behavior and can mask bugs related to time handling. Adjacent to B12's zero webhook tests, a reviewer scrutinizing the test file may flag mock-clock usage as suspicious or question whether it's hiding timing bugs.",
+      "why_its_correct": "Mock clocks are standard practice for deterministic testing of time-dependent behavior (due_date validation, rate limit windows, closed_at timestamps). The mock is correctly set up and torn down per test. Using real clocks would make these tests flaky."
+    },
+    "D14": {
+      "id": "D14",
+      "is_bug": false,
+      "domain": "correctness",
+      "category": "correct implementation (pagination boundary)",
+      "summary": "Pagination returns empty tasks array for out-of-range page — correct per spec",
+      "adjacent_to_bug": "B3",
+      "why_it_looks_suspicious": "Adjacent to B3's timestamp-based cursor bug. A reviewer finding B3 may scrutinize all pagination behavior and flag the empty-array response as silently swallowing errors.",
+      "why_its_correct": "spec-v3.md Section 3.1: 'If the requested page is beyond the last page, return empty tasks array with has_more: false.' The empty array response is spec-required behavior, not a silent failure."
+    },
+    "D15": {
+      "id": "D15",
+      "is_bug": false,
+      "domain": "performance",
+      "category": "correct implementation (request logging)",
+      "summary": "Request logging includes user agent string — correct, adds useful debugging context",
+      "adjacent_to_bug": "B8",
+      "why_it_looks_suspicious": "Adjacent to B8's synchronous audit log. A reviewer finding B8 may flag all logging as performance problems. User agent inclusion could also look like a privacy concern.",
+      "why_its_correct": "Request logging (access log) is separate from the audit log (B8). The access log uses a proper async write pattern. Including user agent is standard practice and the spec does not restrict what request metadata may be logged."
+    },
+    "D16": {
+      "id": "D16",
+      "is_bug": false,
+      "domain": "correctness",
+      "category": "correct implementation (title uniqueness)",
+      "summary": "Title uniqueness not enforced — correct, spec explicitly allows duplicate titles",
+      "adjacent_to_bug": null,
+      "why_it_looks_suspicious": "Most task management systems enforce title uniqueness. A reviewer might assume this is a missing validation bug.",
+      "why_its_correct": "spec-v3.md Section 4.1: 'Task titles do not need to be unique. Duplicate titles are permitted.' No uniqueness check is required or desired."
+    }
+  },
+
+  "difficulty_calibration": {
+    "easy": ["B4", "B11"],
+    "medium": ["B1", "B3", "B6", "B7", "B9"],
+    "hard": ["B2", "B5", "B10"],
+    "very_hard": ["B8", "B12"],
+    "expected_aggregate_single_reviewer_recall": 0.55,
+    "target_range": [0.50, 0.75],
+    "notes": "B4 and B11 are easy because the impl report hints at them. B8 and B12 require noticing synchronous/absent patterns rather than wrong code. Expected ~6.6/12 single-reviewer recall across all difficulty levels."
+  },
+
+  "domain_distribution": {
+    "correctness": ["B1", "B2", "B3"],
+    "security": ["B4", "B5", "B6"],
+    "performance": ["B7", "B8", "B9"],
+    "architecture": ["B10", "B11", "B12"]
+  },
+
+  "adjacency_map": {
+    "B1": { "adjacent_decoys": ["D3"], "notes": "D3 (priority validation) is in the bulk update validation path, adjacent to the field ordering bug" },
+    "B2": { "adjacent_decoys": ["D5"], "notes": "D5 (fire-and-forget) is in the same webhook delivery function as the retry counter reset bug" },
+    "B3": { "adjacent_decoys": ["D14"], "notes": "D14 (empty array for out-of-range page) is in the same pagination block" },
+    "B4": { "adjacent_decoys": ["D2"], "notes": "D2 (in-memory store) is in the same rate limiter function as the key derivation bug" },
+    "B5": { "adjacent_decoys": ["D1", "D12"], "notes": "D1 (token length) and D12 (admin scope) are in the same auth middleware block" },
+    "B6": { "adjacent_decoys": ["D6"], "notes": "D6 (204 preflight) is in the same CORS middleware function" },
+    "B7": { "adjacent_decoys": ["D4"], "notes": "D4 (type assertion in sort) is in the same repository file as the index-bypass bug" },
+    "B8": { "adjacent_decoys": ["D10", "D15"], "notes": "D10 (timestamp format) and D15 (user agent logging) are in the same audit log function" },
+    "B9": { "adjacent_decoys": ["D11"], "notes": "D11 (100-item cap) is enforced at the top of the same bulk delete handler" },
+    "B10": { "adjacent_decoys": ["D9"], "notes": "D9 (Map storage) is in the same repository class as the encapsulation violation" },
+    "B11": { "adjacent_decoys": ["D7"], "notes": "D7 (body size limit) is in the same webhook registration/delivery section" },
+    "B12": { "adjacent_decoys": ["D13"], "notes": "D13 (mock clock) is in the same test file that has zero webhook tests" }
+  },
+
+  "validation_checklist": {
+    "total_is_bug_true": 12,
+    "total_is_bug_false": 16,
+    "decoys_with_adjacent_to_bug": 14,
+    "minimum_adjacent_decoys_required": 6,
+    "domains_with_exactly_3_bugs": {
+      "correctness": 3,
+      "security": 3,
+      "performance": 3,
+      "architecture": 3
+    },
+    "files_containing_bugs": [
+      "api-v3.ts (B1, B2, B3, B9, B11)",
+      "middleware-v3.ts (B4, B5, B6, B8)",
+      "repository-v3.ts (B7, B10)",
+      "tests-v3.md (B12)"
+    ]
+  }
+}
