@@ -40,7 +40,7 @@
       "expected_single_reviewer_rate": 0.35,
       "location": "api-v3.ts, deliverWebhook function, retry loop",
       "spec_reference": "spec-v3.md Section 7.3: 'Retry count increments on every failed attempt including partial success. Maximum 3 retries total.'",
-      "code_behavior": "The retry loop increments retryCount only when the HTTP response status is >= 500. If the delivery endpoint returns 206 Partial Content (a partial success), the code logs the partial delivery but resets retryCount to 0 — interpreting partial success as a signal to restart the retry window. This means a flaky endpoint returning alternating 206/500 responses never exceeds the retry limit.",
+      "code_behavior": "The retry loop increments retryCount only when the HTTP response status is >= 500. If the delivery endpoint returns 206 Partial Content (a partial success), the code logs the partial delivery but resets retryCount to 0 — interpreting partial success as a signal to restart the retry window. This means a flaky endpoint returning alternating 206/500 responses never exceeds the retry limit. On a 206-persistent endpoint, retryCount never reaches maxRetries — the loop runs indefinitely (unbounded retry/infinite loop).",
       "cross_file_notes": "impl-v3.md states 'webhook delivery includes retry logic with exponential backoff'. D5 (fire-and-forget pattern) is nearby and looks suspicious but is correct.",
       "adjacent_decoys": ["D5"]
     },
