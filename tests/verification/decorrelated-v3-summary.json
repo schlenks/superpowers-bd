@@ -1,0 +1,208 @@
+{
+  "primary": {
+    "n_paired": 13,
+    "total_individual_runs": 120,
+    "parse_failures_individual": 2,
+    "parse_rate_individual": 0.0167,
+    "condition_a": "generalist",
+    "condition_b": "specialist",
+    "scores": {
+      "mean_generalist": 12.0,
+      "mean_specialist": 11.7692,
+      "mean_delta": -0.2308,
+      "stdev_generalist": 0.0,
+      "stdev_specialist": 0.4385,
+      "stdev_ratio": 0.0369
+    },
+    "secondary": {
+      "mean_tp_generalist": 12.0,
+      "mean_tp_specialist": 12.0,
+      "mean_fp_generalist": 0.0,
+      "mean_fp_specialist": 0.2308,
+      "delta_fp": 0.2308,
+      "mean_recall_generalist": 1.0,
+      "mean_recall_specialist": 1.0,
+      "delta_recall": 0.0
+    },
+    "wilcoxon": {
+      "T_plus": 0.0,
+      "T_minus": 6.0,
+      "T_stat": 0.0,
+      "n_nonzero": 3,
+      "z_stat": NaN,
+      "p_value": NaN,
+      "sufficient": false,
+      "method": "insufficient_sample_size"
+    },
+    "bootstrap_ci_delta": {
+      "point_estimate": -0.23076923076923078,
+      "ci_lower": -0.46153846153846156,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 13,
+      "n_resamples": 10000
+    },
+    "verdict": "INCONCLUSIVE",
+    "decision_class": "OBSERVED"
+  },
+  "per_domain": {
+    "correctness": {
+      "bugs": [
+        "B1",
+        "B2",
+        "B3"
+      ],
+      "n_cycles": 15,
+      "recall_specialist": 1.0,
+      "recall_generalist": 1.0,
+      "delta_recall": 0.0,
+      "specialist_ci": {
+        "point_estimate": 1.0,
+        "ci_lower": 1.0,
+        "ci_upper": 1.0,
+        "ci_level": 0.95,
+        "n": 15,
+        "n_resamples": 10000
+      },
+      "generalist_ci": {
+        "point_estimate": 1.0,
+        "ci_lower": 1.0,
+        "ci_upper": 1.0,
+        "ci_level": 0.95,
+        "n": 15,
+        "n_resamples": 10000
+      },
+      "note": "Descriptive only \u2014 3 bugs too few for formal test"
+    },
+    "security": {
+      "bugs": [
+        "B4",
+        "B5",
+        "B6"
+      ],
+      "n_cycles": 15,
+      "recall_specialist": 1.0,
+      "recall_generalist": 1.0,
+      "delta_recall": 0.0,
+      "specialist_ci": {
+        "point_estimate": 1.0,
+        "ci_lower": 1.0,
+        "ci_upper": 1.0,
+        "ci_level": 0.95,
+        "n": 15,
+        "n_resamples": 10000
+      },
+      "generalist_ci": {
+        "point_estimate": 1.0,
+        "ci_lower": 1.0,
+        "ci_upper": 1.0,
+        "ci_level": 0.95,
+        "n": 15,
+        "n_resamples": 10000
+      },
+      "note": "Descriptive only \u2014 3 bugs too few for formal test"
+    },
+    "performance": {
+      "bugs": [
+        "B7",
+        "B8",
+        "B9"
+      ],
+      "n_cycles": 15,
+      "recall_specialist": 1.0,
+      "recall_generalist": 1.0,
+      "delta_recall": 0.0,
+      "specialist_ci": {
+        "point_estimate": 1.0,
+        "ci_lower": 1.0,
+        "ci_upper": 1.0,
+        "ci_level": 0.95,
+        "n": 15,
+        "n_resamples": 10000
+      },
+      "generalist_ci": {
+        "point_estimate": 1.0,
+        "ci_lower": 1.0,
+        "ci_upper": 1.0,
+        "ci_level": 0.95,
+        "n": 15,
+        "n_resamples": 10000
+      },
+      "note": "Descriptive only \u2014 3 bugs too few for formal test"
+    },
+    "architecture": {
+      "bugs": [
+        "B10",
+        "B11",
+        "B12"
+      ],
+      "n_cycles": 15,
+      "recall_specialist": 1.0,
+      "recall_generalist": 1.0,
+      "delta_recall": 0.0,
+      "specialist_ci": {
+        "point_estimate": 1.0,
+        "ci_lower": 1.0,
+        "ci_upper": 1.0,
+        "ci_level": 0.95,
+        "n": 15,
+        "n_resamples": 10000
+      },
+      "generalist_ci": {
+        "point_estimate": 1.0,
+        "ci_lower": 1.0,
+        "ci_upper": 1.0,
+        "ci_level": 0.95,
+        "n": 15,
+        "n_resamples": 10000
+      },
+      "note": "Descriptive only \u2014 3 bugs too few for formal test"
+    }
+  },
+  "individual_reviewers": {
+    "reviewer_1": {
+      "domain": "correctness",
+      "n_cycles": 15,
+      "mean_specialist_in_domain_recall": 1.0,
+      "mean_generalist_in_domain_recall": 1.0,
+      "delta_recall": 0.0,
+      "outperformed": false,
+      "note": "Specialist vs. mean individual generalist recall for domain bugs"
+    },
+    "reviewer_2": {
+      "domain": "security",
+      "n_cycles": 14,
+      "mean_specialist_in_domain_recall": 1.0,
+      "mean_generalist_in_domain_recall": 1.0,
+      "delta_recall": 0.0,
+      "outperformed": false,
+      "note": "Specialist vs. mean individual generalist recall for domain bugs"
+    },
+    "reviewer_3": {
+      "domain": "performance",
+      "n_cycles": 15,
+      "mean_specialist_in_domain_recall": 1.0,
+      "mean_generalist_in_domain_recall": 1.0,
+      "delta_recall": 0.0,
+      "outperformed": false,
+      "note": "Specialist vs. mean individual generalist recall for domain bugs"
+    },
+    "reviewer_4": {
+      "domain": "architecture",
+      "n_cycles": 15,
+      "mean_specialist_in_domain_recall": 1.0,
+      "mean_generalist_in_domain_recall": 1.0,
+      "delta_recall": 0.0,
+      "outperformed": false,
+      "note": "Specialist vs. mean individual generalist recall for domain bugs"
+    }
+  },
+  "cost": {
+    "total_individual_sessions": 120,
+    "individual_parse_ok": 118,
+    "individual_parse_rate": 0.9833,
+    "total_aggregate_conditions": 30,
+    "aggregate_parse_ok": 28,
+    "aggregate_parse_rate": 0.9333
+  }
+}
