@@ -503,8 +503,8 @@ echo ""
 python3 "$SCRIPT_DIR/analyze-v4.py" "$TEST_DIR/scores.csv" "$TEST_DIR/aggregates.csv"
 
 # Copy summary JSON if analyzer created it
-if [ -f "$TEST_DIR/aggregates-summary.json" ]; then
-    cp "$TEST_DIR/aggregates-summary.json" "$SCRIPT_DIR/mixed-model-v4-summary.json"
+if [ -f "$TEST_DIR/mixed-model-v4-summary.json" ]; then
+    cp "$TEST_DIR/mixed-model-v4-summary.json" "$SCRIPT_DIR/mixed-model-v4-summary.json"
     echo "  tests/verification/mixed-model-v4-summary.json"
 fi
 

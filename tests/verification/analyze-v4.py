@@ -138,7 +138,6 @@ else:
 # ---------------------------------------------------------------------------
 
 REAL_BUGS = [f"B{i}" for i in range(1, 13)]
-DECOYS = [f"D{i}" for i in range(1, 17)]
 TOTAL_BUGS = 12
 
 
