@@ -15,10 +15,10 @@ Execute beads epic by dispatching parallel subagents for independent issues, wit
 
 1. Load epic: `bd show <epic-id>`, parse children and Key Decisions
 2. Check for `temp/sdd-checkpoint-{epic_id}.json` -- if found, restore state (budget_tier, wave_receipts, closed_issues, metrics), print "Resuming epic {id} from wave {N+1}", jump to LOADING (skip step 3)
-3. Ask budget tier (max-20x / max-5x / pro-api) -- sets model matrix for session
+3. Ask budget tier (max-20x / max-5x / pro-api) -- sets model matrix for session. Parse optional wave cap from invocation (default 3, max 10).
 4. Verify `temp/` exists (do NOT run `mkdir`)
 5. `bd ready`, filter to epic children
-6. Check file conflicts, cap wave at 3, serialize wave file map into prompts
+6. Check file conflicts, cap wave at {wave_cap}, serialize wave file map into prompts
 7. Dispatch implementers (`run_in_background: true`) -- sub-agents self-read from beads
 8. Each returns: spec review -> code review -> verification -> evidence -> `bd close`
 9. Post `[WAVE-SUMMARY]` to epic comments, cleanup `temp/<epic>*`, write checkpoint, retain 2-line receipt
@@ -57,10 +57,20 @@ selects the model; tier ceiling caps it. Code reviewer and verifier use tier def
 Default: if `complexity:*` label missing, use `standard`.
 Store tier selection for session -- don't ask again per wave.
 
+## Wave Cap
+
+Controls max tasks dispatched per wave. Default: 3. Range: 1–10.
+
+Two ways to set:
+1. User specifies in invocation: "execute epic hub-abc wave-cap 5"
+2. If not specified, use default 3 (do NOT ask — budget tier is the only interactive question)
+
+If out of range, warn and clamp. Stored in checkpoint for recovery.
+
 ## The Process
 
 ```
-LOADING: bd ready -> filter to epic -> check file conflicts -> cap at 3
+LOADING: bd ready -> filter to epic -> check file conflicts -> cap at {wave_cap}
 DISPATCH: serialize wave file map -> bd update --status=in_progress -> dispatch async
 MONITOR: poll TaskOutput(block=False, timeout=5000) -> route completions
 REVIEW: spec review -> code review (N if tier allows) -> gap closure (max 3 attempts)
@@ -91,7 +101,7 @@ REVIEW -> PENDING_HUMAN (verification >3 attempts)
 
 After each wave CLOSE, write a checkpoint to `temp/sdd-checkpoint-{epic_id}.json` (see [checkpoint-recovery.md](checkpoint-recovery.md)). This enables seamless recovery after auto-compact or `/clear`.
 
-**On seeing `<sdd-checkpoint-recovery>` in session context:** Read the checkpoint file and resume from the next wave. Do NOT re-ask budget tier.
+**On seeing `<sdd-checkpoint-recovery>` in session context:** Read the checkpoint file and resume from the next wave. Do NOT re-ask budget tier or wave cap.
 
 **At COMPLETE:** Delete `temp/sdd-checkpoint-{epic_id}.json` and `temp/metrics-{epic_id}.json`.
 

@@ -1,5 +1,23 @@
 # Superpowers Release Notes
 
+## v5.2.0 (2026-03-06) - Beads Fork
+
+### Feature: Configurable Wave Cap for SDD
+
+The SDD wave cap is now configurable instead of hardcoded to 3. Users can specify a wave cap (1–10) in their invocation to experiment with larger waves, while the safe default of 3 is preserved.
+
+**Problem:** The wave cap was hardcoded to 3 after production runs showed 5-agent waves exhausting the orchestrator's context window. Since then, upstream improvements (skill listing no longer re-injected on resume, subagent skill context leak fixed, reduced subagent report sizes) have reduced per-agent context cost, but there was no way to take advantage of it.
+
+**Solution:** Parse optional `wave-cap N` from the user's invocation (e.g., "execute epic hub-abc wave-cap 5"). Default 3, range 1–10, clamped with warning if out of range. Not asked interactively — budget tier remains the only interactive question. Wave cap is stored in the checkpoint for recovery; old checkpoints without `wave_cap` default to 3.
+
+**Files Modified (4):**
+- `skills/subagent-driven-development/SKILL.md` — added Wave Cap section, parameterized hardcoded 3 references in Quick Start, state machine, and context recovery
+- `skills/subagent-driven-development/dispatch-and-conflict.md` — parameterized cap in algorithm description and pseudocode
+- `skills/subagent-driven-development/background-execution.md` — updated max reference to "configured wave cap"
+- `skills/subagent-driven-development/checkpoint-recovery.md` — added `wave_cap` to schema, restore list, recovery skip, corrupted checkpoint fallback, and backward compatibility
+
+---
+
 ## v5.1.0 (2026-02-13) - Beads Fork
 
 ### Feature: Ad-hoc Code Review Command (`/cr`)

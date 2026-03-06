@@ -2,7 +2,7 @@
 
 ## When to Use
 
-For 2+ tasks per wave (up to the max of 3), background execution lets you monitor all tasks simultaneously and start reviews as soon as each completes—without waiting for all implementations to finish.
+For 2+ tasks per wave (up to the configured wave cap, default 3), background execution lets you monitor all tasks simultaneously and start reviews as soon as each completes—without waiting for all implementations to finish.
 
 Use `run_in_background: true` with TaskOutput polling.
 
