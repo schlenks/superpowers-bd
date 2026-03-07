@@ -1,5 +1,24 @@
 # Superpowers Release Notes
 
+## Experiment: V4 Mixed-Model Review (2026-03-07)
+
+### Result: INCONCLUSIVE - Ceiling Effect
+
+Mixed-model code review (1xOpus + 2xSonnet) shows no measurable advantage over uniform review (3xSonnet) on the V3 fixture suite.
+
+**Setup:** 15 paired cycles, 90 total reviewer sessions. Same 12-bug + 16-decoy fixture, same generalist prompt. Only variable: model selection.
+
+| Metric | Uniform (3xSonnet) | Mixed (1xOpus+2xSonnet) |
+|--------|-------------------|------------------------|
+| Mean score | 11.93 | 12.00 |
+| Recall | 1.00 | 1.00 |
+| Mean FP | 0.07 | 0.00 |
+| Cost (units) | 3.0 | 7.0 (+133%) |
+
+Wilcoxon test insufficient (1 non-zero pair of 15). Bootstrap 95% CI on delta: [0.0, 0.2]. Opus found zero bugs that both Sonnet reviewers missed. Root cause: fixture ceiling effect -- both models achieve perfect recall. No production changes made. See `docs/IMPROVEMENTS-ARCHIVE.md` Section 8b for full analysis.
+
+---
+
 ## v5.2.0 (2026-03-06) - Beads Fork
 
 ### Feature: Configurable Wave Cap for SDD
