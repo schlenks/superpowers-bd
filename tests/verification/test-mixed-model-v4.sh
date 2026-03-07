@@ -457,13 +457,18 @@ $JSON_SUFFIX"
 
             label="${condition}-r${reviewer_num}"
 
+            # Write prompt to temp file to avoid CLI argument size limit
+            # (>60KB prompts hang when passed as -p argument)
+            prompt_file="$TEST_DIR/prompt-${label}-cycle${cycle}.txt"
+            echo "$full_prompt" > "$prompt_file"
+
             # Model selection: mixed condition reviewer 1 gets --model opus
             if [ "$condition" = "mixed" ] && [ "$reviewer_num" -eq 1 ]; then
-                run_claude_session "$label" "$cycle" 2 300 \
-                    claude -p "$full_prompt" --model opus --permission-mode bypassPermissions --allowed-tools=all
+                run_claude_session_stdin "$label" "$cycle" 2 600 "$prompt_file" \
+                    claude -p - --model opus --permission-mode bypassPermissions
             else
-                run_claude_session "$label" "$cycle" 2 300 \
-                    claude -p "$full_prompt" --permission-mode bypassPermissions --allowed-tools=all
+                run_claude_session_stdin "$label" "$cycle" 2 600 "$prompt_file" \
+                    claude -p - --permission-mode bypassPermissions
             fi
 
             # Score only if run succeeded

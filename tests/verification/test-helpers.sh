@@ -93,6 +93,75 @@ run_claude_session() {
     return 0  # Don't abort the script on individual run failure
 }
 
+# Like run_claude_session but pipes prompt from a file via stdin.
+# Avoids CLI argument size limit (>60KB prompts hang as -p arguments).
+#
+# Usage: run_claude_session_stdin LABEL RUN_NUM MAX_RETRIES TIMEOUT_SECS PROMPT_FILE CLAUDE_ARGS...
+run_claude_session_stdin() {
+    local label="$1"
+    local run_num="$2"
+    local max_retries="${3:-2}"
+    local timeout_secs="${4:-180}"
+    local prompt_file="$5"
+    shift 5
+    # Remaining args are passed to claude
+
+    local attempt=0
+    local status="failed"
+    local duration=0
+
+    while [ "$attempt" -lt "$max_retries" ]; do
+        attempt=$((attempt + 1))
+
+        if [ -n "${PRE_ATTEMPT_CLEANUP:-}" ]; then
+            eval "$PRE_ATTEMPT_CLEANUP"
+        fi
+
+        local output_file="$TEST_DIR/output-${label}-run${run_num}-attempt${attempt}.txt"
+
+        local start_ms
+        start_ms=$(python3 -c "import time; print(int(time.time() * 1000))")
+
+        local exit_code=0
+        timeout "$timeout_secs" env -u CLAUDECODE "$@" < "$prompt_file" > "$output_file" 2>&1 || exit_code=$?
+
+        local end_ms
+        end_ms=$(python3 -c "import time; print(int(time.time() * 1000))")
+        duration=$((end_ms - start_ms))
+
+        if [ $exit_code -eq 0 ]; then
+            status="succeeded"
+            cp "$output_file" "$TEST_DIR/output-${label}-run${run_num}.txt"
+            break
+        elif [ $exit_code -eq 124 ]; then
+            status="timed_out"
+            echo "    [TIMEOUT] Attempt $attempt timed out after ${timeout_secs}s"
+        else
+            status="failed"
+            echo "    [FAILED] Attempt $attempt exited with code $exit_code"
+        fi
+
+        if [ "$attempt" -lt "$max_retries" ]; then
+            echo "    Retrying (attempt $((attempt + 1))/$max_retries)..."
+        fi
+    done
+
+    local pass_label="first-pass"
+    if [ "$attempt" -gt 1 ] && [ "$status" = "succeeded" ]; then
+        pass_label="retry-pass"
+    fi
+
+    echo "${label},${run_num},${duration},${status},${attempt},${pass_label}" >> "$RESULTS_FILE"
+
+    if [ "$status" = "succeeded" ]; then
+        echo "  Run $run_num: ${duration}ms (${pass_label})"
+    else
+        echo "  Run $run_num: FAILED after $attempt attempts (${status})"
+    fi
+
+    return 0
+}
+
 # Find the most recent session transcript (.jsonl) for a given working directory.
 # Claude Code writes transcripts to ~/.claude/projects/-<escaped-cwd>/<session>.jsonl
 #
