@@ -54,6 +54,25 @@ Every plan MUST start with:
 
 Key Decisions: 3-5 decisions implementers might question. WHAT was decided AND WHY. Focus where alternatives existed.
 
+## File Structure
+
+Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
+
+```markdown
+| File | Responsibility | Action |
+|------|---------------|--------|
+| `exact/path/to/file.py` | One clear responsibility | Create |
+| `exact/path/to/existing.py` | One clear responsibility | Modify |
+| `tests/exact/path/to/test.py` | Tests for file.py | Create |
+```
+
+- Design units with clear boundaries and well-defined interfaces. Each file should have one clear responsibility.
+- Prefer smaller, focused files. Files that can be held in context at once produce more reliable edits.
+- Files that change together should live together. Split by responsibility, not by technical layer.
+- In existing codebases, follow established patterns. If a file has grown unwieldy, including a split in the plan is reasonable.
+
+This structure informs task decomposition. Each task's `Files:` section must reference entries from this table — no task should introduce files not listed here.
+
 ## Task Structure
 
 **CRITICAL: Every task MUST include `Depends on:`, `Complexity:`, and `Files:` sections.** These enable safe parallel execution, model selection, and file conflict detection. See `references/dependency-analysis.md` and `references/file-lists.md`.
@@ -97,6 +116,7 @@ Before rule-of-five-plans, verify scope and accuracy:
 - **Not over-engineered** -- Simplest approach that works?
 - **Key Decisions documented** -- 3-5 decisions with rationale?
 - **Context sections present** -- Purpose for non-obvious tasks? Not In Scope for boundary tasks?
+- **File Structure complete** -- Every file in task `Files:` sections appears in File Structure table? No undeclared files?
 
 ## Remember
 
@@ -106,6 +126,7 @@ Before rule-of-five-plans, verify scope and accuracy:
 - Reference relevant skills by name
 - **Every task needs `Depends on:`, `Complexity:`, and `Files:`**
 - **Include `Purpose:`, `Not In Scope:`, `Gotchas:` where needed**
+- **File Structure table before tasks — tasks reference it, never introduce undeclared files**
 - **Run Plan Verification Checklist before rule-of-five-plans**
 - **Announce each verification phase** (see `references/announcements-protocol.md`)
 - **Plan MUST end with Verification Record** (see `references/verification-footer.md`)

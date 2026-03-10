@@ -70,6 +70,7 @@ Evaluate each item:
 - **Not over-engineered** — Simplest approach that works?
 - **Key Decisions documented** — 3-5 decisions with rationale?
 - **Context sections present** — Purpose for non-obvious tasks? Not In Scope for boundary tasks?
+- **File Structure complete** — Every file in task `Files:` sections appears in File Structure table? No undeclared files?
 
 ## Instructions
 1. Read the plan file: {plan_path}
@@ -127,6 +128,8 @@ SUMMARY: <1-3 sentences>
 - Documentation updates included
 - Test tasks present for every feature task
 - `Depends on:`, `Complexity:`, and `Files:` sections on every task
+- File Structure table present with all files mapped to responsibilities
+- Every task `Files:` entry traceable to File Structure table
 
 **Exit when:** Every requirement maps to task(s).
 

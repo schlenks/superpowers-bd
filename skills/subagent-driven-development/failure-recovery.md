@@ -30,6 +30,73 @@ if rejection_count[task_id] > 2:
     WAIT for human decision
 ```
 
+## Implementer BLOCKED
+
+When an implementer returns BLOCKED:
+
+```
+blocker = verdict.BLOCKER
+
+# 1. Assess blocker type
+if blocker indicates missing context ("need to understand", "can't find"):
+    # Context problem — provide more context, same model
+    redispatch_with_context(task_id, blocker, same_model=True)
+
+elif blocker indicates capacity limit ("architectural decision", "multiple approaches", "uncertain"):
+    # Reasoning capacity — upgrade model
+    current_model = pending_tasks[task_id]["model"]
+    next_model = upgrade(current_model)  # haiku→sonnet→opus, capped by tier
+    if next_model == current_model:
+        # Already at tier ceiling — escalate to human
+        escalated_tasks[task_id] = blocker
+        report_to_human(task_id, blocker)
+    else:
+        redispatch(task_id, next_model, extra_context=blocker)
+
+elif blocker indicates scope problem ("restructuring", "too large", "beyond plan"):
+    # Task decomposition needed — escalate to human
+    escalated_tasks[task_id] = blocker
+    report_to_human(task_id, blocker,
+        options=["Break task into sub-issues", "Revise plan", "Take over manually"])
+
+else:
+    # Unknown blocker — escalate to human
+    escalated_tasks[task_id] = blocker
+    report_to_human(task_id, blocker)
+```
+
+## Implementer NEEDS_CONTEXT
+
+When an implementer returns NEEDS_CONTEXT:
+
+```
+missing_context = verdict.BLOCKER
+redispatch_count = pending_tasks[task_id].get("redispatch_count", 0) + 1
+pending_tasks[task_id]["redispatch_count"] = redispatch_count
+
+if redispatch_count > 2:
+    # Tried 3 times — human must clarify
+    escalated_tasks[task_id] = missing_context
+    report_to_human(task_id, missing_context,
+        note="Implementer asked for context 3 times. Human clarification needed.")
+else:
+    # Read the relevant files/code the implementer needs
+    # Include them directly in the re-dispatch prompt
+    redispatch_with_context(task_id, missing_context, same_model=True)
+```
+
+**Re-dispatch prompt addendum:**
+
+```
+The previous attempt returned NEEDS_CONTEXT:
+"{blocker_description}"
+
+Here is the additional context:
+{additional_context_from_orchestrator}
+
+All other instructions from your original dispatch still apply.
+```
+
 ## Verification Gap Closure (>3 attempts)
 
 ```

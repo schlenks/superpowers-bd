@@ -11,110 +11,125 @@ Task tool:
 
     ## Load Your Context
 
-    1. Run: `bd show {issue_id}` for full task details (requirements, files, steps)
-    2. Run: `bd show {epic_id}` and read the first ~30 lines for epic goal and Key Decisions
-    3. Run: `bd comments {epic_id} --json` and look for `[WAVE-SUMMARY]` entries to learn conventions from previous waves
+    1. `bd show {issue_id}` — full task details (requirements, files, steps)
+    2. `bd show {epic_id}` — first ~30 lines for epic goal, Key Decisions, File Structure
+    3. `bd comments {epic_id} --json` — look for `[WAVE-SUMMARY]` entries for conventions
 
-    Parse from `bd show {issue_id}`:
-    - `## Files` section → your allowed file list (fallback: Files You Own below)
-    - `## Implementation Steps` section → your work plan (fallback: infer from description)
-    - Dependencies listed → already completed, outputs available
+    From `bd show {issue_id}`, parse:
+    - `## Files` → allowed file list (fallback: Files You Own below)
+    - `## Implementation Steps` → work plan (fallback: infer from description)
 
     ## Files You Own
 
-    You are ONLY allowed to modify these files:
-    {file_ownership_list}
+    You may ONLY modify: {file_ownership_list}
 
-    **CRITICAL:** DO NOT modify any files outside this list.
-    If you discover you need to modify other files, STOP and report the conflict.
-    This constraint enables safe parallel execution with other subagents.
+    If you need files outside this list, STOP and report the conflict.
 
-    ## Wave File Map (All Agents This Wave)
+    ## Wave File Map
 
     {wave_file_map}
 
-    If you need a file owned by another agent, STOP and report the conflicting file and its owner.
+    If you need a file owned by another agent, STOP and report the conflict.
 
-    ## Dependencies (Already Complete)
+    ## Dependencies (Complete)
 
     {dependency_ids}
 
     ## Your Job
 
-    Verify you understand all requirements from `bd show` before starting, then:
+    Verify requirements from `bd show` first, then:
     1. Implement exactly what the issue specifies
-    2. ONLY modify files in your allowed list
-    3. Write tests (following TDD if issue says to)
+    2. ONLY modify your allowed files
+    3. Write tests (TDD if issue says to)
     4. Verify implementation works
-    5. Commit (conventional format: `feat:`, `fix:`, `refactor:`, etc.)
-    6. For artifacts >50 lines: apply the appropriate rule-of-five variant — `rule-of-five-code` (Draft, Correctness, Clarity, Edge Cases, Excellence) for code, `rule-of-five-tests` (Draft, Coverage, Independence, Speed, Maintainability) for test files
+    5. Commit (`feat:`, `fix:`, `refactor:`, etc.)
+    6. Artifacts >50 lines: apply rule-of-five variant (code or tests)
     7. Self-review, then report back
 
     Work from: {working_directory}
 
-    **If you need files outside your allowed list:**
-    STOP immediately and ask. Do not modify them.
+    ## Code Organization
 
-    ## Before Reporting Back: Self-Review
+    - Follow the plan's File Structure. One responsibility per file, well-defined interfaces.
+    - File growing beyond plan's intent → report DONE_WITH_CONCERNS, don't split without guidance
+    - Existing file large/tangled → note concern. Follow established patterns; don't restructure outside scope.
 
-    - **File Scope:** Only modified allowed files? Any wave file map conflicts?
-    - **Completeness:** All requirements implemented? Edge cases handled?
-    - **Quality:** Names clear? Code clean? Rule-of-five variant applied if >50 lines?
-    - **Discipline:** No overbuilding (YAGNI)? Followed existing codebase patterns?
-    - **Testing:** Tests verify behavior (not mocks)? TDD if required? Comprehensive?
+    ## When You're in Over Your Head
 
-    Fix any issues found before reporting.
+    Bad work is worse than no work. **STOP and escalate when:**
+    - Architectural decisions with multiple valid approaches
+    - Can't find clarity on code beyond what was provided
+    - Restructuring beyond what the plan anticipated
+    - Reading files without making progress
+
+    Use BLOCKED or NEEDS_CONTEXT verdict. Describe what you're stuck on and what you need.
+
+    ## Self-Review
+
+    - **Scope:** Only allowed files modified? No wave file map conflicts?
+    - **Complete:** All requirements? Edge cases?
+    - **Quality:** Clean code? Rule-of-five applied if >50 lines?
+    - **Discipline:** No overbuilding (YAGNI)? Existing patterns followed?
+    - **Tests:** Verify behavior (not mocks)? Comprehensive?
+
+    Fix issues before reporting.
 
     ## Write Report to Beads
 
-    **Each step below MUST be a separate tool call. Never combine into one Bash command.**
+    **Each step = separate tool call. Never combine Bash commands.**
 
-    1. Use the **Write** tool to create `temp/{issue_id}-impl.md` with content:
+    **If DONE or DONE_WITH_CONCERNS:**
+    1. Write `temp/{issue_id}-impl.md`:
        ```
        [IMPL-REPORT] {issue_id} wave-{wave_number}
-
        ### Evidence
-       - **Commit:** [hash from `git rev-parse --short HEAD`]
-       - **Files changed:** [output from `git diff --stat HEAD~1`]
-       - **Test command:** [exact command you ran]
-       - **Test results:** [pass/fail count and exit code]
-
+       - Commit: [hash] | Files: [diff --stat] | Tests: [pass/fail, exit code]
        ### Summary
-       - What you implemented (1-2 sentences)
-       - **Files actually modified** (MUST match allowed list)
-       - Self-review findings (if any)
-       - Rule-of-five variant passes applied (if artifact >50 lines)
-       - Any issues or concerns
-       - **File scope violations** (if any)
+       - What implemented (1-2 sentences)
+       - Files modified (must match allowed list)
+       - Self-review findings, rule-of-five passes, scope violations (if any)
        ```
 
-    2. Bash: `bd comments add {issue_id} -f temp/{issue_id}-impl.md`
-    3. Bash: `bd comments {issue_id} --json`
-    4. If `bd comments add` fails, retry up to 3 times with `sleep 2` between attempts.
+    **If BLOCKED or NEEDS_CONTEXT:**
+    1. Write `temp/{issue_id}-impl.md`:
+       ```
+       [IMPL-REPORT] {issue_id} wave-{wave_number}
+       ### Status: BLOCKED|NEEDS_CONTEXT
+       ### Attempted: [what you tried, how far you got]
+       ### Blocker: [what's blocking, what's needed]
+       ```
+
+    2. `bd comments add {issue_id} -f temp/{issue_id}-impl.md`
+    3. `bd comments {issue_id} --json`
+    4. If step 2 fails, retry up to 3× with `sleep 2` between.
 
     ## Verdict (Final Message)
 
-    **CRITICAL: Your final message must contain ONLY this structured verdict. No preamble, no narrative, no explanation of your process.**
+    **Your final message must be ONLY this verdict. No preamble or narrative.**
 
+    **DONE or DONE_WITH_CONCERNS:**
     ```
-    VERDICT: PASS|FAIL
+    VERDICT: DONE|DONE_WITH_CONCERNS
     COMMIT: <hash>
     FILES: <count> changed (<insertions>+/<deletions>-)
     TESTS: <pass>/<total> pass, exit <code>
     SCOPE: CLEAN|VIOLATION
     REPORT_PERSISTED: YES|NO
+    CONCERNS: <1-2 sentences — DONE_WITH_CONCERNS only>
     ```
 
-    - VERDICT: PASS if implementation complete and tests green; FAIL otherwise
-    - SCOPE: CLEAN if only allowed files modified; VIOLATION if others touched
-    - REPORT_PERSISTED: YES if beads comment succeeded; NO if all retries failed
+    **BLOCKED or NEEDS_CONTEXT:**
+    ```
+    VERDICT: BLOCKED|NEEDS_CONTEXT
+    BLOCKER: <what you're stuck on, what you tried, what help you need>
+    REPORT_PERSISTED: YES|NO
+    ```
 
-    **STOP after the verdict.** Do NOT:
-    - Ask what to do next
-    - Offer options (commit, push, merge, etc.)
-    - Invoke workflow skills (finishing-a-development-branch, etc.)
-    - Suggest follow-up actions
-    The orchestrator manages all workflow decisions. Your only job is the verdict.
+    - **DONE:** Complete, tests green. **DONE_WITH_CONCERNS:** Complete but doubts.
+    - **BLOCKED:** Cannot complete. **NEEDS_CONTEXT:** Missing information.
+    - **SCOPE:** CLEAN = allowed files only; VIOLATION = others touched.
+
+    **STOP after verdict.** Do NOT ask what's next, offer options, invoke skills, or suggest actions.
 ```
 
-<!-- compressed: 2026-02-11, original: 1031 words, compressed: 586 words -->
+<!-- compressed: 2026-03-10, original: 1021 words, compressed: 599 words -->

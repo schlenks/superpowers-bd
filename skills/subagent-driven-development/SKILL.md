@@ -20,7 +20,7 @@ Execute beads epic by dispatching parallel subagents for independent issues, wit
 5. `bd ready`, filter to epic children
 6. Check file conflicts, cap wave at {wave_cap}, serialize wave file map into prompts
 7. Dispatch implementers (`run_in_background: true`) -- sub-agents self-read from beads
-8. Each returns: spec review -> code review -> verification -> evidence -> `bd close`
+8. Each returns status: DONE/DONE_WITH_CONCERNS → review pipeline → `bd close`; NEEDS_CONTEXT/BLOCKED → re-dispatch or escalate
 9. Post `[WAVE-SUMMARY]` to epic comments, cleanup `temp/<epic>*`, write checkpoint, retain 2-line receipt
 10. Repeat from 5 until all closed
 11. Print completion report, run `finishing-a-development-branch`
@@ -78,6 +78,24 @@ CLOSE: extract evidence -> bd close --reason -> simplify (if 2+ tasks) -> wave s
 -> loop back to LOADING until all closed -> COMPLETE
 ```
 
+## Handling Implementer Status
+
+Implementers report one of four statuses. The controller routes each:
+
+**DONE:** Proceed to spec review → code review pipeline (unchanged).
+
+**DONE_WITH_CONCERNS:** Read CONCERNS field before dispatching spec reviewer. If concern is about correctness or scope, forward to spec reviewer for focused attention. If observational (e.g., "file is getting large"), note in wave summary and proceed to review.
+
+**NEEDS_CONTEXT:** Re-dispatch same issue with additional context. Use same model. Increment `redispatch_count[issue_id]`. If redispatch_count > 2, escalate to human (see [failure-recovery.md](failure-recovery.md)).
+
+**BLOCKED:** Assess the blocker:
+1. If context problem → provide context, re-dispatch with same model
+2. If reasoning capacity → re-dispatch with next model up (haiku→sonnet→opus per tier ceiling)
+3. If task too large → break into sub-issues via `bd create`, add dependencies
+4. If plan is wrong → escalate to human
+
+**Never** ignore an escalation. If the implementer said it's stuck, something needs to change.
+
 ## Key Rules (GUARDS)
 
 **Never:** dispatch blocked issues, dispatch cross-epic issues, dispatch file-conflicting issues in same wave, skip `bd update --status=in_progress`, skip `bd close` after review, skip reviews, start code review before spec passes.
@@ -92,8 +110,11 @@ CLOSE: extract evidence -> bd close --reason -> simplify (if 2+ tasks) -> wave s
 
 ```
 INIT [checkpoint?] -> LOADING (resume at wave N+1)
-INIT -> LOADING -> DISPATCH -> MONITOR -> REVIEW -> CLOSE [+checkpoint] -> LOADING (loop)
-                                                                        -> COMPLETE [cleanup]
+INIT -> LOADING -> DISPATCH -> MONITOR -> STATUS_ROUTE
+  STATUS_ROUTE [DONE|DONE_WITH_CONCERNS] -> REVIEW -> CLOSE [+checkpoint] -> LOADING (loop)
+  STATUS_ROUTE [NEEDS_CONTEXT|BLOCKED]   -> RE_DISPATCH -> MONITOR
+  RE_DISPATCH [redispatch > 2]           -> PENDING_HUMAN
+                                                         LOADING -> COMPLETE [cleanup]
 REVIEW -> PENDING_HUMAN (verification >3 attempts)
 ```
 

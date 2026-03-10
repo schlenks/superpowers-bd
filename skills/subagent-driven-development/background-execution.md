@@ -47,15 +47,18 @@ while task_ids:
         if result.status == "completed":
             # Parse structured verdict (5-6 lines, not full report)
             verdict = parse_verdict(result.output)
-            # Expected fields: VERDICT, COMMIT, FILES, TESTS, SCOPE, REPORT_PERSISTED
+            # Expected fields vary by status:
+            # DONE/DONE_WITH_CONCERNS: VERDICT, COMMIT, FILES, TESTS, SCOPE, REPORT_PERSISTED, [CONCERNS]
+            # BLOCKED/NEEDS_CONTEXT: VERDICT, BLOCKER, REPORT_PERSISTED
 
             # Capture metrics per metrics-tracking.md keying scheme (accumulate on retry, don't overwrite)
 
-            # Fallback: if REPORT_PERSISTED: NO, re-dispatch for full report
+            # Fallback: if REPORT_PERSISTED: NO, try to recover the report
             if verdict.report_persisted == "NO":
                 dispatch_full_report_fallback(task_id, issue_id)
-            else:
-                dispatch_review(task_id, verdict)
+
+            # Route by status (always — report persistence is independent of routing)
+            on_implementer_complete(task_id, verdict)
             task_ids.remove(task_id)
 
     # Also check review completions
@@ -116,24 +119,45 @@ Task C:       [implement]────[spec-C]────[code-C×3]──[agg-C
 
 ```python
 on_implementer_complete(task_id, result):
-    # Extract head_sha from implementer's COMMIT verdict field
-    head_sha = result.COMMIT  # e.g., "a7e2d4f" — from implementer-prompt.md structured verdict
-    base_sha = pending_tasks[task_id]["base_sha"]  # captured before wave dispatch
+    verdict = parse_verdict(result.output)
+    # Expected: VERDICT, and conditionally COMMIT/FILES/TESTS/SCOPE/REPORT_PERSISTED/CONCERNS/BLOCKER
 
-    # Store SHAs for review pipeline (spec → code reviews use same range)
-    pending_tasks[task_id]["head_sha"] = head_sha
+    if verdict.status in ("DONE", "DONE_WITH_CONCERNS"):
+        head_sha = verdict.COMMIT
+        base_sha = pending_tasks[task_id]["base_sha"]
+        pending_tasks[task_id]["head_sha"] = head_sha
 
-    # Resolve spec model from stored complexity (sonnet for complex on non-pro; haiku otherwise)
-    task_complexity = pending_tasks[task_id]["complexity"]  # stored at dispatch time
-    spec_model = "sonnet" if task_complexity == "complex" and budget_tier != "pro/api" else "haiku"
-    # Immediately dispatch spec review (background)
-    spec_task = Task(
-        model=spec_model,  # complexity-adjusted: see SKILL.md Budget Tier Selection
-        run_in_background=True,
-        description=f"Spec review: {task_id}",
-        ...
-    )
-    pending_spec_reviews.add(spec_task)
+        if verdict.status == "DONE_WITH_CONCERNS":
+            pending_tasks[task_id]["concerns"] = verdict.CONCERNS
+            # Forward concerns to spec reviewer for focused attention
+
+        # Dispatch spec review (unchanged from here)
+        task_complexity = pending_tasks[task_id]["complexity"]
+        spec_model = "sonnet" if task_complexity == "complex" and budget_tier != "pro/api" else "haiku"
+        spec_task = Task(
+            model=spec_model,
+            run_in_background=True,
+            description=f"Spec review: {task_id}",
+            ...
+        )
+        pending_spec_reviews.add(spec_task)
+
+    elif verdict.status == "NEEDS_CONTEXT":
+        redispatch_count = pending_tasks[task_id].get("redispatch_count", 0) + 1
+        pending_tasks[task_id]["redispatch_count"] = redispatch_count
+        if redispatch_count > 2:
+            escalated_tasks[task_id] = verdict.BLOCKER
+            report_to_human(task_id, verdict.BLOCKER,
+                note="Implementer asked for context 3 times. Human clarification needed.")
+        else:
+            # Re-dispatch with same model + additional context addressing the BLOCKER
+            redispatch_with_context(task_id, verdict.BLOCKER, same_model=True)
+
+    elif verdict.status == "BLOCKED":
+        blocker = verdict.BLOCKER
+        # Assess blocker — see failure-recovery.md for full playbook
+        # Options: provide context, upgrade model, break task, escalate to human
+        handle_blocked_implementer(task_id, blocker)
 
 on_spec_review_pass(task_id, result):
     base_sha = pending_tasks[task_id]["base_sha"]  # captured before wave dispatch

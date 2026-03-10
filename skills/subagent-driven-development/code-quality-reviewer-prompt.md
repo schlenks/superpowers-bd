@@ -60,6 +60,16 @@ CRITICAL: Your final message must contain ONLY this structured verdict. No pream
     REPORT_PERSISTED: YES|NO
 ```
 
+**Architecture checks (append to reviewer prompt alongside the beads report block):**
+```
+In addition to standard code quality concerns, verify:
+- Does each file have one clear responsibility with a well-defined interface?
+- Are units decomposed so they can be understood and tested independently?
+- Is the implementation following the file structure from the plan?
+- Did this change create new files that are already large, or significantly grow existing files?
+  (Don't flag pre-existing file sizes — focus on what this change contributed.)
+```
+
 **Multi-review mode (N>1):** Each reviewer dispatched independently with reviewer number suffix. Each persists own report. Reviews aggregated afterward via `superpowers-bd:multi-review-aggregation`.
 
 <!-- compressed: 2026-02-11, original: 460 words, compressed: 327 words -->

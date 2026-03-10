@@ -4,6 +4,8 @@ The `Files:` section enables safe parallel execution by detecting conflicts.
 
 ## Format
 
+The plan's **File Structure** table is the authoritative source for all files. Every file listed in a task's `Files:` section must appear in the File Structure table. The table is written before tasks are defined — task decomposition follows file boundaries.
+
 ```markdown
 **Files:**
 - Create: `apps/api/src/models/user.model.ts`

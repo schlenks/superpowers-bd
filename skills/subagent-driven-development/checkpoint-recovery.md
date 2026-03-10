@@ -16,6 +16,10 @@ Written to `temp/sdd-checkpoint-{epic_id}.json` after each wave CLOSE phase:
     "Wave 3: 2 tasks closed (hub-abc.4, hub-abc.5), 95k tokens, ~$0.86. Conventions: error boundaries."
   ],
   "closed_issues": ["hub-abc.1", "hub-abc.2", "hub-abc.3", "hub-abc.4", "hub-abc.5"],
+  "escalated_tasks": {
+    "hub-abc.4": "BLOCKED: requires database migration strategy not in plan",
+    "hub-abc.7": "NEEDS_CONTEXT: 3 re-dispatches exhausted, unclear auth pattern"
+  },
   "epic_tokens": 325000,
   "epic_tool_uses": 412,
   "epic_cost": 2.94,
@@ -35,10 +39,11 @@ When the orchestrator detects a checkpoint (via INIT check or `<sdd-checkpoint-r
 
 1. Read `temp/sdd-checkpoint-{epic_id}.json`
 2. Restore: `budget_tier`, `wave_cap`, `wave_receipts`, `closed_issues`, running metrics (`epic_tokens`, `epic_tool_uses`, `epic_cost`). If `wave_cap` is absent (old checkpoint), default to 3.
-3. Set `wave_number = wave_completed + 1`
-4. Skip budget tier question and wave cap (already stored)
-5. Print: `"Resuming epic {epic_id} from wave {wave_number} after context recovery."`
-6. Jump to LOADING phase
+3. Restore `escalated_tasks` (default `{}` if absent in old checkpoint) — these need human resolution before dispatch. Skip them during LOADING filter (treat as not-ready even if `bd ready` lists them).
+4. Set `wave_number = wave_completed + 1`
+5. Skip budget tier question and wave cap (already stored)
+6. Print: `"Resuming epic {epic_id} from wave {wave_number} after context recovery."`
+7. Jump to LOADING phase
 
 ## Edge Cases
 

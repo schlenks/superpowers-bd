@@ -1,5 +1,38 @@
 # Superpowers Release Notes
 
+## v5.3.0 (2026-03-10) - Beads Fork
+
+### Feature: SDD Status Protocol, File Structure Mapping & Escalation Guidance
+
+Replaces binary PASS/FAIL implementer verdicts with a 4-status protocol (DONE/DONE_WITH_CONCERNS/BLOCKED/NEEDS_CONTEXT), adds file structure mapping to writing-plans, and gives implementers explicit escalation guidance. Enables the SDD controller to route by status: proceed to review, re-dispatch with context, upgrade model, or escalate to human.
+
+**Problem:** Implementers could only report PASS or FAIL. An agent that was stuck, confused, or uncertain had no way to signal this — it would either produce bad work or fail entirely. Plans also lacked a file responsibility mapping, leading to ad-hoc per-task file decisions and wave conflicts.
+
+**Solution:** Three coordinated changes to the SDD pipeline:
+
+1. **Implementer Status Protocol:** Four verdicts with different field sets. DONE/DONE_WITH_CONCERNS include commit/files/tests/scope evidence. BLOCKED/NEEDS_CONTEXT include a blocker description. The controller routes each status differently.
+2. **File Structure Mapping:** New section in writing-plans between Plan Document Header and Task Structure. A file responsibility table written before tasks — task decomposition follows file boundaries. Verified through the plan verification checklist and rule-of-five completeness pass.
+3. **Escalation Guidance:** "When You're in Over Your Head" section with concrete stop conditions. "Bad work is worse than no work." BLOCKED/NEEDS_CONTEXT verdicts with re-dispatch (max 2 attempts) and human escalation.
+
+**Status routing in controller:**
+- **DONE** → spec review → code review pipeline (unchanged)
+- **DONE_WITH_CONCERNS** → forward concerns to spec reviewer, then same pipeline
+- **NEEDS_CONTEXT** → re-dispatch with additional context (same model, max 2 re-dispatches, then human)
+- **BLOCKED** → assess blocker: provide context, upgrade model (haiku→sonnet→opus per tier), break task, or escalate
+
+**Files Modified (9):**
+- `skills/writing-plans/SKILL.md` — added File Structure section, checklist item, Remember entry
+- `skills/writing-plans/references/file-lists.md` — added authoritative source reference
+- `skills/writing-plans/references/verification-dispatch.md` — added File Structure checks to checklist and completeness passes
+- `skills/subagent-driven-development/implementer-prompt.md` — added Code Organization, escalation guidance, 4-status verdict, BLOCKED/NEEDS_CONTEXT report template (compressed: 599 words)
+- `skills/subagent-driven-development/SKILL.md` — added Handling Implementer Status section, updated state machine (STATUS_ROUTE/RE_DISPATCH/PENDING_HUMAN), updated Quick Start
+- `skills/subagent-driven-development/background-execution.md` — status-aware routing in on_implementer_complete, independent report persistence fallback
+- `skills/subagent-driven-development/code-quality-reviewer-prompt.md` — added architecture checks (file responsibility, decomposition, plan alignment)
+- `skills/subagent-driven-development/failure-recovery.md` — added Implementer BLOCKED and NEEDS_CONTEXT playbooks with model upgrade, task decomposition, and re-dispatch prompt addendum
+- `skills/subagent-driven-development/checkpoint-recovery.md` — added escalated_tasks to schema and recovery logic (default {} for old checkpoints)
+
+---
+
 ## Experiment: V4 Mixed-Model Review (2026-03-07)
 
 ### Result: INCONCLUSIVE - Ceiling Effect
