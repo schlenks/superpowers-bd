@@ -1,5 +1,44 @@
 # Superpowers Release Notes
 
+## v5.4.0 (2026-03-12) - Beads Fork
+
+### Feature: Claude Code Capability Adoption (2.1.47–2.1.72)
+
+Adopts six Claude Code capabilities into the plugin to improve subagent observability, skill compliance, and context efficiency. All changes are configuration, markdown, and shell scripts — no application code.
+
+**Problem:** Several Claude Code features released between 2.1.47 and 2.1.72 were available but unused: agent memory instructions, skills preloading via frontmatter, plugin-level settings, SubagentStop hooks, and ExitWorktree. Subagents weren't reading/writing project memory, code reviewers weren't preloading rule-of-five skills, and there was no audit trail for reviewer verdicts.
+
+**Solution:** Six coordinated changes across agents, hooks, prompt templates, and plugin config:
+
+1. **Agent Memory Instructions** — code-reviewer and epic-verifier agents now read project memory at review start (for conventions and past decisions) and record novel patterns at review end. Uses auto-memory language, not TaskUpdate.
+2. **Skills Preloading** — Named agents (code-reviewer, epic-verifier) get `skills:` frontmatter to preload rule-of-five variants. SDD prompt templates (implementer, code-quality-reviewer, verifier) get explicit Glob-based path resolution and Read instructions for `general-purpose` subagents that can't use frontmatter preloading.
+3. **Plugin Settings** — New `.claude-plugin/settings.json` ships `includeGitInstructions: false`, saving ~500–800 tokens per subagent context. Plugin skills already cover git workflows.
+4. **SubagentStop Verdict Audit** — New `hooks/verdict-audit.sh` hook fires on SubagentStop, extracts `agent_type`, `agent_id`, and VERDICT line from `last_assistant_message` via jq, appends to `temp/verdict-audit.log`. Audit-only (always exits 0). Registered in `hooks/hooks.json`.
+5. **ExitWorktree Documentation** — Worktree skill updated with ExitWorktree (2.1.72+) as the preferred cleanup mechanism. Quick Reference row, Integration note, and new Section 6 in creation-steps.
+6. **Version Bump** — Plugin version 5.3.0 → 5.4.0 in plugin.json and CLAUDE.md. SKILL.md implementer prompt template placeholders updated for rule-of-five paths.
+
+**Gap closures applied during implementation:**
+- code-reviewer Memory section: original referenced wrong tool (TaskUpdate) with inverted timing — rewritten
+- implementer-prompt: added Glob resolution block for `{rule_of_five_*_path}` placeholders (3/3 reviewer consensus)
+- verdict-audit.sh: added `|| true` guard on log append to ensure exit 0 contract
+
+**Files Modified (13):**
+- `.claude-plugin/plugin.json` — version bump to 5.4.0
+- `.claude-plugin/settings.json` — new file, `includeGitInstructions: false`
+- `CLAUDE.md` — version bump to 5.4.0
+- `agents/code-reviewer.md` — added `skills:` frontmatter (rule-of-five-code, rule-of-five-tests), Memory section
+- `agents/epic-verifier.md` — added `skills:` frontmatter (rule-of-five-code, rule-of-five-tests, verification-before-completion), Memory section
+- `hooks/hooks.json` — added SubagentStop hook entry for verdict-audit.sh
+- `hooks/verdict-audit.sh` — new file, SubagentStop audit hook (38 lines)
+- `skills/epic-verifier/verifier-prompt.md` — added skill-read clarification line
+- `skills/subagent-driven-development/SKILL.md` — updated implementer prompt template placeholders
+- `skills/subagent-driven-development/code-quality-reviewer-prompt.md` — added path resolution block and rule-of-five skill application instructions
+- `skills/subagent-driven-development/implementer-prompt.md` — added Glob resolution block and expanded rule-of-five instructions with template variables
+- `skills/using-git-worktrees/SKILL.md` — added ExitWorktree to Quick Reference and Integration
+- `skills/using-git-worktrees/references/creation-steps.md` — added Section 6: Leaving a Worktree
+
+---
+
 ## v5.3.0 (2026-03-10) - Beads Fork
 
 ### Feature: SDD Status Protocol, File Structure Mapping & Escalation Guidance
