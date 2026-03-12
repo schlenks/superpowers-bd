@@ -1,5 +1,13 @@
 # Implementer Subagent Prompt Template
 
+Before dispatching, resolve paths once per wave:
+```
+rule_of_five_code_path  = Glob("**/rule-of-five-code/SKILL.md")[0]
+rule_of_five_tests_path = Glob("**/rule-of-five-tests/SKILL.md")[0]
+rule_of_five_plans_path = Glob("**/rule-of-five-plans/SKILL.md")[0]
+```
+Pass absolute paths as placeholders to all dispatches in the wave.
+
 ```
 Task tool:
   subagent_type: "general-purpose"

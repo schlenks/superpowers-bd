@@ -33,6 +33,6 @@ fi
 # temp/ directory should already exist; create only if missing (e.g. fresh clone)
 [[ -d "$log_dir" ]] || mkdir -p "$log_dir"
 
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) agent_type=${agent_type} agent_id=${agent_id} ${verdict}" >> "$log_file"
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) agent_type=${agent_type} agent_id=${agent_id} ${verdict}" >> "$log_file" || true
 
 exit 0
