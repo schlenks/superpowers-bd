@@ -32,6 +32,6 @@ Use the Glob tool to find `**/requesting-code-review/code-reviewer.md`, then Rea
 
 ## Memory
 
-At the start of this review session, use the TaskUpdate tool to write to project memory and document any novel patterns, architectural decisions, or code organization insights you discover during the review. Check project memory at session start to understand existing conventions and patterns — this helps ensure code reviews are consistent with past decisions and avoid re-litigating settled design choices.
+**At review start:** Check project memory for existing conventions, past decisions, and patterns — this ensures reviews are consistent and avoid re-litigating settled design choices.
 
-Notable patterns to record: architectural decisions that affect multiple files, new file organization conventions, testing patterns adopted, or recurring code style issues resolved during the review cycle.
+**At review end:** Record any novel patterns, architectural decisions, or code organization insights you discovered. Notable patterns to record: architectural decisions that affect multiple files, new file organization conventions, testing patterns adopted, or recurring code style issues resolved during the review cycle.
