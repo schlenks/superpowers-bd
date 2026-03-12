@@ -128,7 +128,7 @@ After each wave CLOSE, write a checkpoint to `temp/sdd-checkpoint-{epic_id}.json
 
 ## Prompt Templates
 
-- `./implementer-prompt.md` -- `{issue_id}`, `{epic_id}`, `{file_ownership_list}`, `{wave_file_map}`, `{dependency_ids}`, `{wave_number}`
+- `./implementer-prompt.md` -- `{issue_id}`, `{epic_id}`, `{file_ownership_list}`, `{wave_file_map}`, `{dependency_ids}`, `{wave_number}`, `{rule_of_five_code_path}`, `{rule_of_five_tests_path}`, `{rule_of_five_plans_path}`
 - `./spec-reviewer-prompt.md` -- `{issue_id}`, `{wave_number}`
 - `./code-quality-reviewer-prompt.md` -- `{issue_id}`, `{base_sha}`, `{head_sha}`, `{wave_number}`, `{code_reviewer_path}`
 - `skills/epic-verifier/verifier-prompt.md` -- `{epic_id}`, `{base-sha}`, `{head-sha}`, `{test-command}`
