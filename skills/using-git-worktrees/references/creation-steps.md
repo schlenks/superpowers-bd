@@ -106,3 +106,19 @@ Ready to implement <feature-name>
 ```
 
 **Mark "Worktree ready" task as complete.**
+
+## 6. Leaving a Worktree
+
+When work in the worktree is complete:
+
+```bash
+ExitWorktree tool
+  action: "keep" or "remove"
+  discard_changes: true or false (only with action: "remove")
+```
+
+**Parameters:**
+- **action: "keep"** -- Leaves the worktree and branch intact on disk. Use if you want to return to this work later or preserve uncommitted changes.
+- **action: "remove"** -- Deletes the worktree directory and its branch. Clean exit when work is done. If the worktree has uncommitted files or unmerged commits, set `discard_changes: true` to proceed.
+
+**After exit:** Your session returns to the original working directory and repository state.
