@@ -2,11 +2,13 @@
 
 Only dispatch after spec compliance review passes.
 
-Before dispatching, resolve path once per wave:
+Before dispatching, resolve paths once per wave:
 ```
-code_reviewer_path = Glob("**/requesting-code-review/code-reviewer.md")[0]
+code_reviewer_path          = Glob("**/requesting-code-review/code-reviewer.md")[0]
+rule_of_five_code_path      = Glob("**/rule-of-five-code/SKILL.md")[0]
+rule_of_five_tests_path     = Glob("**/rule-of-five-tests/SKILL.md")[0]
 ```
-Pass the absolute path as `{code_reviewer_path}` to all dispatches in the wave.
+Pass absolute paths as `{code_reviewer_path}`, `{rule_of_five_code_path}`, `{rule_of_five_tests_path}` to all dispatches in the wave.
 
 ```
 Task tool:
@@ -68,6 +70,15 @@ In addition to standard code quality concerns, verify:
 - Is the implementation following the file structure from the plan?
 - Did this change create new files that are already large, or significantly grow existing files?
   (Don't flag pre-existing file sizes — focus on what this change contributed.)
+```
+
+**Rule-of-five skill application (append to reviewer prompt):**
+```
+For files with >50 lines changed in this diff:
+- If the changes are to application code (not tests): Read {rule_of_five_code_path} and apply the 5-pass code quality review.
+- If the changes are to test files: Read {rule_of_five_tests_path} and apply the 5-pass test quality review.
+
+Apply the skill's review criteria to your findings. Elevated standards for large changes ensure quality at scale.
 ```
 
 **Multi-review mode (N>1):** Each reviewer dispatched independently with reviewer number suffix. Each persists own report. Reviews aggregated afterward via `superpowers-bd:multi-review-aggregation`.
