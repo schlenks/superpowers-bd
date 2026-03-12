@@ -43,7 +43,10 @@ Task tool:
     3. Write tests (TDD if issue says to)
     4. Verify implementation works
     5. Commit (`feat:`, `fix:`, `refactor:`, etc.)
-    6. Artifacts >50 lines: apply rule-of-five variant (code or tests)
+    6. Artifacts >50 lines: apply rule-of-five variant — read the skill file for your artifact type:
+       - **Code (50+ lines):** Read {rule_of_five_code_path}
+       - **Tests (50+ lines):** Read {rule_of_five_tests_path}
+       - **Plans/Docs (50+ lines):** Read {rule_of_five_plans_path}
     7. Self-review, then report back
 
     Work from: {working_directory}
