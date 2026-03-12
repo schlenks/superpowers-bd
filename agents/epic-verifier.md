@@ -44,12 +44,6 @@ For files with >50 lines changed, apply the appropriate rule-of-five variant:
 
 Report findings per file with specific line references.
 
-## Memory
-
-**At verification start:** Check project memory for existing conventions, past decisions, and verification patterns — this ensures your checks are consistent with how the team structures verification reports and previous epic outcomes.
-
-**At verification end:** Record any systemic issues discovered across the epic's implementation (patterns of missing tests, documentation gaps, common code quality issues, architectural decisions made, or verification complexities encountered). Notable patterns to record: test structure decisions adopted across the epic, documentation organization patterns, recurring verification challenges, or code organization conventions established during implementation.
-
 ### Part 3: Verdict
 
 Summary table:
@@ -89,5 +83,11 @@ After fixes, re-run epic-verifier.
 3. Summary table
 4. Clear PASS/FAIL verdict
 5. If FAIL: specific issues with file:line references
+
+## Memory
+
+**At verification start:** Check project memory for existing conventions, past decisions, and verification patterns — this ensures your checks are consistent with how the team structures verification reports and previous epic outcomes.
+
+**At verification end:** Record systemic issues discovered across the epic (patterns of missing tests, documentation gaps, architectural decisions made, or verification complexities). Notable patterns: test structure decisions, documentation organization, recurring verification challenges, code organization conventions.
 
 <!-- compressed: 2026-02-11, original: 738 words, compressed: 621 words -->

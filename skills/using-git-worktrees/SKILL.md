@@ -68,8 +68,7 @@ See `references/creation-steps.md` for full TaskCreate blocks, bash commands, an
 
 **Called by:** brainstorming (after design), any skill needing isolated workspace
 **Pairs with:** finishing-a-development-branch (cleanup), executing-plans / subagent-driven-development (work happens here)
-
-**Cleanup:** When work is complete, use the ExitWorktree tool to cleanly remove the worktree and return to the original workspace. This is the preferred cleanup mechanism since Claude Code 2.1.72+.
+**Cleanup:** ExitWorktree tool (2.1.72+) — see Quick Reference and `references/creation-steps.md` section 6.
 
 ## Reference Files
 

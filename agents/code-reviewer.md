@@ -34,4 +34,4 @@ Use the Glob tool to find `**/requesting-code-review/code-reviewer.md`, then Rea
 
 **At review start:** Check project memory for existing conventions, past decisions, and patterns — this ensures reviews are consistent and avoid re-litigating settled design choices.
 
-**At review end:** Record any novel patterns, architectural decisions, or code organization insights you discovered. Notable patterns to record: architectural decisions that affect multiple files, new file organization conventions, testing patterns adopted, or recurring code style issues resolved during the review cycle.
+**At review end:** Record novel patterns, architectural decisions, or code organization insights discovered. Examples: decisions affecting multiple files, new file organization conventions, testing patterns adopted, recurring code style issues resolved.
