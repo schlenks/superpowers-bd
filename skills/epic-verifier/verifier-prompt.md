@@ -76,6 +76,7 @@ Task tool:
 
     For files with >50 lines changed, you MUST apply the appropriate rule-of-five variant.
     Route per file: code files use `skills/rule-of-five-code/SKILL.md`, test files (`*test*`, `*spec*`, `tests/`) use `skills/rule-of-five-tests/SKILL.md`.
+    Read each skill file using the Read tool before applying its 5-pass process.
     Apply all 5 passes to each qualifying file. Your verdict is INVALID if Part 2 is skipped.
 
     If no files >50 lines changed:
