@@ -4,6 +4,10 @@ memory: project
 description: |
   Use this agent when all implementation tasks in an epic are closed and the "Epic Verification" task becomes ready. This agent runs the engineering checklist and rule-of-five systematically, producing evidence for each check. Examples: <example>Context: All implementation tasks in an epic have been closed, and the Epic Verification task is now ready to work. user: "All implementation tasks are done, the verification task is unblocked" assistant: "I'll dispatch the epic-verifier agent to run the engineering checklist and rule-of-five review systematically" <commentary>The Epic Verification task should be handled by epic-verifier, not a generic implementer, to ensure thorough verification with evidence.</commentary></example> <example>Context: subagent-driven-development sees a "verification" task become ready. user: [internal - task hub-abc.5 "Epic Verification" is ready] assistant: "This is a verification task - dispatching epic-verifier instead of regular implementer" <commentary>Verification tasks require the specialized epic-verifier agent to prevent rubber-stamp approvals.</commentary></example>
 model: inherit
+skills:
+  - rule-of-five-code
+  - rule-of-five-tests
+  - verification-before-completion
 maxTurns: 40
 disallowedTools:
   - Write
@@ -39,6 +43,12 @@ For files with >50 lines changed, apply the appropriate rule-of-five variant:
 **Test files** (`*test*`, `*spec*`, `tests/`) (rule-of-five-tests): Draft, Coverage, Independence, Speed, Maintainability
 
 Report findings per file with specific line references.
+
+## Memory
+
+**At verification start:** Check project memory for existing conventions, past decisions, and verification patterns — this ensures your checks are consistent with how the team structures verification reports and previous epic outcomes.
+
+**At verification end:** Record any systemic issues discovered across the epic's implementation (patterns of missing tests, documentation gaps, common code quality issues, architectural decisions made, or verification complexities encountered). Notable patterns to record: test structure decisions adopted across the epic, documentation organization patterns, recurring verification challenges, or code organization conventions established during implementation.
 
 ### Part 3: Verdict
 
