@@ -9,7 +9,8 @@ Written to `temp/sdd-checkpoint-{epic_id}.json` after each wave CLOSE phase:
   "epic_id": "hub-abc",
   "wave_completed": 3,
   "budget_tier": "max-5x",
-  "wave_cap": 3,
+  "context_tier": "extended",
+  "wave_cap": 5,
   "wave_receipts": [
     "Wave 1: 2 tasks closed (hub-abc.1, hub-abc.2), 168k tokens, ~$1.52. Conventions: uuid-v4, camelCase.",
     "Wave 2: 1 task closed (hub-abc.3), 62k tokens, ~$0.56. No new conventions.",
@@ -38,7 +39,7 @@ The `sdd-checkpoint-` prefix ensures the checkpoint file survives wave cleanup, 
 When the orchestrator detects a checkpoint (via INIT check or `<sdd-checkpoint-recovery>` injection):
 
 1. Read `temp/sdd-checkpoint-{epic_id}.json`
-2. Restore: `budget_tier`, `wave_cap`, `wave_receipts`, `closed_issues`, running metrics (`epic_tokens`, `epic_tool_uses`, `epic_cost`). If `wave_cap` is absent (old checkpoint), default to 3.
+2. Restore: `budget_tier`, `context_tier`, `wave_cap`, `wave_receipts`, `closed_issues`, running metrics (`epic_tokens`, `epic_tool_uses`, `epic_cost`). If `wave_cap` is absent (old checkpoint), default to 3. If `context_tier` is absent, default to "standard" (200k behavior — safe fallback).
 3. Restore `escalated_tasks` (default `{}` if absent in old checkpoint) — these need human resolution before dispatch. Skip them during LOADING filter (treat as not-ready even if `bd ready` lists them).
 4. Set `wave_number = wave_completed + 1`
 5. Skip budget tier question and wave cap (already stored)
@@ -49,7 +50,7 @@ When the orchestrator detects a checkpoint (via INIT check or `<sdd-checkpoint-r
 
 **Crashed session (startup with checkpoint):** SessionStart hook detects checkpoint, injects recovery notice. User can resume with "execute epic {id}". INIT phase finds checkpoint and restores state.
 
-**Corrupted/unreadable checkpoint:** Ignore checkpoint, fall back to beads as SSOT. Use `bd show` to determine completed vs remaining tasks. Re-ask budget tier. Run smart wave cap recommendation (or use default 3 if bd sql fails). Print: `"Checkpoint corrupted — falling back to beads. Which budget tier?"`
+**Corrupted/unreadable checkpoint:** Ignore checkpoint, fall back to beads as SSOT. Use `bd show` to determine completed vs remaining tasks. Re-ask budget tier. Re-detect context tier. Run smart wave cap recommendation (or use context-tier default if bd sql fails). Print: `"Checkpoint corrupted — falling back to beads. Which budget tier?"`
 
 **Partial wave (in_progress tasks exist):** After restoring from checkpoint, if `bd ready` shows no ready tasks but `bd show` lists in_progress tasks, those are from an interrupted wave. Reset them: `bd update --status=open <id>` for each in_progress task, then proceed to LOADING.
 

@@ -16,17 +16,18 @@ Execute beads epic by dispatching parallel subagents for independent issues, wit
 1. Load epic: `bd show <epic-id>`, parse children and Key Decisions
 2. Check for `temp/sdd-checkpoint-{epic_id}.json` -- if found, restore state (budget_tier, wave_receipts, closed_issues, metrics), print "Resuming epic {id} from wave {N+1}", jump to LOADING (skip step 3)
 3. Ask budget tier (max-20x / max-5x / pro-api) -- sets model matrix for session.
-4. Verify `temp/` exists (do NOT run `mkdir`)
-5. `bd ready`, filter to epic children
-5a. If explicit wave cap in invocation (e.g., "wave-cap 5"), use it and skip 5b-5c.
-5b. Query complexity distribution: `bd sql "SELECT label, COUNT(*) FROM labels WHERE issue_id LIKE '{epic_id}.%' AND label LIKE 'complexity:%' GROUP BY label"`. If query fails or returns no rows, use default 3 and skip 5c.
-5c. Calculate recommended wave cap (see Wave Cap section). Ask user via AskUserQuestion to confirm or use default 3.
-6. Check file conflicts, cap wave at {wave_cap}, serialize wave file map into prompts
-7. Dispatch implementers (`run_in_background: true`) -- sub-agents self-read from beads
-8. Each returns status: DONE/DONE_WITH_CONCERNS → review pipeline → `bd close`; NEEDS_CONTEXT/BLOCKED → re-dispatch or escalate
-9. Post `[WAVE-SUMMARY]` to epic comments, cleanup `temp/<epic>*`, write checkpoint, retain 2-line receipt
-10. Repeat from 5 until all closed
-11. Print completion report, run `finishing-a-development-branch`
+4. Detect context tier: check your model ID for `[1m]` suffix. If present → extended (1M). Otherwise → standard (200k). This determines wave cap defaults and budget formula.
+5. Verify `temp/` exists (do NOT run `mkdir`)
+6. `bd ready`, filter to epic children
+6a. If explicit wave cap in invocation (e.g., "wave-cap 7"), use it and skip 6b-6c.
+6b. Query complexity distribution: `bd sql "SELECT label, COUNT(*) FROM labels WHERE issue_id LIKE '{epic_id}.%' AND label LIKE 'complexity:%' GROUP BY label"`. If query fails or returns no rows, use context-tier default and skip 6c.
+6c. Calculate recommended wave cap (see Wave Cap section). Ask user via AskUserQuestion to confirm.
+7. Check file conflicts, cap wave at {wave_cap}, serialize wave file map into prompts
+8. Dispatch implementers (`run_in_background: true`) -- sub-agents self-read from beads
+9. Each returns status: DONE/DONE_WITH_CONCERNS → review pipeline → `bd close`; NEEDS_CONTEXT/BLOCKED → re-dispatch or escalate
+10. Post `[WAVE-SUMMARY]` to epic comments, cleanup `temp/<epic>*`, write checkpoint, retain 2-line receipt
+11. Repeat from 6 until all closed
+12. Print completion report, run `finishing-a-development-branch`
 
 ## Budget Tier Selection
 
@@ -62,16 +63,24 @@ Store tier selection for session -- don't ask again per wave.
 
 ## Wave Cap
 
-Controls max tasks dispatched per wave. Default: 3. Range: 1–10.
+Controls max tasks dispatched per wave. Range: 1–10. Default: **5** (1M context) or **3** (200k context).
+
+### Context Tier Detection
+
+Check your model ID (from system prompt) for the `[1m]` suffix:
+- **Extended (1M):** model ID contains `[1m]` (e.g., `claude-opus-4-6[1m]`). Default wave cap: **5**. Budget per wave: **15**.
+- **Standard (200k):** no `[1m]` suffix (e.g., `claude-sonnet-4-6`). Default wave cap: **3**. Budget per wave: **9**.
+
+Store `context_tier` ("extended" or "standard") in checkpoint for recovery.
 
 ### Setting Priority
-1. **Explicit invocation** overrides everything: "execute epic hub-abc wave-cap 5" → wave_cap=5, skip recommendation.
+1. **Explicit invocation** overrides everything: "execute epic hub-abc wave-cap 7" → wave_cap=7, skip recommendation.
 2. **Smart recommendation** (default path): query complexity labels, calculate recommendation, ask user.
-3. **Fallback**: if bd sql fails or user declines recommendation → wave_cap=3.
+3. **Fallback**: if bd sql fails or user declines recommendation → use context-tier default (5 for extended, 3 for standard).
 
 ### Smart Wave Cap Algorithm
 
-After budget tier is set, query the epic's complexity distribution:
+After budget tier and context tier are set, query the epic's complexity distribution:
 
 ```bash
 bd sql "SELECT label, COUNT(*) FROM labels WHERE issue_id LIKE '{epic_id}.%' AND label LIKE 'complexity:%' GROUP BY label"
@@ -81,7 +90,10 @@ Calculate recommendation:
 
 ```python
 WEIGHTS = {"simple": 1, "standard": 2, "complex": 3}
-BUDGET_PER_WAVE = 9  # 9 simple, 4 standard, 3 complex
+
+# Context-tier aware budget
+BUDGET_PER_WAVE = 15 if context_tier == "extended" else 9
+DEFAULT_CAP = 5 if context_tier == "extended" else 3
 
 total_tasks = sum(counts.values())
 total_weight = sum(WEIGHTS[c] * n for c, n in counts.items())
@@ -99,22 +111,33 @@ if budget_tier == "pro/api":
 Present to user via AskUserQuestion:
 
 ```
-Wave cap recommendation: {recommended} ({simple_count} simple, {standard_count} standard, {complex_count} complex — max parallel: {max_parallel})
+Wave cap recommendation: {recommended} ({simple_count} simple, {standard_count} standard, {complex_count} complex — max parallel: {max_parallel}, context: {context_tier})
 
 1. Use {recommended} (recommended)
-2. Use 3 (proven default)
+2. Use {DEFAULT_CAP} (context-tier default)
 3. Custom (enter a number 1–10)
 ```
 
-Default selection is 2. Option 3 accepts a custom number (clamp to 1–10).
+Default selection is 1 for extended context (formula is well-calibrated with 1M headroom), 2 for standard context.
+
+### Effective Wave Sizes by Context Tier
+
+| Complexity Mix | Standard (200k) | Extended (1M) |
+|----------------|-----------------|---------------|
+| All simple | min(9, parallel, 10) | min(15, parallel, 10) → **10** |
+| Mixed simple/standard | 6 | **10** |
+| All standard | 4 | **7** |
+| Mixed standard/complex | 3 | **6** |
+| All complex | 3 | **5** |
 
 ### Edge Cases
-- **bd sql fails**: Skip recommendation, use default 3. Print: "Could not query complexity labels — using default wave cap 3."
-- **No complexity labels**: avg_weight defaults to 2.0 (standard), recommendation = min(4, max_parallel, 10).
-- **Recommended ≤ 3**: Skip the question — default is already optimal. Use 3.
+- **bd sql fails**: Skip recommendation, use context-tier default. Print: "Could not query complexity labels — using default wave cap {DEFAULT_CAP}."
+- **No complexity labels**: avg_weight defaults to 2.0 (standard). Extended: min(7, max_parallel, 10). Standard: min(4, max_parallel, 10).
+- **Recommended ≤ context-tier default**: Skip the question — formula already at or below default. Use `recommended` (may be less than default if few tasks are ready).
 - **max_parallel = 1**: Skip the question — wave_cap = 1 regardless. Inform user.
-- **All simple tasks**: recommended = min(9, max_parallel, 10). Maximum parallelism.
-- **All complex tasks**: recommended = 3. Same as default.
+- **All simple tasks on extended**: recommended up to 10. Maximum parallelism.
+- **All complex tasks on standard**: recommended = 3. Same as default.
+- **Old checkpoint without context_tier**: Default to "standard" (200k behavior, safe fallback).
 
 If out of range, warn and clamp. Stored in checkpoint for recovery.
 
@@ -170,6 +193,8 @@ REVIEW -> PENDING_HUMAN (verification >3 attempts)
 ```
 
 ## Context Window Management
+
+Context tier (extended/standard) is detected once at INIT and stored in checkpoint. Extended (1M) allows wider waves and more total waves before compaction. Standard (200k) uses conservative defaults.
 
 After each wave CLOSE, write a checkpoint to `temp/sdd-checkpoint-{epic_id}.json` (see [checkpoint-recovery.md](checkpoint-recovery.md)). This enables seamless recovery after auto-compact or `/clear`.
 

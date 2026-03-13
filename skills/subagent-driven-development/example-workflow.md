@@ -16,9 +16,11 @@ You: I'm using Subagent-Driven Development to execute beads epic hub-abc.
 
 [Smart wave cap calculation:]
   avg_weight = (1×1 + 2×2 + 3×1) / 4 = 2.0
-  recommended = min(floor(9/2.0), max_parallel=2, 10) = 2
-  Recommended ≤ 3 → skip question, use default 3
-  wave_cap = 3
+  context_tier = "extended" (model ID contains [1m])
+  BUDGET_PER_WAVE = 15, DEFAULT_CAP = 5
+  recommended = min(floor(15/2.0), max_parallel=2, 10) = 2
+  Recommended (2) ≤ DEFAULT_CAP (5) → skip question, use recommended
+  wave_cap = 2
 
 Wave 1: Tasks 1 and 2 are ready, no file conflicts
 [Build wave_file_map table for hub-abc.1, hub-abc.2 → serialized into each prompt]
