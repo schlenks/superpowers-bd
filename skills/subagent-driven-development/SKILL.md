@@ -16,11 +16,11 @@ Execute beads epic by dispatching parallel subagents for independent issues, wit
 1. Load epic: `bd show <epic-id>`, parse children and Key Decisions
 2. Check for `temp/sdd-checkpoint-{epic_id}.json` -- if found, restore state (budget_tier, wave_receipts, closed_issues, metrics), print "Resuming epic {id} from wave {N+1}", jump to LOADING (skip step 3)
 3. Ask budget tier (max-20x / max-5x / pro-api) -- sets model matrix for session.
-3a. If explicit wave cap in invocation (e.g., "wave-cap 5"), use it and skip 3b-3c.
-3b. Query complexity distribution: `bd sql "SELECT label, COUNT(*) FROM labels WHERE issue_id LIKE '{epic_id}.%' AND label LIKE 'complexity:%' GROUP BY label"`. If query fails or returns no rows, use default 3 and skip 3c.
-3c. Calculate recommended wave cap (see Wave Cap section). Ask user via AskUserQuestion to confirm or use default 3.
 4. Verify `temp/` exists (do NOT run `mkdir`)
 5. `bd ready`, filter to epic children
+5a. If explicit wave cap in invocation (e.g., "wave-cap 5"), use it and skip 5b-5c.
+5b. Query complexity distribution: `bd sql "SELECT label, COUNT(*) FROM labels WHERE issue_id LIKE '{epic_id}.%' AND label LIKE 'complexity:%' GROUP BY label"`. If query fails or returns no rows, use default 3 and skip 5c.
+5c. Calculate recommended wave cap (see Wave Cap section). Ask user via AskUserQuestion to confirm or use default 3.
 6. Check file conflicts, cap wave at {wave_cap}, serialize wave file map into prompts
 7. Dispatch implementers (`run_in_background: true`) -- sub-agents self-read from beads
 8. Each returns status: DONE/DONE_WITH_CONCERNS → review pipeline → `bd close`; NEEDS_CONTEXT/BLOCKED → re-dispatch or escalate
