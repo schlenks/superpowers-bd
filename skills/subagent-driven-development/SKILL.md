@@ -15,7 +15,10 @@ Execute beads epic by dispatching parallel subagents for independent issues, wit
 
 1. Load epic: `bd show <epic-id>`, parse children and Key Decisions
 2. Check for `temp/sdd-checkpoint-{epic_id}.json` -- if found, restore state (budget_tier, wave_receipts, closed_issues, metrics), print "Resuming epic {id} from wave {N+1}", jump to LOADING (skip step 3)
-3. Ask budget tier (max-20x / max-5x / pro-api) -- sets model matrix for session. Parse optional wave cap from invocation (default 3, max 10).
+3. Ask budget tier (max-20x / max-5x / pro-api) -- sets model matrix for session.
+3a. If explicit wave cap in invocation (e.g., "wave-cap 5"), use it and skip 3b-3c.
+3b. Query complexity distribution: `bd sql "SELECT label, COUNT(*) FROM labels WHERE issue_id LIKE '{epic_id}.%' AND label LIKE 'complexity:%' GROUP BY label"`. If query fails or returns no rows, use default 3 and skip 3c.
+3c. Calculate recommended wave cap (see Wave Cap section). Ask user via AskUserQuestion to confirm or use default 3.
 4. Verify `temp/` exists (do NOT run `mkdir`)
 5. `bd ready`, filter to epic children
 6. Check file conflicts, cap wave at {wave_cap}, serialize wave file map into prompts
@@ -61,9 +64,55 @@ Store tier selection for session -- don't ask again per wave.
 
 Controls max tasks dispatched per wave. Default: 3. Range: 1–10.
 
-Two ways to set:
-1. User specifies in invocation: "execute epic hub-abc wave-cap 5"
-2. If not specified, use default 3 (do NOT ask — budget tier is the only interactive question)
+### Setting Priority
+1. **Explicit invocation** overrides everything: "execute epic hub-abc wave-cap 5" → wave_cap=5, skip recommendation.
+2. **Smart recommendation** (default path): query complexity labels, calculate recommendation, ask user.
+3. **Fallback**: if bd sql fails or user declines recommendation → wave_cap=3.
+
+### Smart Wave Cap Algorithm
+
+After budget tier is set, query the epic's complexity distribution:
+
+```bash
+bd sql "SELECT label, COUNT(*) FROM labels WHERE issue_id LIKE '{epic_id}.%' AND label LIKE 'complexity:%' GROUP BY label"
+```
+
+Calculate recommendation:
+
+```python
+WEIGHTS = {"simple": 1, "standard": 2, "complex": 3}
+BUDGET_PER_WAVE = 9  # 9 simple, 4 standard, 3 complex
+
+total_tasks = sum(counts.values())
+total_weight = sum(WEIGHTS[c] * n for c, n in counts.items())
+avg_weight = total_weight / total_tasks if total_tasks > 0 else 2.0
+
+max_parallel = len(ready_epic_children)  # from bd ready, already loaded
+
+recommended = min(floor(BUDGET_PER_WAVE / avg_weight), max_parallel, 10)
+recommended = max(recommended, 1)
+
+if budget_tier == "pro/api":
+    recommended = min(recommended, 3)
+```
+
+Present to user via AskUserQuestion:
+
+```
+Wave cap: Recommended {recommended} ({simple_count} simple, {standard_count} standard, {complex_count} complex — max parallel: {max_parallel})
+Default: 3 (proven stable)
+Use recommended? [y/N]
+```
+
+Default answer is N → wave_cap=3. If user accepts → wave_cap=recommended.
+
+### Edge Cases
+- **bd sql fails**: Skip recommendation, use default 3. Print: "Could not query complexity labels — using default wave cap 3."
+- **No complexity labels**: avg_weight defaults to 2.0 (standard), recommendation = min(4, max_parallel, 10).
+- **Recommended ≤ 3**: Skip the question — default is already optimal. Use 3.
+- **max_parallel = 1**: Skip the question — wave_cap = 1 regardless. Inform user.
+- **All simple tasks**: recommended = min(9, max_parallel, 10). Maximum parallelism.
+- **All complex tasks**: recommended = 3. Same as default.
 
 If out of range, warn and clamp. Stored in checkpoint for recovery.
 
