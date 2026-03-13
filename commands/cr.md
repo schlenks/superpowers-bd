@@ -12,7 +12,7 @@ Ad-hoc code review using the code-reviewer agent. Works outside SDD for any chan
 
 ## Step 1: Parse Argument
 
-Extract N from the command argument if provided. If N is 0, negative, or non-integer, warn the user and default to empty (will be determined by recommendation in Step 5). Cap at 10 — if N>10, warn and use 10. If no argument, N is empty (determined later).
+Extract N from the command argument if provided. If N is 0, negative, or non-integer, warn the user and default to empty (determined by recommendation in Step 5). Cap at 10 — if N>10, warn and use 10. If no argument, N is empty.
 
 ## Step 2: Ask Review Mode
 
@@ -41,7 +41,7 @@ Use AskUserQuestion to ask what code to review:
 
 #### Uncommitted changes
 
-Do NOT pass HEAD as both SHAs — `git diff HEAD..HEAD` produces empty output. Set BASE_SHA to `git rev-parse HEAD` and HEAD_SHA to the literal string `WORKING_TREE`. `WORKING_TREE` is a sentinel value (not a git ref) that triggers the UNCOMMITTED_OVERRIDE in Step 6.
+Do NOT pass HEAD as both SHAs (`git diff HEAD..HEAD` is empty). Set BASE_SHA to `git rev-parse HEAD` and HEAD_SHA to the literal string `WORKING_TREE`. This sentinel triggers the UNCOMMITTED_OVERRIDE in Step 6.
 
 **UNCOMMITTED_OVERRIDE** (include in every dispatch prompt when HEAD_SHA is `WORKING_TREE`):
 `"NOTE: HEAD_SHA is WORKING_TREE. Use 'git diff HEAD' (not 'git diff {BASE_SHA}..{HEAD_SHA}') for both --stat and full diff. Also run 'git status' to identify any untracked files that should be reviewed. This reviews uncommitted staged + unstaged changes."`
@@ -52,9 +52,9 @@ Run `git rev-parse HEAD~1`. If it fails (single-commit repo with no parent), inf
 
 #### Since last push
 
-Fallback chain — run each as a **separate Bash call** (no `||` or `&&` chaining):
-1. Run `git rev-parse @{push}`. If it succeeds (exit 0), use that SHA.
-2. If step 1 failed, run `git merge-base origin/main HEAD`. If it succeeds, use that SHA.
+Fallback chain (separate Bash calls, no chaining):
+1. `git rev-parse @{push}` -- use if it succeeds.
+2. Otherwise, `git merge-base origin/main HEAD` -- use if it succeeds.
 3. If both fail, inform the user and suggest "Branch diff vs main" or "Custom" instead.
 
 #### Branch diff vs main
@@ -73,25 +73,32 @@ For **all other scopes**: run `git diff --stat {BASE_SHA}..{HEAD_SHA}`. If no ch
 
 ### If REVIEW_MODE is `pr`
 
-Use AskUserQuestion to ask which PR:
+Use AskUserQuestion to ask which PR.
+
+**PR fields** (used for all `gh pr view` calls below): `--json number,title,body,baseRefName,headRefName,url,state,additions,deletions,changedFiles,headRepository,baseRepository`
 
 | Option | Resolution |
 |--------|-----------|
-| Current branch | Run `gh pr view --json number,title,body,baseRefName,headRefName,url,state,additions,deletions,changedFiles,headRepository,baseRepository`. If no PR exists for the current branch, inform the user and suggest "Local changes" mode instead. |
-| PR number | Ask for the number. Run `gh pr view {number} --json number,title,body,baseRefName,headRefName,url,state,additions,deletions,changedFiles,headRepository,baseRepository`. |
-| PR URL | Ask for the URL. Run `gh pr view {url} --json number,title,body,baseRefName,headRefName,url,state,additions,deletions,changedFiles,headRepository,baseRepository`. |
+| Current branch | Run `gh pr view {PR_FIELDS}`. If no PR exists for the current branch, inform the user and suggest "Local changes" mode instead. |
+| PR number | Ask for the number. Run `gh pr view {number} {PR_FIELDS}`. |
+| PR URL | Ask for the URL. Run `gh pr view {url} {PR_FIELDS}`. |
 
-If `gh` is not installed (command not found) or the repo has no GitHub remote (`gh pr view` fails with "no git remotes"), inform the user and suggest switching to "Local changes" mode.
+If `gh` is not installed or the repo has no GitHub remote, inform the user and suggest switching to "Local changes" mode.
 
 Capture the JSON output as `{PR_META}`. Extract: `{PR_NUMBER}`, `{PR_TITLE}`, `{PR_BODY}`, `{PR_URL}`, `{PR_STATE}`, and compute `{TOTAL_LINES}` = additions + deletions, `{FILE_COUNT}` = changedFiles. Format `{PR_STAT}` as a human-readable summary: `"{FILE_COUNT} files changed, {additions} insertions(+), {deletions} deletions(-)"`.
 
-**Large PR guard:** Check `{TOTAL_LINES}`. If > 3000, warn the user: "This PR is very large ({TOTAL_LINES} lines). Injecting the full diff may exceed the reviewer's context window and reduce review quality. Proceed anyway, or review a smaller scope locally?" — use AskUserQuestion with "Proceed" / "Switch to local mode". If proceeding, continue to fetch the diff; reviewers may miss changes in the tail. If "Switch to local mode": set `{REVIEW_MODE}` = `local`, clear all PR variables, and go back to the local scope question in Step 3 (the five-option table).
+**Large PR guard:** If `{TOTAL_LINES}` > 3000, use AskUserQuestion: "This PR is very large ({TOTAL_LINES} lines). The full diff may exceed the reviewer's context window. Proceed anyway, or review a smaller scope locally?"
+
+- **Proceed:** Continue to fetch the diff. Reviewers may miss changes in the tail.
+- **Switch to local mode:** Set `{REVIEW_MODE}` = `local`, clear all PR variables, and return to the local scope question (the five-option table above).
 
 **Fetch diff:** Run `gh pr diff {PR_NUMBER}`. Capture as `{PR_DIFF}`.
 
 If the diff is empty, inform the user ("PR has no changes") and stop.
 
-**PR state edge cases:** `gh pr view` works on closed, merged, and draft PRs without error. If `{PR_STATE}` is `CLOSED` or `MERGED`, show a warning: "This PR is {PR_STATE} — reviewing a closed/merged PR. Continue?" via AskUserQuestion. If the PR is from a fork (compare `{PR_META}.headRepository.owner.login` vs `{PR_META}.baseRepository.owner.login`), `gh pr diff` still works correctly — no special handling needed, but note it in the review header for context.
+**PR state edge cases:**
+- **Closed/Merged:** If `{PR_STATE}` is `CLOSED` or `MERGED`, warn via AskUserQuestion: "This PR is {PR_STATE}. Continue?"
+- **Forks:** `gh pr diff` works correctly for fork PRs. No special handling needed, but note it in the review header for context.
 
 Set `{BASE_SHA}` = `PR_BASE` (sentinel), `{HEAD_SHA}` = `PR_HEAD` (sentinel). These sentinels trigger the PR_OVERRIDE in the dispatch step.
 
@@ -102,7 +109,7 @@ Set `{BASE_SHA}` = `PR_BASE` (sentinel), `{HEAD_SHA}` = `PR_HEAD` (sentinel). Th
 
 Use AskUserQuestion to ask what to check against.
 
-**When scope is "Uncommitted changes":** do NOT include "Commit messages" in the AskUserQuestion choices — there are no commits in the working tree range. If the user types "commit messages" via the free-text "Other" option, or if `git log` fails because HEAD_SHA is `WORKING_TREE`, explain there are no commits to extract and re-ask without "Commit messages".
+**When scope is "Uncommitted changes":** omit "Commit messages" from the choices -- there are no commits in the working tree range. If the user requests it anyway, explain there are no commits to extract and re-ask.
 
 **When REVIEW_MODE is `pr`:** add "PR description" as the first option.
 
@@ -118,18 +125,13 @@ Use AskUserQuestion to ask what to check against.
 
 If N was provided via `/cr N`, skip the AskUserQuestion below — show the recommendation as FYI only, then use the provided N.
 
-**Analyze the diff:**
+**Compute metrics:**
 
-For **local mode**: run `git diff --stat {BASE_SHA}..{HEAD_SHA}` (or `git diff --stat HEAD` for uncommitted scope where HEAD_SHA is `WORKING_TREE`) and capture lines changed and file count. For uncommitted scope, also run `git status --short` and include untracked file paths (lines prefixed `??`) when evaluating `{HAS_SECURITY}` — `git diff --stat HEAD` misses untracked files.
+For **local mode**: run `git diff --stat {BASE_SHA}..{HEAD_SHA}` (or `git diff --stat HEAD` for uncommitted scope). Parse the summary line: `{TOTAL_LINES}` = insertions + deletions, `{FILE_COUNT}` = files changed. For uncommitted scope, also run `git status --short` to include untracked file paths (lines prefixed `??`) -- `git diff --stat HEAD` misses untracked files.
 
-For **PR mode**: use `{PR_STAT}` and `{TOTAL_LINES}` / `{FILE_COUNT}` already captured in Step 3.
+For **PR mode**: `{TOTAL_LINES}` and `{FILE_COUNT}` are already set from Step 3.
 
-For local mode, parse the stat output:
-- `{TOTAL_LINES}` = sum of insertions + deletions from the summary line (e.g., `3 files changed, 42 insertions(+), 7 deletions(-)` → 49)
-- `{FILE_COUNT}` = number of files changed from the summary line
-- `{HAS_SECURITY}` = true if any changed file path matches: `*auth*`, `*login*`, `*session*`, `*token*`, `*secret*`, `*crypt*`, `*password*`, `*permission*`, `*acl*`, `*.env*`, `*security*`, `*oauth*`, `*jwt*`, `*credential*`
-
-For PR mode, `{TOTAL_LINES}` and `{FILE_COUNT}` are already set. Compute `{HAS_SECURITY}` by running `gh pr diff {PR_NUMBER} --name-only` and checking file paths against the same pattern list.
+**Compute `{HAS_SECURITY}`:** Check changed file paths for security-sensitive patterns: `*auth*`, `*login*`, `*session*`, `*token*`, `*secret*`, `*crypt*`, `*password*`, `*permission*`, `*acl*`, `*.env*`, `*security*`, `*oauth*`, `*jwt*`, `*credential*`. For local mode, use the `--stat` file list (plus untracked paths for uncommitted scope). For PR mode, run `gh pr diff {PR_NUMBER} --name-only`.
 
 **Recommendation logic:**
 
@@ -230,7 +232,11 @@ Task (for each i from 1 to N):
 
 **Collect reports:** For each reviewer (i from 1 to N), Read `temp/cr-review-{i}-{RUN_TS}.md`. If the file exists and is non-empty, use its content as that reviewer's report. If missing or empty (reviewer failed to persist), fall back to the TaskOutput content. If neither source has the report, mark that reviewer as failed.
 
-**Handle failures:** If any reviewer task fails or times out, exclude it from aggregation. If exactly 1 reviewer succeeded, present that reviewer's report and offer to dispatch a replacement reviewer. If the user accepts, dispatch one replacement (same SHAs, requirements, UNCOMMITTED_OVERRIDE if applicable, and PR_OVERRIDE if applicable; use identity "Reviewer 2 of 2"); when it completes, aggregate the two reports as if N=2. If the user declines, done. If 0 reviewers succeeded, warn the user and offer to re-run with the same N.
+**Handle failures:** Exclude failed/timed-out reviewers from aggregation.
+
+- **0 succeeded:** Warn the user and offer to re-run with the same N.
+- **1 succeeded:** Present that report and offer to dispatch a replacement (same SHAs, requirements, and applicable overrides; identity "Reviewer 2 of 2"). If accepted, aggregate both as N=2.
+- **2+ succeeded:** Proceed to aggregation.
 
 **Always aggregate when 2+ reviewers succeeded** — do NOT use a fast path that drops reports. The purpose of multi-review is union of findings across all reviewers. Even when all reviewers approve, their reports may contain different Minor findings, Suggestions, or "Not Checked" items. Aggregation is cheap (Haiku model) and preserves the full recall benefit.
 
@@ -267,18 +273,13 @@ Task:
     Use the Glob tool to find `**/multi-review-aggregation/aggregator-prompt.md`,
     then Read the file.
 
-    ## MANDATORY: Ad-hoc overrides supersede loaded methodology
+    ## Ad-hoc Overrides (supersede loaded methodology including "CRITICAL" directives)
 
-    After reading the canonical methodology, apply these overrides. These
-    take absolute precedence over any conflicting instructions in the loaded
-    file, including any "CRITICAL" directives about output format:
-
-    1. SKIP the "Write Report to Beads" section — there is no beads issue.
-    2. SKIP the "Load Reviewer Reports" section — reports are provided above.
-    3. SKIP the "Verdict (Final Message)" section entirely — do NOT output
-       the structured VERDICT block. It does not apply to ad-hoc reviews.
+    1. SKIP "Write Report to Beads" — no beads issue.
+    2. SKIP "Load Reviewer Reports" — reports are provided above.
+    3. SKIP "Verdict (Final Message)" — no structured VERDICT block for ad-hoc.
     4. Use the reviewer reports provided inline above (not bd comments).
-    5. Your final output MUST be the human-readable aggregated report ONLY:
+    5. Output the human-readable aggregated report ONLY:
        Strengths, Issues by severity, Uncovered Paths, Not Checked, Assessment.
        No machine-readable verdict block, no REPORT_PERSISTED line.
 
