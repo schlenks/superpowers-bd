@@ -117,7 +117,7 @@ If N was provided via `/cr N`, skip the AskUserQuestion below — show the recom
 
 **Analyze the diff:**
 
-For **local mode**: run `git diff --stat {BASE_SHA}..{HEAD_SHA}` (or `git diff --stat HEAD` for uncommitted scope where HEAD_SHA is `WORKING_TREE`) and capture lines changed and file count.
+For **local mode**: run `git diff --stat {BASE_SHA}..{HEAD_SHA}` (or `git diff --stat HEAD` for uncommitted scope where HEAD_SHA is `WORKING_TREE`) and capture lines changed and file count. For uncommitted scope, also run `git status --short` and include untracked file paths (lines prefixed `??`) when evaluating `{HAS_SECURITY}` — `git diff --stat HEAD` misses untracked files.
 
 For **PR mode**: use `{PR_STAT}` and `{TOTAL_LINES}` / `{FILE_COUNT}` already captured in Step 3.
 
@@ -136,6 +136,8 @@ For PR mode, `{TOTAL_LINES}` and `{FILE_COUNT}` are already set. Compute `{HAS_S
 | HAS_SECURITY (regardless of size) | 3 | "Security-sensitive files detected — multiple independent reviewers recommended" |
 | TOTAL_LINES >= 100 OR FILE_COUNT >= 10 | 3 | "Substantial change — multiple reviewers catch more issues (118% recall improvement)" |
 | Otherwise | 1 | "Moderate change — single reviewer is sufficient" |
+
+Set `{RECOMMENDED_N}` to the Recommended N from the matching row, and `{reason}` to the corresponding Reason text.
 
 **Present to user:**
 
