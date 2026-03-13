@@ -4,17 +4,17 @@ Announce each verification phase explicitly. This creates a visible audit trail.
 
 ## After Draft Plan Saved
 
-**Context-aware:** Check your model ID for `[1m]` suffix to determine context tier.
+Check your model ID in the system prompt for `[1m]` suffix (e.g., `claude-opus-4-6[1m]`).
 
-### Extended context (1M) — no pause needed
+### If `[1m]` is in model ID — skip compact, proceed directly
 
 ```
 Plan written to docs/plans/2026-02-12-user-auth.md. Proceeding to verification.
 ```
 
-Continue directly to task 2 dispatching verification sub-agents.
+Continue immediately to task 2 dispatching verification sub-agents.
 
-### Standard context (200k) — compact and pause
+### Otherwise (default) — compact and pause
 
 Show a copy-pasteable `/compact` command with the **actual plan file path** (not a placeholder):
 
@@ -28,7 +28,7 @@ Context is heavy from research. Run this to free context for verification:
 After compaction finishes, type `continue` to resume verification.
 ```
 
-Substitute the real path — the user should be able to copy-paste the `/compact` line directly. The last line ("type `continue`") is critical — `/compact` doesn't give the model a turn, so the user must send a follow-up message to restart work.
+Substitute the real path. The "type `continue`" line is critical — `/compact` doesn't give the model a turn.
 
 ## Before Each Verification Sub-Agent Dispatch
 

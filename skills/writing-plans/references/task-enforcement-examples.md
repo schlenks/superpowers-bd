@@ -47,7 +47,7 @@ TaskCreate: "Rule-of-five-plans: Optimality pass"
 
 ## Sub-Agent Dispatch
 
-After proceeding from task 1 (immediately on 1M, after compact + "continue" on 200k), the main session drives this loop for tasks 2-7:
+After task 1 completes (immediately if `[1m]` model, after compact + "continue" otherwise), drive this loop for tasks 2-7:
 
 ```
 TaskUpdate(id, status: "in_progress")
