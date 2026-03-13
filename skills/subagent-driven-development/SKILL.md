@@ -99,12 +99,14 @@ if budget_tier == "pro/api":
 Present to user via AskUserQuestion:
 
 ```
-Wave cap: Recommended {recommended} ({simple_count} simple, {standard_count} standard, {complex_count} complex — max parallel: {max_parallel})
-Default: 3 (proven stable)
-Use recommended? [y/N]
+Wave cap recommendation: {recommended} ({simple_count} simple, {standard_count} standard, {complex_count} complex — max parallel: {max_parallel})
+
+1. Use {recommended} (recommended)
+2. Use 3 (proven default)
+3. Custom (enter a number 1–10)
 ```
 
-Default answer is N → wave_cap=3. If user accepts → wave_cap=recommended.
+Default selection is 2. Option 3 accepts a custom number (clamp to 1–10).
 
 ### Edge Cases
 - **bd sql fails**: Skip recommendation, use default 3. Print: "Could not query complexity labels — using default wave cap 3."
