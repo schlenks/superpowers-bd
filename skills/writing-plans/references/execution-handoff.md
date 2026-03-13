@@ -2,6 +2,17 @@
 
 ## Full Workflow
 
+**Context-aware:** Check your model ID for `[1m]` suffix to determine context tier.
+
+### Extended context (1M) — streamlined flow
+```
+writing-plans -> Plan Verification -> rule-of-five-plans -> Human Review -> plan2beads -> subagent-driven
+                      |                   |              |            |           |              |
+                 Scope check         Quality polish  Approve/Edit  Convert    bd verify     Parallel
+                                                                                           execution
+```
+
+### Standard context (200k) — with compaction pauses
 ```
 writing-plans -> Plan Verification -> rule-of-five-plans -> Human Review -> /clear -> plan2beads -> /clear -> subagent-driven
                       |                   |              |            |        |           |            |
@@ -34,11 +45,14 @@ bd blocked        # Shows tasks waiting on dependencies
 bd graph <epic>   # Visual dependency graph
 ```
 
-## Step 3: Compact Session
+## Step 3: Begin Execution
 
-Planning consumes context. Before execution, reclaim it:
+**Extended context (1M):** Proceed directly — announce the epic and begin execution:
+```
+Epic <epic-id> ready with N tasks. Starting execution.
+```
 
-**Tell the user:**
+**Standard context (200k):** Planning consumes context. Before execution, reclaim it:
 ```
 Epic <epic-id> ready with N tasks.
 
@@ -48,8 +62,6 @@ To maximize context for execution, run:
 Then say:
   execute epic <epic-id>
 ```
-
-**Why compact:** Subagents need context for implementation. Planning conversation is no longer needed - the epic preserves all task details.
 
 ## Step 4: Execute
 

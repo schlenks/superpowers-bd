@@ -4,7 +4,19 @@ Announce each verification phase explicitly. This creates a visible audit trail.
 
 ## After Draft Plan Saved
 
-After saving the plan file to disk, show a copy-pasteable `/compact` command with the **actual plan file path** (not a placeholder). Example output:
+**Context-aware:** Check your model ID for `[1m]` suffix to determine context tier.
+
+### Extended context (1M) — no pause needed
+
+```
+Plan written to docs/plans/2026-02-12-user-auth.md. Proceeding to verification.
+```
+
+Continue directly to task 2 dispatching verification sub-agents.
+
+### Standard context (200k) — compact and pause
+
+Show a copy-pasteable `/compact` command with the **actual plan file path** (not a placeholder):
 
 ```
 Plan written to docs/plans/2026-02-12-user-auth.md.

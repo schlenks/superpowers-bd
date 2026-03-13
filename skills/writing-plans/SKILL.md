@@ -17,9 +17,7 @@ Write comprehensive implementation plans assuming zero codebase context. Documen
 Create these 7 native tasks at plan start (each blocked by previous via addBlockedBy). Cannot call ExitPlanMode with pending tasks:
 
 1. **Write draft plan** -- Initial structure with all tasks, dependencies, file lists
-   - After saving the plan to disk, show a copy-pasteable `/compact` command with the **actual plan file path** substituted (not a placeholder). Format: `Plan written to {actual path}. Run this to free context for verification:` followed by the command on its own line: `/compact Verification phase. Plan saved to {actual path} — re-read it from disk for each verification pass. Next: task 2 (Plan Verification Checklist), then tasks 3-7 (rule-of-five-plans: Draft, Feasibility, Completeness, Risk, Optimality). Drop all research findings, approach comparisons, and decision rationale. The plan speaks for itself.`
-   - Also tell the user: **"After compaction finishes, type `continue` to resume verification."** (`/compact` doesn't give the model a turn — a follow-up message is required to restart.)
-   - Wait for the user's follow-up message, then proceed to task 2
+   - **Context-aware pause:** Check your model ID for `[1m]` suffix. If present (1M context): announce "Plan written to {path}. Proceeding to verification." and continue directly to task 2. If absent (200k context): show a copy-pasteable `/compact` command (see `references/announcements-protocol.md`) and wait for the user's follow-up message before proceeding to task 2.
 2. **Plan Verification Checklist** -- Complete/Accurate/Commands valid/YAGNI/Minimal/Not over-engineered
 3. **Rule-of-five-plans: Draft pass** -- Shape and structure
 4. **Rule-of-five-plans: Feasibility pass** -- Can every step be executed? Deps available? Paths valid?
@@ -27,7 +25,7 @@ Create these 7 native tasks at plan start (each blocked by previous via addBlock
 6. **Rule-of-five-plans: Risk pass** -- What could go wrong? Migration, breaking changes?
 7. **Rule-of-five-plans: Optimality pass** -- Simplest approach? YAGNI?
 
-**Tasks 2-7: Sub-Agent Dispatch.** After user types "continue", dispatch each pass sequentially as a **sonnet** sub-agent using the template in `references/verification-dispatch.md`. Mark each native task in_progress before dispatch, completed after collecting verdict. If any verdict is BLOCKED/FAIL, stop and report to user. After all 6 verdicts collected, assemble Verification Record (see `references/verification-footer.md`) and append to plan file.
+**Tasks 2-7: Sub-Agent Dispatch.** After proceeding from task 1 (immediately on 1M, after user "continue" on 200k), dispatch each pass sequentially as a **sonnet** sub-agent using the template in `references/verification-dispatch.md`. Mark each native task in_progress before dispatch, completed after collecting verdict. If any verdict is BLOCKED/FAIL, stop and report to user. After all 6 verdicts collected, assemble Verification Record (see `references/verification-footer.md`) and append to plan file.
 
 See `references/task-enforcement-examples.md` for full TaskCreate blocks and dispatch loop.
 

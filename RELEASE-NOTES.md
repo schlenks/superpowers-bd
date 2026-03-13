@@ -1,5 +1,27 @@
 # Superpowers Release Notes
 
+## v5.5.1 (2026-03-13) - Beads Fork
+
+### Writing Plans: Context-Aware Pauses for 1M Context
+
+Removes unnecessary `/compact` and `/clear` pauses from the planning workflow when running on 1M context, eliminating two manual user interventions per planning session.
+
+**Problem:** The writing-plans skill unconditionally paused twice during the workflow — once after writing the draft plan (requiring `/compact` + "continue") and once after plan2beads conversion (requiring `/clear` + "execute epic"). These pauses were needed to reclaim context on 200k windows, but with 1M context there's ample headroom to continue directly.
+
+**Solution:** Context-aware pause detection using the same `[1m]` model ID suffix check already used by SDD:
+
+| Pause Point | Standard (200k) | Extended (1M) |
+|-------------|-----------------|---------------|
+| After draft plan saved | `/compact` + wait for "continue" | Proceed directly to verification |
+| After plan2beads conversion | `/clear` + wait for "execute epic" | Proceed directly to execution |
+
+**Files Modified (5):**
+- `skills/writing-plans/SKILL.md` — task 1 now checks model ID, two-path behavior for compact pause
+- `skills/writing-plans/references/announcements-protocol.md` — split "After Draft Plan Saved" into Extended/Standard sections
+- `skills/writing-plans/references/execution-handoff.md` — two workflow diagrams (streamlined 1M vs compaction 200k), Step 3 context-aware
+- `skills/writing-plans/references/verification-dispatch.md` — updated dispatch flow description
+- `skills/writing-plans/references/task-enforcement-examples.md` — updated sub-agent dispatch description
+
 ## v5.5.0 (2026-03-13) - Beads Fork
 
 ### SDD: Context-Aware Wave Cap for 1M Context

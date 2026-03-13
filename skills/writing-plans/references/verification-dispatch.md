@@ -4,7 +4,7 @@ Dispatch each verification pass (tasks 2-7) as a sequential foreground sub-agent
 
 ## Dispatch Flow
 
-After compact + user types "continue", the main session drives this loop:
+After proceeding from task 1 (immediately on 1M context, after compact + "continue" on 200k), the main session drives this loop:
 
 ```
 for each pass in [checklist, draft, feasibility, completeness, risk, optimality]:
