@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Superpowers-BD is a Claude Code plugin providing workflow skills for TDD, debugging, and collaboration patterns. It integrates with **beads** (git-backed issue tracker) for persistent task management and wave-based parallel execution across sessions.
 
 **Plugin version:** 5.4.0
+**Minimum Claude Code:** 2.1.73 (subagent model selection, SessionStart reliability)
 
 ## Development Commands
 
@@ -39,7 +40,7 @@ python3 tests/claude-code/analyze-token-usage.py ~/.claude/projects/<project-dir
 bd ready                    # Find available work
 bd show <id>                # Review issue details
 bd close <id1> <id2> ...    # Close completed issues
-bd sync                     # Sync with git remote
+bd dolt commit              # Commit pending Dolt changes (bd sync is deprecated)
 ```
 
 ## Architecture
@@ -72,6 +73,7 @@ commands/                   # User-invocable slash commands
 
 hooks/                      # Session lifecycle hooks
   session-start.sh         # Runs on session start/resume/clear
+  session-end.sh           # Commits pending Dolt changes on exit (requires >= 2.1.74)
   link-plugin-components.sh  # Copies hooked components to .claude/ (#17688 workaround)
   log-file-modification.sh   # PostToolUse audit logger for Write|Edit
   task-completed.sh        # Quality gate on task completion
@@ -121,7 +123,7 @@ See `skills/writing-skills/SKILL.md` for complete guide.
 ## Plugin Configuration
 
 - **Plugin manifest**: `.claude-plugin/plugin.json`
-- **Session hooks**: `hooks/hooks.json` (runs `session-start.sh` on startup, `link-plugin-components.sh` on first start)
+- **Session hooks**: `hooks/hooks.json` (runs `session-start.sh` on startup, `link-plugin-components.sh` on first start, `session-end.sh` on exit)
 - **Quality gates**: `hooks/task-completed.sh` (TaskCompleted hook, interactive mode only)
 - **Audit logging**: `hooks/log-file-modification.sh` (PostToolUse hook via code-reviewer agent frontmatter)
 - **Beads config**: `.beads/metadata.json`

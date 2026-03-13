@@ -17,9 +17,9 @@ bd ready                              # 5. Check what's unblocked, repeat
 
 ```bash
 bd close <id1> <id2> ...              # Close completed issues (unblocks dependents)
-bd sync                               # Export changes
 git add .                             # Stage code changes
 git commit -m "..."                   # Commit (separate Bash call)
+# Note: bd auto-commits to Dolt after each write command (default config)
 ```
 
 ## Status Values

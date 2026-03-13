@@ -18,13 +18,12 @@ description: Use when working with the beads (bd) CLI for issue tracking, managi
 bd ready                    # What can I work on?
 bd update <id> --claim      # I'm starting this
 bd close <id>               # I'm done with this
-bd sync                     # Save my changes
 ```
 
 **Critical rules:**
 - Never use semicolons in `--acceptance` (triggers permission prompts)
 - Never use `bd edit` (opens interactive editor)
-- Always run `bd sync` before ending a session
+- Dolt auto-commits after each write command (default config) — no manual sync needed
 
 ## Permission Avoidance (Critical)
 
@@ -84,10 +83,10 @@ bd sync                     # Save my changes
 ```bash
 bd create "Remaining work" -d "..." -p 2   # 1. File remaining work
 bd close <completed-ids>                    # 2. Close completed (unblocks dependents)
-bd sync                                     # 3. Force sync (bypasses 30s debounce)
-git status                                  # 4. Check what changed
-git add <files>                             # 5. Stage code changes
-git commit -m "..."                         # 6. Commit changes
+git status                                  # 3. Check what changed
+git add <files>                             # 4. Stage code changes
+git commit -m "..."                         # 5. Commit changes
+# Dolt auto-commits after each bd write command — no manual sync needed
 ```
 
 ## Integration with Skills
@@ -102,8 +101,8 @@ git commit -m "..."                         # 6. Commit changes
 - `references/bd-edit-and-sandbox.md`: encountering bd edit usage or sandbox errors
 - `references/dependency-management.md`: creating dependencies, fixing deadlocks, verifying dep structure
 - `references/workflow-patterns.md`: running autonomous work loops, checking status values
-- `references/session-end-details.md`: why bd sync matters or ephemeral branch handling
-- `references/sync-workflow.md`: using sync subcommands, daily maintenance schedule
+- `references/session-end-details.md`: auto-commit behavior and ephemeral branch handling
+- `references/sync-workflow.md`: Dolt persistence commands, auto-commit config, backup/export
 - `references/troubleshooting.md`: database sync issues, worktree limitations, merge conflicts
 - `references/parallel-execution-safety.md`: dispatching parallel subagents, epic scoping, priority values, ID format
 
