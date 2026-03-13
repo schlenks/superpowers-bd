@@ -114,7 +114,7 @@ Issue hub-abc.3 files: [auth.service.ts, models/index.ts]  ← CONFLICT with .1!
 5. If file appears in multiple ready issues:
    - **Dispatch lowest-numbered first** (e.g., hub-abc.1 before hub-abc.3)
    - **Defer conflicting issues to next wave** (they stay ready, dispatch after current wave completes)
-6. **Cap at {wave_cap} tasks per wave (default 3, configurable up to 10).** If more than {wave_cap} are parallelizable, dispatch the lowest-numbered {wave_cap} and defer the rest. This prevents the orchestrator from exhausting its context window managing too many agents simultaneously.
+6. **Cap at {wave_cap} tasks per wave (default 3, up to 10 — set via smart recommendation or explicit invocation).** If more than {wave_cap} are parallelizable, dispatch the lowest-numbered {wave_cap} and defer the rest. This prevents the orchestrator from exhausting its context window managing too many agents simultaneously.
 7. **Mark conflict check task as `completed` with conflict report**
 8. **Serialize wave file map** into each implementer's `{wave_file_map}` template slot:
    ```
@@ -156,7 +156,7 @@ SEQUENTIAL (old):
 PARALLEL (new):
   TaskCreate "Check file conflicts for wave N"
   parallelizable = filter_file_conflicts(ready)
-  parallelizable = parallelizable[:wave_cap]  # Default 3, max 10 — prevents context exhaustion
+  parallelizable = parallelizable[:wave_cap]  # Smart recommendation or default 3, max 10 — prevents context exhaustion
   TaskUpdate conflict-task status=completed  # with conflict report
   wave_file_map = build_wave_file_map(parallelizable)  # markdown table for {wave_file_map} slot
 

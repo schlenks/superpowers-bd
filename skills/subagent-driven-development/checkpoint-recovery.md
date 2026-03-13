@@ -49,7 +49,7 @@ When the orchestrator detects a checkpoint (via INIT check or `<sdd-checkpoint-r
 
 **Crashed session (startup with checkpoint):** SessionStart hook detects checkpoint, injects recovery notice. User can resume with "execute epic {id}". INIT phase finds checkpoint and restores state.
 
-**Corrupted/unreadable checkpoint:** Ignore checkpoint, fall back to beads as SSOT. Use `bd show` to determine completed vs remaining tasks. Re-ask budget tier. Use default wave cap (3). Print: `"Checkpoint corrupted — falling back to beads. Which budget tier?"`
+**Corrupted/unreadable checkpoint:** Ignore checkpoint, fall back to beads as SSOT. Use `bd show` to determine completed vs remaining tasks. Re-ask budget tier. Run smart wave cap recommendation (or use default 3 if bd sql fails). Print: `"Checkpoint corrupted — falling back to beads. Which budget tier?"`
 
 **Partial wave (in_progress tasks exist):** After restoring from checkpoint, if `bd ready` shows no ready tasks but `bd show` lists in_progress tasks, those are from an interrupted wave. Reset them: `bd update --status=open <id>` for each in_progress task, then proceed to LOADING.
 

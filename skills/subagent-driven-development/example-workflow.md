@@ -4,6 +4,19 @@
 You: I'm using Subagent-Driven Development to execute beads epic hub-abc.
 
 [Load epic: bd show hub-abc]
+[Check for checkpoint: temp/sdd-checkpoint-hub-abc.json — not found]
+[Ask budget tier: max-5x]
+
+[Query complexity distribution:]
+  bd sql "SELECT label, COUNT(*) FROM labels WHERE issue_id LIKE 'hub-abc.%' AND label LIKE 'complexity:%' GROUP BY label"
+  → complexity:simple=1, complexity:standard=2, complexity:complex=1
+
+[Smart wave cap calculation:]
+  avg_weight = (1×1 + 2×2 + 3×1) / 4 = 2.0
+  recommended = min(floor(9/2.0), max_parallel=2, 10) = 2
+  Recommended ≤ 3 → skip question, use default 3
+  wave_cap = 3
+
 [Check initial state:]
   bd ready: hub-abc.1, hub-abc.2 (no deps)
   bd blocked: hub-abc.3 (by .1), hub-abc.4 (by .2, .3)
