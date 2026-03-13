@@ -2,6 +2,48 @@
 
 ## v5.5.0 (2026-03-13) - Beads Fork
 
+### SDD: Context-Aware Wave Cap for 1M Context
+
+Raises the default wave cap from 3 to 5 when the orchestrator runs on Opus 4.6 with 1M context, enabling wider waves and fewer round-trips for large epics.
+
+**Problem:** The wave cap of 3 was calibrated for 200k context windows (validated by arXiv 2512.08296 + 2505.23946). Opus 4.6 now ships with 1M context by default — 5x more headroom — but the orchestrator was still capped at 3 tasks per wave, leaving significant throughput on the table.
+
+**Investigation:** Dispatched test subagents to verify context windows across models:
+- Opus subagents: `claude-opus-4-6[1m]` — **1M context confirmed**
+- Sonnet subagents: `claude-sonnet-4-6` — 200k (no `[1m]` suffix)
+- Haiku subagents: `claude-haiku-4-5-20251001` — 200k (no `[1m]` suffix)
+
+The `[1m]` suffix in the model ID is a reliable detection signal available in the system prompt.
+
+**Solution:** Two-tier context system — orchestrator self-detects from its model ID:
+
+| Parameter | Standard (200k) | Extended (1M) |
+|-----------|-----------------|---------------|
+| `BUDGET_PER_WAVE` | 9 | 15 |
+| Default wave cap | 3 | 5 |
+| Range | 1–10 | 1–10 |
+| Pro/api cap | 3 | 3 |
+
+Effective wave sizes with 1M context (`floor(15/avg_weight)`):
+
+| Complexity Mix | Standard (200k) | Extended (1M) |
+|----------------|-----------------|---------------|
+| All simple | 9 (capped by parallel) | **10** |
+| All standard | 4 | **7** |
+| Mixed standard/complex | 3 | **6** |
+| All complex | 3 | **5** |
+
+Context budget at 1M: wave of 7 standard tasks ≈ 200k tokens/wave → ~4.8 waves → 34 tasks before context pressure. Plenty of headroom.
+
+**Rule-of-five-plans review** found and fixed: bd sql failure and fallback paths used `DEFAULT_CAP` without capping at `max_parallel` — could tell user "wave cap 5" when only 2 tasks are ready.
+
+**Files Modified (5):**
+- `skills/subagent-driven-development/SKILL.md` — context tier detection (step 4), two-tier wave cap section with formula, AskUserQuestion, effective sizes table, edge cases
+- `skills/subagent-driven-development/checkpoint-recovery.md` — `context_tier` field in checkpoint schema, recovery logic defaults missing field to "standard"
+- `skills/subagent-driven-development/dispatch-and-conflict.md` — updated cap comments to reference both context tiers
+- `skills/subagent-driven-development/background-execution.md` — updated default wave cap reference
+- `skills/subagent-driven-development/example-workflow.md` — updated to show extended context flow with `[1m]` detection
+
 ### Code Review: Always Aggregate, Repo Rules, Stale Reference Checks
 
 Three improvements to the code review pipeline: removes the fast-path shortcut from multi-review aggregation, adds repo policy rule loading and stale reference detection to the reviewer methodology, and simplifies the PR review flow.
@@ -51,48 +93,6 @@ Updates all beads documentation and adds a SessionEnd hook, reflecting the `bd s
 - `skills/beads/references/sync-workflow.md` — complete rewrite: Dolt commands, auto-commit config, backup/export, deprecation note
 - `skills/beads/references/session-end-details.md` — complete rewrite: auto-commit handles persistence, manual commands for non-default config
 - `skills/beads/references/workflow-patterns.md` — replaced `bd sync` with auto-commit note
-
-### SDD: Context-Aware Wave Cap for 1M Context
-
-Raises the default wave cap from 3 to 5 when the orchestrator runs on Opus 4.6 with 1M context, enabling wider waves and fewer round-trips for large epics.
-
-**Problem:** The wave cap of 3 was calibrated for 200k context windows (validated by arXiv 2512.08296 + 2505.23946). Opus 4.6 now ships with 1M context by default — 5x more headroom — but the orchestrator was still capped at 3 tasks per wave, leaving significant throughput on the table.
-
-**Investigation:** Dispatched test subagents to verify context windows across models:
-- Opus subagents: `claude-opus-4-6[1m]` — **1M context confirmed**
-- Sonnet subagents: `claude-sonnet-4-6` — 200k (no `[1m]` suffix)
-- Haiku subagents: `claude-haiku-4-5-20251001` — 200k (no `[1m]` suffix)
-
-The `[1m]` suffix in the model ID is a reliable detection signal available in the system prompt.
-
-**Solution:** Two-tier context system — orchestrator self-detects from its model ID:
-
-| Parameter | Standard (200k) | Extended (1M) |
-|-----------|-----------------|---------------|
-| `BUDGET_PER_WAVE` | 9 | 15 |
-| Default wave cap | 3 | 5 |
-| Range | 1–10 | 1–10 |
-| Pro/api cap | 3 | 3 |
-
-Effective wave sizes with 1M context (`floor(15/avg_weight)`):
-
-| Complexity Mix | Standard (200k) | Extended (1M) |
-|----------------|-----------------|---------------|
-| All simple | 9 (capped by parallel) | **10** |
-| All standard | 4 | **7** |
-| Mixed standard/complex | 3 | **6** |
-| All complex | 3 | **5** |
-
-Context budget at 1M: wave of 7 standard tasks ≈ 200k tokens/wave → ~4.8 waves → 34 tasks before context pressure. Plenty of headroom.
-
-**Rule-of-five-plans review** found and fixed: bd sql failure and fallback paths used `DEFAULT_CAP` without capping at `max_parallel` — could tell user "wave cap 5" when only 2 tasks are ready.
-
-**Files Modified (5):**
-- `skills/subagent-driven-development/SKILL.md` — context tier detection (step 4), two-tier wave cap section with formula, AskUserQuestion, effective sizes table, edge cases
-- `skills/subagent-driven-development/checkpoint-recovery.md` — `context_tier` field in checkpoint schema, recovery logic defaults missing field to "standard"
-- `skills/subagent-driven-development/dispatch-and-conflict.md` — updated cap comments to reference both context tiers
-- `skills/subagent-driven-development/background-execution.md` — updated default wave cap reference
-- `skills/subagent-driven-development/example-workflow.md` — updated to show extended context flow with `[1m]` detection
 
 ---
 
