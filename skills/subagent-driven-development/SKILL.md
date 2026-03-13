@@ -20,7 +20,7 @@ Execute beads epic by dispatching parallel subagents for independent issues, wit
 5. Verify `temp/` exists (do NOT run `mkdir`)
 6. `bd ready`, filter to epic children
 6a. If explicit wave cap in invocation (e.g., "wave-cap 7"), use it and skip 6b-6c.
-6b. Query complexity distribution: `bd sql "SELECT label, COUNT(*) FROM labels WHERE issue_id LIKE '{epic_id}.%' AND label LIKE 'complexity:%' GROUP BY label"`. If query fails or returns no rows, use context-tier default and skip 6c.
+6b. Query complexity distribution: `bd sql "SELECT label, COUNT(*) FROM labels WHERE issue_id LIKE '{epic_id}.%' AND label LIKE 'complexity:%' GROUP BY label"`. If query fails or returns no rows, use `min(DEFAULT_CAP, max_parallel)` and skip 6c.
 6c. Calculate recommended wave cap (see Wave Cap section). Ask user via AskUserQuestion to confirm.
 7. Check file conflicts, cap wave at {wave_cap}, serialize wave file map into prompts
 8. Dispatch implementers (`run_in_background: true`) -- sub-agents self-read from beads
@@ -76,7 +76,7 @@ Store `context_tier` ("extended" or "standard") in checkpoint for recovery.
 ### Setting Priority
 1. **Explicit invocation** overrides everything: "execute epic hub-abc wave-cap 7" → wave_cap=7, skip recommendation.
 2. **Smart recommendation** (default path): query complexity labels, calculate recommendation, ask user.
-3. **Fallback**: if bd sql fails or user declines recommendation → use context-tier default (5 for extended, 3 for standard).
+3. **Fallback**: if bd sql fails or user declines recommendation → use `min(DEFAULT_CAP, max_parallel)`.
 
 ### Smart Wave Cap Algorithm
 
@@ -131,7 +131,7 @@ Default selection is 1 for extended context (formula is well-calibrated with 1M 
 | All complex | 3 | **5** |
 
 ### Edge Cases
-- **bd sql fails**: Skip recommendation, use context-tier default. Print: "Could not query complexity labels — using default wave cap {DEFAULT_CAP}."
+- **bd sql fails**: Skip recommendation, use `min(DEFAULT_CAP, max_parallel)`. Print: "Could not query complexity labels — using wave cap {wave_cap}."
 - **No complexity labels**: avg_weight defaults to 2.0 (standard). Extended: min(7, max_parallel, 10). Standard: min(4, max_parallel, 10).
 - **Recommended ≤ context-tier default**: Skip the question — formula already at or below default. Use `recommended` (may be less than default if few tasks are ready).
 - **max_parallel = 1**: Skip the question — wave_cap = 1 regardless. Inform user.
