@@ -77,21 +77,21 @@ Use AskUserQuestion to ask which PR:
 
 | Option | Resolution |
 |--------|-----------|
-| Current branch | Run `gh pr view --json number,title,body,baseRefName,headRefName,url,state,additions,deletions,changedFiles`. If no PR exists for the current branch, inform the user and suggest "Local changes" mode instead. |
-| PR number | Ask for the number. Run `gh pr view {number} --json number,title,body,baseRefName,headRefName,url,state,additions,deletions,changedFiles`. |
-| PR URL | Ask for the URL. Run `gh pr view {url} --json number,title,body,baseRefName,headRefName,url,state,additions,deletions,changedFiles`. |
+| Current branch | Run `gh pr view --json number,title,body,baseRefName,headRefName,url,state,additions,deletions,changedFiles,headRepository,baseRepository`. If no PR exists for the current branch, inform the user and suggest "Local changes" mode instead. |
+| PR number | Ask for the number. Run `gh pr view {number} --json number,title,body,baseRefName,headRefName,url,state,additions,deletions,changedFiles,headRepository,baseRepository`. |
+| PR URL | Ask for the URL. Run `gh pr view {url} --json number,title,body,baseRefName,headRefName,url,state,additions,deletions,changedFiles,headRepository,baseRepository`. |
 
 If `gh` is not installed (command not found) or the repo has no GitHub remote (`gh pr view` fails with "no git remotes"), inform the user and suggest switching to "Local changes" mode.
 
 Capture the JSON output as `{PR_META}`. Extract: `{PR_NUMBER}`, `{PR_TITLE}`, `{PR_BODY}`, `{PR_URL}`, `{PR_STATE}`, and compute `{TOTAL_LINES}` = additions + deletions, `{FILE_COUNT}` = changedFiles. Format `{PR_STAT}` as a human-readable summary: `"{FILE_COUNT} files changed, {additions} insertions(+), {deletions} deletions(-)"`.
 
-**Large PR guard:** Check `{TOTAL_LINES}`. If > 3000, warn the user: "This PR is very large ({TOTAL_LINES} lines). Injecting the full diff may exceed the reviewer's context window and reduce review quality. Proceed anyway, or review a smaller scope locally?" — use AskUserQuestion with "Proceed" / "Switch to local mode". If proceeding, continue to fetch the diff; reviewers may miss changes in the tail.
+**Large PR guard:** Check `{TOTAL_LINES}`. If > 3000, warn the user: "This PR is very large ({TOTAL_LINES} lines). Injecting the full diff may exceed the reviewer's context window and reduce review quality. Proceed anyway, or review a smaller scope locally?" — use AskUserQuestion with "Proceed" / "Switch to local mode". If proceeding, continue to fetch the diff; reviewers may miss changes in the tail. If "Switch to local mode": set `{REVIEW_MODE}` = `local`, clear all PR variables, and go back to the local scope question in Step 3 (the five-option table).
 
 **Fetch diff:** Run `gh pr diff {PR_NUMBER}`. Capture as `{PR_DIFF}`.
 
 If the diff is empty, inform the user ("PR has no changes") and stop.
 
-**PR state edge cases:** `gh pr view` works on closed, merged, and draft PRs without error. If `{PR_STATE}` is `CLOSED` or `MERGED`, show a warning: "This PR is {PR_STATE} — reviewing a closed/merged PR. Continue?" via AskUserQuestion. If the PR is from a fork (the `headRepository` owner differs from `baseRepository` owner in the JSON), `gh pr diff` still works correctly — no special handling needed, but note it in the review header for context.
+**PR state edge cases:** `gh pr view` works on closed, merged, and draft PRs without error. If `{PR_STATE}` is `CLOSED` or `MERGED`, show a warning: "This PR is {PR_STATE} — reviewing a closed/merged PR. Continue?" via AskUserQuestion. If the PR is from a fork (compare `{PR_META}.headRepository.owner.login` vs `{PR_META}.baseRepository.owner.login`), `gh pr diff` still works correctly — no special handling needed, but note it in the review header for context.
 
 Set `{BASE_SHA}` = `PR_BASE` (sentinel), `{HEAD_SHA}` = `PR_HEAD` (sentinel). These sentinels trigger the PR_OVERRIDE in the dispatch step.
 
@@ -112,6 +112,8 @@ Use AskUserQuestion to ask what to check against.
 | Skip | Use: "General review: check for correctness, security, and code quality. No specific requirements — focus on bugs, missing error handling, and security issues." |
 
 ## Step 5: Dispatch Review(s)
+
+If N is still empty at dispatch time (recommendation engine not yet available), default to 1.
 
 ### Single Review (N=1)
 
