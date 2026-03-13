@@ -41,7 +41,7 @@ Use AskUserQuestion to ask what code to review:
 
 #### Uncommitted changes
 
-Do NOT pass HEAD as both SHAs — `git diff HEAD..HEAD` produces empty output. Set BASE_SHA to `git rev-parse HEAD` and HEAD_SHA to the literal string `WORKING_TREE`. `WORKING_TREE` is a sentinel value (not a git ref) that triggers the UNCOMMITTED_OVERRIDE in Step 5.
+Do NOT pass HEAD as both SHAs — `git diff HEAD..HEAD` produces empty output. Set BASE_SHA to `git rev-parse HEAD` and HEAD_SHA to the literal string `WORKING_TREE`. `WORKING_TREE` is a sentinel value (not a git ref) that triggers the UNCOMMITTED_OVERRIDE in Step 6.
 
 **UNCOMMITTED_OVERRIDE** (include in every dispatch prompt when HEAD_SHA is `WORKING_TREE`):
 `"NOTE: HEAD_SHA is WORKING_TREE. Use 'git diff HEAD' (not 'git diff {BASE_SHA}..{HEAD_SHA}') for both --stat and full diff. Also run 'git status' to identify any untracked files that should be reviewed. This reviews uncommitted staged + unstaged changes."`
@@ -111,9 +111,44 @@ Use AskUserQuestion to ask what to check against.
 | Describe inline | Ask user to type/paste requirements |
 | Skip | Use: "General review: check for correctness, security, and code quality. No specific requirements — focus on bugs, missing error handling, and security issues." |
 
-## Step 5: Dispatch Review(s)
+## Step 5: Recommend Reviewer Count
 
-If N is still empty at dispatch time (recommendation engine not yet available), default to 1.
+If N was provided via `/cr N`, skip the AskUserQuestion below — show the recommendation as FYI only, then use the provided N.
+
+**Analyze the diff:**
+
+For **local mode**: run `git diff --stat {BASE_SHA}..{HEAD_SHA}` (or `git diff --stat HEAD` for uncommitted scope where HEAD_SHA is `WORKING_TREE`) and capture lines changed and file count.
+
+For **PR mode**: use `{PR_STAT}` and `{TOTAL_LINES}` / `{FILE_COUNT}` already captured in Step 3.
+
+For local mode, parse the stat output:
+- `{TOTAL_LINES}` = sum of insertions + deletions from the summary line (e.g., `3 files changed, 42 insertions(+), 7 deletions(-)` → 49)
+- `{FILE_COUNT}` = number of files changed from the summary line
+- `{HAS_SECURITY}` = true if any changed file path matches: `*auth*`, `*login*`, `*session*`, `*token*`, `*secret*`, `*crypt*`, `*password*`, `*permission*`, `*acl*`, `*.env*`, `*security*`, `*oauth*`, `*jwt*`, `*credential*`
+
+For PR mode, `{TOTAL_LINES}` and `{FILE_COUNT}` are already set. Compute `{HAS_SECURITY}` by running `gh pr diff {PR_NUMBER} --name-only` and checking file paths against the same pattern list.
+
+**Recommendation logic:**
+
+| Condition | Recommended N | Reason shown to user |
+|-----------|--------------|---------------------|
+| TOTAL_LINES < 100 AND FILE_COUNT < 5 AND NOT HAS_SECURITY | 1 | "Small change — single reviewer is sufficient" |
+| HAS_SECURITY (regardless of size) | 3 | "Security-sensitive files detected — multiple independent reviewers recommended" |
+| TOTAL_LINES >= 100 OR FILE_COUNT >= 10 | 3 | "Substantial change — multiple reviewers catch more issues (118% recall improvement)" |
+| Otherwise | 1 | "Moderate change — single reviewer is sufficient" |
+
+**Present to user:**
+
+Use AskUserQuestion:
+"Based on analysis ({TOTAL_LINES} lines changed, {FILE_COUNT} files, security-sensitive: {yes/no}), I recommend {RECOMMENDED_N} reviewer(s). {reason}. How many reviewers?"
+
+Offer: the recommendation as default, plus "1", "3", "Other (specify)".
+
+If the user chooses "Other (specify)", ask for a number. Apply the same validation as Step 1: cap at 10, reject non-positive integers.
+
+Set `{N}` to the user's choice.
+
+## Step 6: Dispatch Review(s)
 
 ### Single Review (N=1)
 
@@ -250,7 +285,7 @@ If the aggregator task fails, present each reviewer's raw report individually (l
 
 Present the aggregated report to the user. Done.
 
-## Step 6: Present Results
+## Step 7: Present Results
 
 Show the final review report (single or aggregated). No automatic follow-up actions — the user decides what to do with the findings.
 
