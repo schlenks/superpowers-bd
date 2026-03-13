@@ -54,7 +54,7 @@ Spec reviewer verdict:
   each reviewer self-reads methodology from disk + requirements from beads, uses base_sha/head_sha from prompt
 Code reviewer verdicts:
   VERDICT: APPROVE  CRITICAL: 0 IMPORTANT: 0 MINOR: 0  REPORT_PERSISTED: YES  (×3)
-[Fast path: all approve, 0 Critical/Important → skip aggregation]
+[Aggregate 3 reviews (always aggregate when N>1)]
 
 [Extract evidence from verdict fields]
   Commit: f3a9b1c | Files: 2 changed (87+/0-) | Tests: 8/8 pass, exit 0

@@ -107,7 +107,7 @@ Task A: [implement]────[spec-A]────[code-A×3]────[agg-A
 Task B:    [implement]────[spec-B]────[code-B×3]────[agg-B]────→ close
 Task C:       [implement]────[spec-C]────[code-C×3]──[agg-C]──→ close
                        ↑         ↑            ↑
-                       └─parallel─┘    (agg skipped if fast path)
+                       └─parallel─┘    (always aggregate when N>1)
 ```
 
 **Rules:**
@@ -191,9 +191,7 @@ on_spec_review_pass(task_id, result):
             )
             reviewer_tasks.append(code_task)
 
-        # When all N complete: check fast path (all approve, 0 Critical/Important)
-        # If fast path: skip aggregation, proceed to close
-        # Otherwise: dispatch aggregator (haiku) per aggregator-prompt.md
+        # When all N complete: always dispatch aggregator (haiku) per aggregator-prompt.md
         pending_multi_reviews[task_id] = reviewer_tasks
     else:
         # Single review (pro/api) — unchanged

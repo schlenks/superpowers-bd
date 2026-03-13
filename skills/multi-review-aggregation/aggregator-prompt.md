@@ -42,6 +42,14 @@ Task tool:
     ### Strengths
     Union all strengths. If multiple reviewers mention the same strength, keep clearest version.
 
+    ### Uncovered Paths
+    Union all Uncovered Paths from every reviewer. Deduplicate: same file + same scenario = one entry,
+    note which reviewers flagged it. If no reviewer reported Uncovered Paths, output "(none)".
+
+    ### Not Checked
+    Union all Not Checked items from every reviewer. Deduplicate: same area = one entry,
+    note which reviewers flagged it. If no reviewer reported Not Checked, output "(none)".
+
     ### Verdict
     - "Ready to merge: Yes" → zero Critical, zero Important, AND majority approved
     - "Ready to merge: With fixes" → only Minor/Suggestion issues after aggregation
@@ -67,6 +75,14 @@ Task tool:
     (or "(none)")
     ### Suggestion
     - [issue] [Reviewer: X, downgraded from Minor] — file:line
+    (or "(none)")
+
+    ## Uncovered Paths
+    - [path/scenario] [Reviewers: X, Y]
+    (or "(none)")
+
+    ## Not Checked
+    - [area] [Reviewers: X, Y]
     (or "(none)")
 
     ## Assessment

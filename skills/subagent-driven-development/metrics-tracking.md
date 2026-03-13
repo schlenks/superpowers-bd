@@ -21,7 +21,7 @@ task_metrics[f"{issue_id}.code"] = {...}
 task_metrics[f"{issue_id}.code.1"] = {...}  # Reviewer 1
 task_metrics[f"{issue_id}.code.2"] = {...}  # Reviewer 2
 task_metrics[f"{issue_id}.code.3"] = {...}  # Reviewer 3
-task_metrics[f"{issue_id}.agg"] = {...}     # Aggregation step (if not fast-pathed)
+task_metrics[f"{issue_id}.agg"] = {...}     # Aggregation step (always runs when N>1)
 ```
 
 ## Per-Wave Aggregates

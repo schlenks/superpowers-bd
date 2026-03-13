@@ -24,14 +24,8 @@ on_spec_review_pass(issue_id, result):
         # Poll until all N complete
         results = wait_for_all(reviewer_tasks)
 
-        # Check fast path
-        if all_approve_no_issues(results):
-            # Skip aggregation — unanimous clean approval
-            record_metrics(results, role="code")
-            proceed_to_close(issue_id)
-        else:
-            # Dispatch aggregator
-            dispatch_aggregator(results, issue_id)
+        # Always aggregate when 2+ reviewers succeed
+        dispatch_aggregator(results, issue_id)
     else:
         # Single review (pro/api) — unchanged
         dispatch_single_code_review(issue_id)

@@ -23,17 +23,13 @@ When N=1, skip this skill -- use standard single code review.
 
 ## Parallel Dispatch Pattern
 
-After spec review passes, dispatch N independent reviews (`run_in_background=True`, each gets "Reviewer i of N"). If all approve with 0 Critical/Important: fast path, skip aggregation. Otherwise dispatch aggregator (haiku model).
+After spec review passes, dispatch N independent reviews (`run_in_background=True`, each gets "Reviewer i of N"). Always aggregate when 2+ reviewers succeed — even unanimous approval may contain different Minor findings, Suggestions, or Not Checked items. Dispatch aggregator (haiku model).
 
 Full dispatch code: see `references/dispatch-code.md`. Aggregator prompt: see `./aggregator-prompt.md`.
 
 ## Aggregation Algorithm
 
-### Fast Path
-
-ALL N reviewers return `VERDICT: APPROVE` with `CRITICAL: 0` and `IMPORTANT: 0` -> skip aggregation. Unanimous clean = review output.
-
-### Severity Voting (When Any Reviewer Raises Issues)
+### Severity Voting
 
 | Condition | Result |
 |-----------|--------|
@@ -63,6 +59,12 @@ Full deduplication/merging rules: see `references/aggregation-details.md`.
 ### Critical / Important / Minor / Suggestion
 - [issue] [Reviewers: N, N] -- file:line
   (note downgrade/security provenance as applicable)
+
+## Uncovered Paths
+- [path/scenario] [Reviewers: X, Y]
+
+## Not Checked
+- [area] [Reviewers: X, Y]
 
 ## Assessment
 Ready to merge: [Yes/With fixes/No]
