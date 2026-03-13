@@ -104,10 +104,13 @@ Use AskUserQuestion to ask what to check against.
 
 **When scope is "Uncommitted changes":** do NOT include "Commit messages" in the AskUserQuestion choices — there are no commits in the working tree range. If the user types "commit messages" via the free-text "Other" option, or if `git log` fails because HEAD_SHA is `WORKING_TREE`, explain there are no commits to extract and re-ask without "Commit messages".
 
+**When REVIEW_MODE is `pr`:** add "PR description" as the first option.
+
 | Option | Resolution |
 |--------|-----------|
+| PR description _(only when REVIEW_MODE is `pr`)_ | Use `{PR_BODY}` captured in Step 3. If empty, inform the user ("PR has no description") and re-ask without this option. |
 | Beads task/epic | Ask for beads ID, run `bd show <ID>`, use description + acceptance criteria. If `bd show` fails (invalid ID or beads not initialized), inform the user and ask them to paste requirements inline or choose another source. |
-| Commit messages _(omit when scope is Uncommitted changes)_ | Run `git log --format="%h %s%n%b" {BASE_SHA}..{HEAD_SHA}`, use output. |
+| Commit messages _(omit when scope is Uncommitted changes)_ | Run `git log --format="%h %s%n%b" {BASE_SHA}..{HEAD_SHA}`, use output. For PR mode, run `gh pr view {PR_NUMBER} --json commits --jq '.commits[].messageHeadline'` instead. |
 | Describe inline | Ask user to type/paste requirements |
 | Skip | Use: "General review: check for correctness, security, and code quality. No specific requirements — focus on bugs, missing error handling, and security issues." |
 
