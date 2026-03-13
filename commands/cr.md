@@ -12,53 +12,93 @@ Ad-hoc code review using the code-reviewer agent. Works outside SDD for any chan
 
 ## Step 1: Parse Argument
 
-Extract N from the command argument. Default to 1 if no argument. If N is 0, negative, or non-integer, warn the user and default to 1. Cap at 10 — if N>10, warn and use 10.
+Extract N from the command argument if provided. If N is 0, negative, or non-integer, warn the user and default to empty (will be determined by recommendation in Step 5). Cap at 10 — if N>10, warn and use 10. If no argument, N is empty (determined later).
 
-## Step 2: Ask Scope
+## Step 2: Ask Review Mode
+
+Use AskUserQuestion to ask what to review:
+
+| Option | Description |
+|--------|-------------|
+| Local changes | Review code in the current repository (uncommitted, commits, branch diff) |
+| A GitHub PR | Review a pull request by number, URL, or current branch |
+
+Set `{REVIEW_MODE}` to `local` or `pr`.
+
+## Step 3: Resolve Scope
+
+### If REVIEW_MODE is `local`
 
 Use AskUserQuestion to ask what code to review:
 
 | Option | BASE_SHA | HEAD_SHA |
 |--------|----------|----------|
-| Uncommitted changes | `git rev-parse HEAD` | `WORKING_TREE` (sentinel, not a git ref) |
-| Last commit | `git rev-parse HEAD~1` (see fallback below) | `git rev-parse HEAD` |
-| Since last push | `git rev-parse @{push}` (see fallback chain below) | `git rev-parse HEAD` |
-| Branch diff vs main | `git merge-base main HEAD` (see fallback below) | `git rev-parse HEAD` |
-| Custom | Ask user for two SHAs or refs (validate below) | Ask user for two SHAs or refs (validate below) |
+| Uncommitted changes | `git rev-parse HEAD` | `WORKING_TREE` (sentinel) |
+| Last commit | `git rev-parse HEAD~1` | `git rev-parse HEAD` |
+| Since last push | `git rev-parse @{push}` (fallback chain) | `git rev-parse HEAD` |
+| Branch diff vs main | `git merge-base main HEAD` | `git rev-parse HEAD` |
+| Custom | Ask user for two SHAs or refs | Ask user for two SHAs or refs |
 
-### Uncommitted changes
+#### Uncommitted changes
 
-Do NOT pass HEAD as both SHAs — `git diff HEAD..HEAD` produces empty output. Set BASE_SHA to `git rev-parse HEAD` and HEAD_SHA to the literal string `WORKING_TREE`. `WORKING_TREE` is a sentinel value (not a git ref) that triggers the UNCOMMITTED_OVERRIDE in Step 4.
+Do NOT pass HEAD as both SHAs — `git diff HEAD..HEAD` produces empty output. Set BASE_SHA to `git rev-parse HEAD` and HEAD_SHA to the literal string `WORKING_TREE`. `WORKING_TREE` is a sentinel value (not a git ref) that triggers the UNCOMMITTED_OVERRIDE in Step 5.
 
 **UNCOMMITTED_OVERRIDE** (include in every dispatch prompt when HEAD_SHA is `WORKING_TREE`):
 `"NOTE: HEAD_SHA is WORKING_TREE. Use 'git diff HEAD' (not 'git diff {BASE_SHA}..{HEAD_SHA}') for both --stat and full diff. Also run 'git status' to identify any untracked files that should be reviewed. This reviews uncommitted staged + unstaged changes."`
 
-### Last commit
+#### Last commit
 
 Run `git rev-parse HEAD~1`. If it fails (single-commit repo with no parent), inform the user and suggest "Uncommitted changes" or "Custom" scope instead.
 
-### Since last push
+#### Since last push
 
 Fallback chain — run each as a **separate Bash call** (no `||` or `&&` chaining):
 1. Run `git rev-parse @{push}`. If it succeeds (exit 0), use that SHA.
 2. If step 1 failed, run `git merge-base origin/main HEAD`. If it succeeds, use that SHA.
 3. If both fail, inform the user and suggest "Branch diff vs main" or "Custom" instead.
 
-### Branch diff vs main
+#### Branch diff vs main
 
 Run `git merge-base main HEAD`. If `main` doesn't exist, ask the user for the base branch name.
 
-### Custom
+#### Custom
 
 After receiving user-provided refs, validate each with `git rev-parse <ref>`. If either fails, inform the user the ref doesn't resolve and re-ask.
 
-### Verify changes exist
+#### Verify changes exist
 
 For **uncommitted scope**: run `git status --short`. If empty (no tracked modifications AND no untracked files), tell the user and stop. Do NOT use `git diff --stat HEAD` alone — it misses untracked files.
 
 For **all other scopes**: run `git diff --stat {BASE_SHA}..{HEAD_SHA}`. If no changes found, tell the user and stop.
 
-## Step 3: Ask Requirements Source
+### If REVIEW_MODE is `pr`
+
+Use AskUserQuestion to ask which PR:
+
+| Option | Resolution |
+|--------|-----------|
+| Current branch | Run `gh pr view --json number,title,body,baseRefName,headRefName,url,state,additions,deletions,changedFiles`. If no PR exists for the current branch, inform the user and suggest "Local changes" mode instead. |
+| PR number | Ask for the number. Run `gh pr view {number} --json number,title,body,baseRefName,headRefName,url,state,additions,deletions,changedFiles`. |
+| PR URL | Ask for the URL. Run `gh pr view {url} --json number,title,body,baseRefName,headRefName,url,state,additions,deletions,changedFiles`. |
+
+If `gh` is not installed (command not found) or the repo has no GitHub remote (`gh pr view` fails with "no git remotes"), inform the user and suggest switching to "Local changes" mode.
+
+Capture the JSON output as `{PR_META}`. Extract: `{PR_NUMBER}`, `{PR_TITLE}`, `{PR_BODY}`, `{PR_URL}`, `{PR_STATE}`, and compute `{TOTAL_LINES}` = additions + deletions, `{FILE_COUNT}` = changedFiles. Format `{PR_STAT}` as a human-readable summary: `"{FILE_COUNT} files changed, {additions} insertions(+), {deletions} deletions(-)"`.
+
+**Large PR guard:** Check `{TOTAL_LINES}`. If > 3000, warn the user: "This PR is very large ({TOTAL_LINES} lines). Injecting the full diff may exceed the reviewer's context window and reduce review quality. Proceed anyway, or review a smaller scope locally?" — use AskUserQuestion with "Proceed" / "Switch to local mode". If proceeding, continue to fetch the diff; reviewers may miss changes in the tail.
+
+**Fetch diff:** Run `gh pr diff {PR_NUMBER}`. Capture as `{PR_DIFF}`.
+
+If the diff is empty, inform the user ("PR has no changes") and stop.
+
+**PR state edge cases:** `gh pr view` works on closed, merged, and draft PRs without error. If `{PR_STATE}` is `CLOSED` or `MERGED`, show a warning: "This PR is {PR_STATE} — reviewing a closed/merged PR. Continue?" via AskUserQuestion. If the PR is from a fork (the `headRepository` owner differs from `baseRepository` owner in the JSON), `gh pr diff` still works correctly — no special handling needed, but note it in the review header for context.
+
+Set `{BASE_SHA}` = `PR_BASE` (sentinel), `{HEAD_SHA}` = `PR_HEAD` (sentinel). These sentinels trigger the PR_OVERRIDE in the dispatch step.
+
+**PR_OVERRIDE** (include in every dispatch prompt when BASE_SHA is `PR_BASE`):
+`"NOTE: This is a GitHub PR review. BASE_SHA and HEAD_SHA are sentinels — do NOT run git diff. The PR diff and stat are provided below. Use these instead of running any git diff commands.\n\n## PR Diff Stat\n{PR_STAT}\n\n## PR Diff\n{PR_DIFF}"`
+
+## Step 4: Ask Requirements Source
 
 Use AskUserQuestion to ask what to check against.
 
@@ -71,7 +111,7 @@ Use AskUserQuestion to ask what to check against.
 | Describe inline | Ask user to type/paste requirements |
 | Skip | Use: "General review: check for correctness, security, and code quality. No specific requirements — focus on bugs, missing error handling, and security issues." |
 
-## Step 4: Dispatch Review(s)
+## Step 5: Dispatch Review(s)
 
 ### Single Review (N=1)
 
@@ -88,6 +128,7 @@ Task:
     - PLAN_OR_REQUIREMENTS: {resolved_requirements}
 
     {UNCOMMITTED_OVERRIDE if HEAD_SHA == WORKING_TREE}
+    {PR_OVERRIDE if BASE_SHA == PR_BASE}
 ```
 
 If the reviewer task fails or times out, inform the user and offer to re-dispatch.
@@ -120,6 +161,7 @@ Task (for each i from 1 to N):
     - PLAN_OR_REQUIREMENTS: {resolved_requirements}
 
     {UNCOMMITTED_OVERRIDE if HEAD_SHA == WORKING_TREE}
+    {PR_OVERRIDE if BASE_SHA == PR_BASE}
 
     ## Report Persistence (MANDATORY)
 
@@ -146,7 +188,7 @@ Task (for each i from 1 to N):
 
 **Collect reports:** For each reviewer (i from 1 to N), Read `temp/cr-review-{i}-{RUN_TS}.md`. If the file exists and is non-empty, use its content as that reviewer's report. If missing or empty (reviewer failed to persist), fall back to the TaskOutput content. If neither source has the report, mark that reviewer as failed.
 
-**Handle failures:** If any reviewer task fails or times out, exclude it from aggregation. If exactly 1 reviewer succeeded, present that reviewer's report and offer to dispatch a replacement reviewer. If the user accepts, dispatch one replacement (same SHAs, requirements, and UNCOMMITTED_OVERRIDE; use identity "Reviewer 2 of 2"); when it completes, aggregate the two reports as if N=2. If the user declines, done. If 0 reviewers succeeded, warn the user and offer to re-run with the same N.
+**Handle failures:** If any reviewer task fails or times out, exclude it from aggregation. If exactly 1 reviewer succeeded, present that reviewer's report and offer to dispatch a replacement reviewer. If the user accepts, dispatch one replacement (same SHAs, requirements, UNCOMMITTED_OVERRIDE if applicable, and PR_OVERRIDE if applicable; use identity "Reviewer 2 of 2"); when it completes, aggregate the two reports as if N=2. If the user declines, done. If 0 reviewers succeeded, warn the user and offer to re-run with the same N.
 
 **Always aggregate when 2+ reviewers succeeded** — do NOT use a fast path that drops reports. The purpose of multi-review is union of findings across all reviewers. Even when all reviewers approve, their reports may contain different Minor findings, Suggestions, or "Not Checked" items. Aggregation is cheap (Haiku model) and preserves the full recall benefit.
 
@@ -195,18 +237,18 @@ Task:
        the structured VERDICT block. It does not apply to ad-hoc reviews.
     4. Use the reviewer reports provided inline above (not bd comments).
     5. Your final output MUST be the human-readable aggregated report ONLY:
-       Strengths, Issues by severity, Assessment. No machine-readable
-       verdict block, no REPORT_PERSISTED line.
+       Strengths, Issues by severity, Uncovered Paths, Not Checked, Assessment.
+       No machine-readable verdict block, no REPORT_PERSISTED line.
 
     Follow the aggregation RULES from the loaded methodology (deduplication,
-    severity voting, output format for Strengths/Issues/Assessment sections).
+    severity voting, Uncovered Paths/Not Checked union, output format).
 ```
 
 If the aggregator task fails, present each reviewer's raw report individually (labeled Reviewer 1, Reviewer 2, etc.) and inform the user that aggregation failed.
 
 Present the aggregated report to the user. Done.
 
-## Step 5: Present Results
+## Step 6: Present Results
 
 Show the final review report (single or aggregated). No automatic follow-up actions — the user decides what to do with the findings.
 
