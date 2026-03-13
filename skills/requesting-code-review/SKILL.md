@@ -9,7 +9,7 @@ Dispatch superpowers-bd:code-reviewer subagent to catch issues before they casca
 
 ## Quick Access
 
-For ad-hoc review outside SDD: `/superpowers-bd:cr` (single) or `/superpowers-bd:cr N` (N independent reviewers, aggregated, max 10).
+For ad-hoc review outside SDD: /superpowers-bd:cr — interactive flow supporting local changes and GitHub PRs. Supports single or multi-reviewer (N independent reviewers, aggregated, max 10).
 
 ## When to Request Review
 

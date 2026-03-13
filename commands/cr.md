@@ -1,5 +1,5 @@
 ---
-description: "Ad-hoc code review: /cr for single review, /cr N for N independent reviewers with aggregation (max 10)"
+description: "Code review: /cr for interactive review (local or GitHub PR), /cr N for N independent reviewers with aggregation (max 10)"
 ---
 
 # /cr Command
