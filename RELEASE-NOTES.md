@@ -1,5 +1,59 @@
 # Superpowers Release Notes
 
+## v5.5.0 (2026-03-13) - Beads Fork
+
+### Code Review: Always Aggregate, Repo Rules, Stale Reference Checks
+
+Three improvements to the code review pipeline: removes the fast-path shortcut from multi-review aggregation, adds repo policy rule loading and stale reference detection to the reviewer methodology, and simplifies the PR review flow.
+
+**Problem 1 — Fast path lost findings:** When all N reviewers unanimously approved, aggregation was skipped. But unanimous approval doesn't mean identical findings — reviewers may report different Minor issues, Suggestions, or Not Checked areas. Skipping aggregation lost the union of observations.
+
+**Problem 2 — Reviewer blind spots:** Code reviewers had no mechanism to discover project-specific rules (`.claude/rules/*.md`), couldn't detect stale imports referencing deleted files, and could leave Critical/Important findings without actionable fix guidance.
+
+**Solution:**
+
+1. **Always Aggregate** — Removed fast-path skip. When N>1 reviewers succeed, aggregation always runs to preserve the union of all findings, uncovered paths, and not-checked areas. Added explicit Uncovered Paths and Not Checked sections to aggregated output format.
+2. **Repo Policy Rules** — Reviewer step 4 now globs for `.claude/rules/*.md` and loads them as additional review inputs. Violated rules are treated the same as violated requirements in the precision gate. Rules Consulted section added to output.
+3. **Stale Reference Checks** — New step 7 greps the codebase for imports/references to deleted files from the diff. Remaining references flagged as findings (typically Important severity).
+4. **Mandatory Fixes** — Critical and Important findings must now include a concrete fix (code snippet, patch shape, or precise implementation direction).
+5. **PR Review Flow** — Simplified and tightened the `/cr` command's PR review instructions.
+
+**Files Modified (19):**
+- `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` — version bump to 5.5.0
+- `commands/cr.md` — simplified PR review flow instructions
+- `skills/multi-review-aggregation/SKILL.md` — removed fast-path section, added Uncovered Paths/Not Checked to output
+- `skills/multi-review-aggregation/aggregator-prompt.md` — added Uncovered Paths/Not Checked aggregation rules and output sections
+- `skills/multi-review-aggregation/references/dispatch-code.md` — removed fast-path code path
+- `skills/multi-review-aggregation/references/metrics-and-cost.md` — updated cost estimates (aggregation always runs)
+- `skills/requesting-code-review/code-reviewer.md` — added steps 4 (repo rules), 7 (stale refs), mandatory fixes, Rules Consulted output section
+- `skills/subagent-driven-development/background-execution.md` — removed fast-path comment in pipeline diagram and dispatch code
+- `skills/subagent-driven-development/example-workflow.md` — updated example to show aggregation instead of fast-path skip
+- `skills/subagent-driven-development/metrics-tracking.md` — updated aggregation comment
+
+### Beads: Replace Deprecated `bd sync` with Dolt Commands
+
+Updates all beads documentation and adds a SessionEnd hook, reflecting the `bd sync` deprecation in beads v0.58.0.
+
+**Problem:** The beads skill, reference files, CLAUDE.md, and AGENTS.md all referenced `bd sync` — a command that was deprecated and made a no-op in beads v0.58.0. The session end protocol instructed Claude to run a command that did nothing. Additionally, there was no automatic persistence on session exit.
+
+**Solution:**
+
+1. **SessionEnd Hook** — New `hooks/session-end.sh` runs `bd dolt commit` on session exit as a safety net for non-default auto-commit configs (`batch`/`off`). With the default `dolt.auto-commit: on`, every write command already auto-commits via `PersistentPostRun` — the hook is redundant but harmless. Requires Claude Code >= 2.1.74 (earlier versions killed SessionEnd hooks after 1.5s).
+2. **Beads Skill Rewrite** — Removed all `bd sync` references from TL;DR, session end protocol, and reference descriptions. Session end protocol simplified from 6 steps to 5 (no manual sync needed). Reference files rewritten to document Dolt persistence commands, auto-commit configuration, and backup/export.
+3. **Minimum Claude Code Version** — Added `Minimum Claude Code: 2.1.73` to CLAUDE.md and AGENTS.md. Before 2.1.73, subagents with `model: opus`/`sonnet`/`haiku` were silently downgraded, making SDD's complexity-based model selection matrix a no-op.
+
+**Files Modified (8):**
+- `CLAUDE.md` — added minimum version, replaced `bd sync`, added session-end.sh to directory listing and hooks description
+- `AGENTS.md` — updated version to 5.4.0, added minimum version, replaced `bd sync`, added session-end.sh to hooks description
+- `hooks/hooks.json` — added SessionEnd hook entry
+- `hooks/session-end.sh` — new file (26 lines), defensive `bd dolt commit` with bd/beads existence checks
+- `skills/beads/SKILL.md` — removed `bd sync` from TL;DR and session end protocol, updated reference descriptions
+- `skills/beads/references/sync-workflow.md` — complete rewrite: Dolt commands, auto-commit config, backup/export, deprecation note
+- `skills/beads/references/session-end-details.md` — complete rewrite: auto-commit handles persistence, manual commands for non-default config
+- `skills/beads/references/workflow-patterns.md` — replaced `bd sync` with auto-commit note
+
+---
+
 ## v5.4.0 (2026-03-12) - Beads Fork
 
 ### Feature: Claude Code Capability Adoption (2.1.47–2.1.72)
