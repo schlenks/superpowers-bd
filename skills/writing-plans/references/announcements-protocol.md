@@ -6,7 +6,7 @@ Announce each verification phase explicitly. This creates a visible audit trail.
 
 Check your model ID in the system prompt for `[1m]` suffix (e.g., `claude-opus-4-6[1m]`).
 
-### If `[1m]` is in model ID — skip compact, proceed directly
+### `[1m]` present (default) — skip compact, proceed directly
 
 ```
 Plan written to docs/plans/2026-02-12-user-auth.md. Proceeding to verification.
@@ -14,7 +14,7 @@ Plan written to docs/plans/2026-02-12-user-auth.md. Proceeding to verification.
 
 Continue immediately to task 2 dispatching verification sub-agents.
 
-### Otherwise (default) — compact and pause
+### No `[1m]` (200k) — compact and pause
 
 Show a copy-pasteable `/compact` command with the **actual plan file path** (not a placeholder):
 

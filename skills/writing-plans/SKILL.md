@@ -18,8 +18,8 @@ Create these 7 native tasks at plan start (each blocked by previous via addBlock
 
 1. **Write draft plan** -- Initial structure with all tasks, dependencies, file lists
    - **After saving plan — context check:** Look at your model ID in the system prompt (e.g., `claude-opus-4-6[1m]`).
-     - **If `[1m]` is present:** Skip compact. Announce "Plan written to {path}. Proceeding to verification." and continue directly to task 2.
-     - **Otherwise (default):** Show copy-pasteable `/compact` command (see `references/announcements-protocol.md`) and wait for user's follow-up message before proceeding to task 2.
+     - **`[1m]` present (default):** Skip compact. Announce "Plan written to {path}. Proceeding to verification." and continue to task 2.
+     - **No `[1m]` (200k):** Show copy-pasteable `/compact` command (see `references/announcements-protocol.md`) and wait for user's follow-up before proceeding to task 2.
 2. **Plan Verification Checklist** -- Complete/Accurate/Commands valid/YAGNI/Minimal/Not over-engineered
 3. **Rule-of-five-plans: Draft pass** -- Shape and structure
 4. **Rule-of-five-plans: Feasibility pass** -- Can every step be executed? Deps available? Paths valid?
