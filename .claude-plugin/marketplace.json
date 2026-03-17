@@ -1,6 +1,8 @@
 {
   "name": "superpowers-bd-marketplace",
-  "description": "Marketplace for Superpowers-BD: beads-integrated fork with wave orchestration and epic verification",
+  "metadata": {
+    "description": "Beads-integrated fork of Superpowers: TDD, debugging, collaboration patterns with git-backed issue tracking and wave-based parallel execution"
+  },
   "owner": {
     "name": "Doug Schlenker",
     "email": "dougschlenker@gmail.com"
