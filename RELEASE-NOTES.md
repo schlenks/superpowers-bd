@@ -1,5 +1,27 @@
 # Superpowers Release Notes
 
+## v5.5.4 (2026-03-19) - Beads Fork
+
+Three small fixes improving review quality, plan execution flow, and plugin compatibility.
+
+### Review Agents: effort: high for Deeper Reasoning
+
+Added `effort: high` frontmatter to code-reviewer and epic-verifier agents. Review agents have no feedback loops — reasoning depth IS quality. Implementation agents intentionally left at default (feedback loops exist via TDD cycles).
+
+**Files Modified (2):** `agents/code-reviewer.md`, `agents/epic-verifier.md`
+
+### plan2beads: Auto-Execute Epic on 1M Context
+
+The plan2beads command previously told the user to run `/clear` then "execute epic" after converting a plan. On 1M context there's no need to clear — the command now proceeds directly to epic execution, removing a manual intervention step.
+
+**Files Modified (1):** `commands/plan2beads.md`
+
+### Plugin: Fix marketplace.json Schema for claude plugin validate
+
+Claude Code 2.1.77 added `claude plugin validate` with strict schema checks. Our `marketplace.json` had a root-level `description` key that should have been under `metadata.description`. Fixed to pass validation.
+
+**Files Modified (1):** `.claude-plugin/marketplace.json`
+
 ## v5.5.1 (2026-03-13) - Beads Fork
 
 ### Writing Plans: Context-Aware Pauses for 1M Context
