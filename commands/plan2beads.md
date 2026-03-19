@@ -138,8 +138,8 @@ Create: `bd create --silent --parent hub-abc "Epic Verification" --body-file tem
 ### Step 4: Verify Dependencies
 Run `bd ready`, `bd blocked`, `bd graph hub-abc`. Verify: independent tasks in ready, dependent tasks in blocked, graph shows expected flow.
 
-### Step 5: Display Results
-Show: epic ID/title, N implementation + 1 verification task, ready/blocked lists. End with: `Next: /clear then execute epic hub-abc`
+### Step 5: Display Results and Execute
+Show: epic ID/title, N implementation + 1 verification task, ready/blocked lists. Then immediately proceed to execute the epic by invoking `superpowers-bd:subagent-driven-development` with the epic ID — do NOT stop and tell the user to run it manually.
 
 ## bd CLI Quick Reference
 `--silent`: ID only. `--type epic`: epic. `--parent <id>`: child. `--body-file <path>`: multi-line desc. `-d "text"`: single-line desc. `-l "label"`: labels. `-p N`: priority 0-4. `-e N`: estimate mins. `--deps "id1,id2"`: deps (affects `bd ready`). `--acceptance "text"`: criteria (semicolons, never `\n`). `--external-ref "ref"`: external link. `--defer "date"`: hide until date. `--claim`: assign+in_progress. `--suggest-next`: show unblocked after close.
