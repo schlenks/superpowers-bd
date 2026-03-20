@@ -210,18 +210,20 @@ Task (for each i from 1 to N):
 
     ## Report Persistence (MANDATORY)
 
-    Background task outputs are truncated by the platform. You MUST persist
-    your final structured report to a file as your LAST action before your
-    final message.
+    Background task outputs may be truncated. You MUST persist your final
+    structured report to a file as your LAST action before your final message.
 
-    After completing your review and composing your structured report, write
-    it to this exact path using Bash. The heredoc delimiter MUST start at
-    column 0 (no leading spaces):
-
+    First, ensure the temp directory exists:
     ```
-    cat <<'REPORT_EOF' > temp/cr-review-{i}-{RUN_TS}.md
+    mkdir -p temp
+    ```
+
+    Then write your report using tee with a heredoc (the delimiter MUST
+    start at column 0 with no leading spaces):
+    ```
+    tee temp/cr-review-{i}-{RUN_TS}.md <<'CR_REPORT_EOF'
     [your complete structured report]
-    REPORT_EOF
+    CR_REPORT_EOF
     ```
 
     Then output the same report as your final message (normal behavior).
