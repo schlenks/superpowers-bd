@@ -1,6 +1,7 @@
 ---
 name: subagent-driven-development
 description: Use when user says "execute epic [id]" or when executing beads epics with parallel subagents in the current session
+effort: high
 ---
 
 # Subagent-Driven Development

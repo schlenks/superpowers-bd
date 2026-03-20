@@ -1,6 +1,7 @@
 ---
 name: rule-of-five-code
 description: Use when writing 50+ lines of code, implementing features, refactoring, or before claiming code work complete - apply 5 focused passes (Draft, Correctness, Clarity, Edge Cases, Excellence) to catch issues single-shot generation misses
+effort: high
 ---
 
 # Rule of Five — Code

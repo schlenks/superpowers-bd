@@ -1,6 +1,7 @@
 ---
 name: multi-review-aggregation
 description: Use when dispatching code reviews for tiers with N greater than 1 (max-20x, max-5x) in subagent-driven development, or manually for critical changes over 200 lines or security-sensitive code
+effort: high
 ---
 
 # Multi-Review Aggregation

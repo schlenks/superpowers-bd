@@ -1,6 +1,7 @@
 ---
 name: rule-of-five-plans
 description: Use when writing 50+ lines of plans, design docs, skill documents, or process documentation - apply 5 focused passes (Draft, Feasibility, Completeness, Risk, Optimality) to catch issues single-shot generation misses
+effort: high
 ---
 
 # Rule of Five — Plans

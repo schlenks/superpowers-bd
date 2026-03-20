@@ -1,5 +1,6 @@
 ---
 description: "Code review: /cr for interactive review (local or GitHub PR), /cr N for N independent reviewers with aggregation (max 10)"
+effort: high
 ---
 
 # /cr Command

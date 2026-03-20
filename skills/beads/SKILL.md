@@ -1,6 +1,7 @@
 ---
 name: beads
 description: Use when working with the beads (bd) CLI for issue tracking, managing epics and tasks, handling dependencies, or starting/ending coding sessions with persistent work tracking
+effort: medium
 ---
 
 # Beads (bd) Usage Rules

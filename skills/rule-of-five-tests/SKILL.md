@@ -1,6 +1,7 @@
 ---
 name: rule-of-five-tests
 description: Use when writing 50+ lines of test code, adding test suites, or before claiming test work complete - apply 5 focused passes (Draft, Coverage, Independence, Speed, Maintainability) to catch issues single-shot generation misses
+effort: high
 ---
 
 # Rule of Five — Tests

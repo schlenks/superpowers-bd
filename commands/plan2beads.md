@@ -1,5 +1,6 @@
 ---
 description: "Import a Superpowers plan (Markdown) or Shortcut story into Beads as an epic with dependency-aware child tasks"
+effort: medium
 ---
 
 # plan2beads
