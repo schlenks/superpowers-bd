@@ -10,7 +10,7 @@ Write comprehensive implementation plans assuming zero codebase context. Documen
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 **Context:** Run in a dedicated worktree (created by brainstorming skill).
-**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
+**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md` using the Write tool. NEVER write to `~/.claude/plans/` — ignore the plan mode default path.
 **REQUIRED:** Before ExitPlanMode, run Plan Verification Checklist, then rule-of-five-plans. Verify *what* before polishing *how* -- scope errors caught early save wasted polish on deleted tasks.
 
 ## Mandatory Tasks (Enforcement)
