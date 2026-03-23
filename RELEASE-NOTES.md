@@ -1,5 +1,24 @@
 # Superpowers Release Notes
 
+## v5.5.7 (2026-03-23) - Beads Fork
+
+Added git bisect as a regression-hunting technique in systematic-debugging Phase 1.
+
+### Git Bisect Reference for Systematic Debugging
+
+New reference file (`skills/systematic-debugging/references/git-bisect.md`) adds automated regression pinpointing via `git bisect run` to Phase 1's "Check Recent Changes" step. Designed for multi-developer repos where pulling main introduces regressions across many commits.
+
+**When it triggers:** Bug is a regression + >10 commits to search + reproducible with a script. All three conditions must hold — otherwise normal diff reading is faster.
+
+**Key features:**
+- Step-by-step procedure respecting Bash safety rules (separate tool calls, no chaining)
+- Test script pattern with exit code conventions (0 = good, 125 = skip build failures, 1 = bad)
+- Monorepo pathspec filtering (`-- packages/api/`) to limit bisect to affected packages
+- Safety table: stash handling, `/tmp/` script storage, crash recovery, timeout guidance
+- Edge cases: merge commits (`--first-parent`), flaky tests, multiple good commits
+
+**Files Modified (3):** `skills/systematic-debugging/references/git-bisect.md` (new), `skills/systematic-debugging/references/phase-1-investigation.md`, `skills/systematic-debugging/SKILL.md`
+
 ## v5.5.5 (2026-03-20) - Beads Fork
 
 Two changes: deterministic effort levels for all skills/commands, and a fix for multi-reviewer report persistence.

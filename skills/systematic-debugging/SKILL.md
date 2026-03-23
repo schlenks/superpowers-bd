@@ -90,6 +90,7 @@ If you catch yourself thinking:
 - `references/phase-4-implementation.md`: Detailed Phase 4 steps
 - `references/rationalizations.md`: Common excuses and user signals
 - `references/real-world-impact.md`: Systematic vs random debugging statistics
+- `references/git-bisect.md`: Git bisect for regression pinpointing in multi-developer repos
 - `references/root-cause-tracing.md`: Backward tracing for deep call stacks
 - `references/defense-in-depth.md`: Multi-layer validation after root cause
 - `references/condition-based-waiting.md`: Condition polling to replace timeouts

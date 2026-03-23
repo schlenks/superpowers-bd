@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.5.7] - 2026-03-23
+
+### Added
+
+- Git bisect reference for systematic-debugging Phase 1 — regression pinpointing in multi-developer repos (`references/git-bisect.md`)
+
 ## [5.5.6] - 2026-03-21
 
 ### Changed
@@ -462,7 +468,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Personal superpowers overlay system — replaced with git branch workflow
 - `setup-personal-superpowers` hook — replaced by `initialize-skills.sh`
 
-[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.5.6...HEAD
+[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.5.7...HEAD
+[5.5.7]: https://github.com/schlenks/superpowers-bd/compare/v5.5.6...v5.5.7
 [5.5.6]: https://github.com/schlenks/superpowers-bd/compare/v5.5.5...v5.5.6
 [5.5.5]: https://github.com/schlenks/superpowers-bd/compare/v5.5.4...v5.5.5
 [5.5.4]: https://github.com/schlenks/superpowers-bd/compare/v5.5.1...v5.5.4

@@ -20,6 +20,8 @@
    - New dependencies, config changes
    - Environmental differences
 
+   **Regression with many commits?** If (1) this is a regression, (2) >10 commits to search, and (3) you have a reproduction command from Step 2 → use `git bisect` to pinpoint the exact offending commit. See `references/git-bisect.md`.
+
 4. **Gather Evidence in Multi-Component Systems**
 
    **WHEN system has multiple components (CI → build → signing, API → service → database):**
