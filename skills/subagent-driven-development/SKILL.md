@@ -147,7 +147,7 @@ If out of range, warn and clamp. Stored in checkpoint for recovery.
 ```
 LOADING: bd ready -> filter to epic -> check file conflicts -> cap at {wave_cap}
 DISPATCH: serialize wave file map -> bd update --status=in_progress -> dispatch async
-MONITOR: poll TaskOutput(block=False, timeout=5000) -> route completions
+MONITOR: await background agent completion notifications -> Read output file -> route completions
 REVIEW: spec review -> code review (N if tier allows) -> gap closure (max 3 attempts)
 CLOSE: extract evidence -> bd close --reason -> simplify (if 2+ tasks) -> wave summary
 -> loop back to LOADING until all closed -> COMPLETE

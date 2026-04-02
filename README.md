@@ -92,7 +92,7 @@ INIT → LOADING → DISPATCH → MONITOR → REVIEW → CLOSE → COMPLETE
 
 **Background Execution** - `run_in_background: true` enables true parallelism:
 - Dispatch multiple implementations simultaneously
-- Poll with TaskOutput for completion
+- Await completion notifications, Read output files for verdicts
 - Immediately dispatch reviews as implementations finish
 
 **Budget Tier Selection** - Model matrix based on subscription:

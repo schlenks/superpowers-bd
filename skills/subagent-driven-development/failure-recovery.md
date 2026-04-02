@@ -3,7 +3,7 @@
 ## Subagent Timeout/Crash
 
 ```
-if TaskOutput(task_id, block=False) shows no progress:
+if background agent shows no completion notification after extended time:
     check git status for partial commits
 
     if partial_work_committed:
@@ -131,7 +131,7 @@ if (bd_ready filtered to epic_children) is empty AND open_issues > 0:
 
 ```
 if reviewer_task_fails:
-    check TaskOutput for error details
+    Read the agent's output file for error details
     dispatch fresh reviewer (same prompt, same task)
 
     if fails_again:

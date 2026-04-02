@@ -231,9 +231,9 @@ Task (for each i from 1 to N):
     backup that may be truncated.
 ```
 
-**Wait for all N to complete.** Poll background tasks until all finish.
+**Wait for all N to complete.** Await completion notifications for all background agents.
 
-**Collect reports:** For each reviewer (i from 1 to N), Read `temp/cr-review-{i}-{RUN_TS}.md`. If the file exists and is non-empty, use its content as that reviewer's report. If missing or empty (reviewer failed to persist), fall back to the TaskOutput content. If neither source has the report, mark that reviewer as failed.
+**Collect reports:** For each reviewer (i from 1 to N), Read `temp/cr-review-{i}-{RUN_TS}.md`. If the file exists and is non-empty, use its content as that reviewer's report. If missing or empty (reviewer failed to persist), fall back to Reading the background agent's output file. If neither source has the report, mark that reviewer as failed.
 
 **Handle failures:** Exclude failed/timed-out reviewers from aggregation.
 
@@ -245,7 +245,7 @@ Task (for each i from 1 to N):
 
 **Dispatch aggregator:**
 
-Before dispatching, construct `combined_output` by joining the collected reports (from `temp/cr-review-{i}-{RUN_TS}.md` files, or TaskOutput fallback):
+Before dispatching, construct `combined_output` by joining the collected reports (from `temp/cr-review-{i}-{RUN_TS}.md` files, or agent output file fallback):
 
 ```
 ## Reviewer 1 Output

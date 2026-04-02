@@ -1,5 +1,11 @@
 # Superpowers Release Notes
 
+## v5.5.8 (2026-03-30) - Beads Fork
+
+Migrated all `TaskOutput` references to `Read` on agent output files. `TaskOutput` was deprecated in Claude Code 2.1.83 — the new pattern awaits background agent completion notifications, then uses `Read` on the agent's output file path.
+
+**Files Modified (5):** `skills/subagent-driven-development/SKILL.md`, `skills/subagent-driven-development/background-execution.md`, `skills/subagent-driven-development/failure-recovery.md`, `commands/cr.md`, `README.md`
+
 ## v5.5.7 (2026-03-23) - Beads Fork
 
 Added git bisect as a regression-hunting technique in systematic-debugging Phase 1.
@@ -1513,7 +1519,7 @@ Shows how to use Claude Code's TaskCreate tool to track orchestrator state:
 
 Documents the `run_in_background: true` pattern for true parallelism:
 - Dispatch multiple implementations simultaneously
-- Poll with TaskOutput for completion
+- Await completion notifications, Read output files for verdicts
 - Immediately dispatch reviews as implementations finish
 - Better throughput than sequential dispatch
 

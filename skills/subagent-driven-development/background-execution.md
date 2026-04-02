@@ -4,7 +4,7 @@
 
 For 2+ tasks per wave (up to the configured wave cap — default 5 for 1M context, 3 for 200k), background execution lets you monitor all tasks simultaneously and start reviews as soon as each completes—without waiting for all implementations to finish.
 
-Use `run_in_background: true` with TaskOutput polling.
+Use `run_in_background: true` — you are automatically notified when each agent completes, then `Read` its output file for the verdict.
 
 ## Dispatch Phase
 
@@ -38,15 +38,16 @@ for issue in parallelizable:
 
 ## Monitor Phase
 
-Sub-agents persist full reports to beads comments. Only structured verdicts flow through TaskOutput.
+Sub-agents persist full reports to beads comments. Only structured verdicts flow through the agent's final output.
+
+Background agents notify automatically on completion — do NOT poll or sleep. When notified, `Read` the agent's output file path to retrieve the verdict.
 
 ```python
-while task_ids:
-    for task_id in list(task_ids):
-        result = TaskOutput(task_id, block=False, timeout=5000)
-        if result.status == "completed":
-            # Parse structured verdict (5-6 lines, not full report)
-            verdict = parse_verdict(result.output)
+# Event-driven: you are notified per-agent as each completes
+on_agent_complete(task_id, output_file_path):
+    result = Read(output_file_path)
+    # Parse structured verdict (5-6 lines, not full report)
+    verdict = parse_verdict(result)
             # Expected fields vary by status:
             # DONE/DONE_WITH_CONCERNS: VERDICT, COMMIT, FILES, TESTS, SCOPE, REPORT_PERSISTED, [CONCERNS]
             # BLOCKED/NEEDS_CONTEXT: VERDICT, BLOCKER, REPORT_PERSISTED
@@ -61,12 +62,11 @@ while task_ids:
             on_implementer_complete(task_id, verdict)
             task_ids.remove(task_id)
 
-    # Also check review completions
-    for review_id in list(pending_reviews):
-        result = TaskOutput(review_id, block=False)
-        if result.status == "completed":
-            # Parse structured verdict (2-3 lines)
-            verdict = parse_verdict(result.output)
+    # Review completions arrive the same way — notification + Read
+    on_review_complete(review_id, output_file_path):
+        result = Read(output_file_path)
+        # Parse structured verdict (2-3 lines)
+        verdict = parse_verdict(result)
 
             # Capture metrics per metrics-tracking.md keying scheme (accumulate on retry, don't overwrite)
 
@@ -93,7 +93,7 @@ def dispatch_full_report_fallback(task_id, issue_id):
                f"If the report is missing, report MISSING. Otherwise return the report."
     )
     # If still missing, orchestrator falls back to old pattern:
-    # re-dispatch the original agent asking for full report via TaskOutput
+    # re-dispatch the original agent asking for full report via Read on output file
 ```
 
 ## Review Pipeline Parallelism

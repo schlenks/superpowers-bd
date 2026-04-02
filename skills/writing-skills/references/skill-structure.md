@@ -76,8 +76,10 @@ Claude Code plugins have three component types:
 |-------|----------|-------------|
 | `name` | yes | Skill name (letters, numbers, hyphens only) |
 | `description` | yes | "Use when..." triggering conditions (≤300 chars recommended) |
+| `effort` | no | `high` or `medium` — overrides model effort when skill is invoked (since 2.1.80) |
+| `paths` | no | YAML list of globs — activates skill only for matching file paths (since 2.1.84) |
 
-Max 1024 characters total frontmatter. **Only** `name` and `description` — no other fields.
+Max 1024 characters total frontmatter.
 
 ### Agents (`agents/*.md`)
 
