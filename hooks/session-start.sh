@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # SessionStart hook for superpowers plugin
+# shellcheck disable=SC1003
 
 set -euo pipefail
 
@@ -74,6 +75,25 @@ if [ -n "$checkpoint_dir" ] && [ -d "$checkpoint_dir" ]; then
 fi
 
 checkpoint_escaped=$(escape_for_json "$checkpoint_message")
+
+# Check codex plugin installed and ready
+codex_available=""
+codex_install_path=""
+plugins_file="${HOME}/.claude/plugins/installed_plugins.json"
+if command -v jq >/dev/null 2>&1 && [ -f "$plugins_file" ]; then
+    codex_install_path=$(jq -r '.plugins["codex@openai-codex"][0].installPath // empty' "$plugins_file" 2>/dev/null)
+    if [ -n "$codex_install_path" ] && [ -d "$codex_install_path" ]; then
+        setup_result=$(timeout 5 node "${codex_install_path}/scripts/codex-companion.mjs" setup --json 2>/dev/null || true)
+        if printf '%s' "$setup_result" | jq -e '.ready == true' >/dev/null 2>&1; then
+            codex_available="1"
+        fi
+    fi
+fi
+
+if [ -n "$codex_available" ] && [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+    printf 'CODEX_REVIEW_AVAILABLE=1\n' >> "$CLAUDE_ENV_FILE"
+    printf 'CODEX_INSTALL_PATH=%s\n' "$codex_install_path" >> "$CLAUDE_ENV_FILE"
+fi
 
 # Output context injection as JSON
 cat <<EOF
