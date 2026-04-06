@@ -48,7 +48,13 @@ TaskCreate: "Pass 5: Maintainability"
 
 **Skip if `CODEX_REVIEW_AVAILABLE` is not `1`.**
 
-When creating pass 1 (Draft) task, also dispatch a background Codex adversarial review:
+**Before dispatching**, resolve the install path (subagents do NOT inherit session env vars):
+
+```bash
+echo "$CODEX_INSTALL_PATH"
+```
+
+Capture the output as `{RESOLVED_CODEX_PATH}`. Then dispatch:
 
 ~~~
 Agent:
@@ -57,16 +63,9 @@ Agent:
   prompt: |
     Run a Codex adversarial review of the current changes.
 
-    Check that `CODEX_REVIEW_AVAILABLE` environment variable equals "1".
-    If not, output "Codex not available" and stop.
-
-    Run the Codex adversarial review by calling the companion script directly via Bash:
     ```bash
-    node "$CODEX_INSTALL_PATH/scripts/codex-companion.mjs" adversarial-review --wait
+    node "{RESOLVED_CODEX_PATH}/scripts/codex-companion.mjs" adversarial-review --wait
     ```
-
-    Note: Slash commands (e.g. `/codex:adversarial-review`) are not available inside
-    subagent prompts. Use the companion script directly with `$CODEX_INSTALL_PATH`.
 
     Persist the full output to a temp file (background agent messages may be truncated):
     ```bash

@@ -307,6 +307,14 @@ If the aggregator task fails, present each reviewer's raw report individually (l
 
 **Skip this step entirely if `CODEX_REVIEW_AVAILABLE` is not set to `1`.**
 
+**IMPORTANT — Resolve paths before dispatching:** Subagents do NOT inherit session env vars set via `CLAUDE_ENV_FILE`. Before constructing the agent prompt, run:
+
+```bash
+echo "$CODEX_INSTALL_PATH"
+```
+
+Capture the output as `{RESOLVED_CODEX_PATH}` (a literal path like `/Users/.../.claude/plugins/cache/openai-codex/codex/1.0.2`). Embed this literal path in the agent prompt below — do NOT use `$CODEX_INSTALL_PATH` inside the agent prompt.
+
 Dispatch one additional background agent for the Codex adversarial review. **This MUST be included in the same parallel dispatch message as the Claude reviewer(s)** — not as a separate sequential step. For N=1, send a single message with both the Task (code-reviewer) and the Agent (Codex) tool calls together. For N>1, include the Agent call in the same message as the N Task calls.
 
 ```
@@ -314,18 +322,12 @@ Agent:
   run_in_background: true
   description: "Codex cross-model review"
   prompt: |
-    You are dispatching a Codex adversarial review as a cross-model second opinion.
+    You are running a Codex adversarial review as a cross-model second opinion.
 
-    Check that `CODEX_REVIEW_AVAILABLE` environment variable equals "1".
-    If not, output "Codex not available" and stop.
-
-    Run the Codex adversarial review with the resolved scope:
+    Run the Codex adversarial review:
     ```bash
-    node "$CODEX_INSTALL_PATH/scripts/codex-companion.mjs" adversarial-review --wait {CODEX_SCOPE_ARGS}
+    node "{RESOLVED_CODEX_PATH}/scripts/codex-companion.mjs" adversarial-review --wait {CODEX_SCOPE_ARGS}
     ```
-
-    Note: Slash commands (e.g. /codex:adversarial-review) are not available inside
-    subagent prompts. Use the companion script directly with $CODEX_INSTALL_PATH.
 
     Capture the full stdout. Write it to temp/cr-codex-review-{RUN_TS}.md
     using tee with a heredoc:
