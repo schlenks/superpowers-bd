@@ -68,14 +68,22 @@ Agent:
     Note: Slash commands (e.g. `/codex:adversarial-review`) are not available inside
     subagent prompts. Use the companion script directly with `$CODEX_INSTALL_PATH`.
 
-    Output the full stdout as your final message.
+    Persist the full output to a temp file (background agent messages may be truncated):
+    ```bash
+    mkdir -p temp
+    tee temp/codex-audit-tests.md <<'CODEX_AUDIT_EOF'
+    [full codex review output]
+    CODEX_AUDIT_EOF
+    ```
+
+    Output the full review as your final message.
 ~~~
 
-This runs concurrently with all 5 passes — zero blocking.
+This runs concurrently with all 5 passes — zero blocking. Codex uses auto-detect scope: reviews uncommitted changes if working tree is dirty, or branch diff against default branch if clean (e.g., after SDD implementer commits).
 
 **After pass 5 completes, wait for the Codex background agent to finish before presenting results.** Do NOT present pass 5 results until the Codex review has either completed or timed out. This is a synchronous gate — the rule-of-five skill does not have a monitor loop or late-delivery mechanism, so all output must be collected before the skill finishes.
 
-- If Codex completed successfully: present as "Cross-Model Audit (Codex)" section after pass 5 results
+- If Codex completed successfully: Read `temp/codex-audit-tests.md` (primary) or fall back to agent output. Present as "Cross-Model Audit (Codex)" section after pass 5 results.
 - If Codex failed or timed out: append `_Codex cross-model audit was unavailable for this run._` after pass 5 results
 
 ```markdown

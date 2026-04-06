@@ -173,7 +173,9 @@ Capture the output as `{RUN_TS}`. All reviewers and the Codex agent in this run 
 | Since last push | `--base {BASE_SHA}` |
 | Branch diff vs main | `--base {BASE_SHA}` |
 | Custom | `--base {BASE_SHA}` |
-| PR mode | `--base {PR_META baseRefName}` |
+| PR mode | `--base {PR_MERGE_BASE}` (see below) |
+
+**PR mode merge-base resolution:** Run `git merge-base origin/{PR_META baseRefName} HEAD`. If it succeeds, use the returned SHA as `{PR_MERGE_BASE}`. If it fails (remote branch not locally available — e.g., reviewing a fork PR without local checkout), skip the Codex review entirely and use the unavailability fallback. This gives Codex the exact merge-base commit rather than a branch name that may be stale or absent.
 
 ### Single Review (N=1)
 
