@@ -44,6 +44,46 @@ TaskCreate: "Pass 5: Optimality"
 - TaskList shows your progress through the passes
 - Skipping passes is visible - blocked tasks can't be marked in_progress
 
+## Cross-Model Review (Codex)
+
+**Skip if `CODEX_REVIEW_AVAILABLE` is not `1`.**
+
+When creating pass 1 (Draft) task, also dispatch a background Codex adversarial review:
+
+~~~
+Agent:
+  run_in_background: true
+  description: "Codex cross-model audit (plan)"
+  prompt: |
+    Run a Codex adversarial review of the current changes.
+
+    Check that `CODEX_REVIEW_AVAILABLE` environment variable equals "1".
+    If not, output "Codex not available" and stop.
+
+    Run the Codex adversarial review by calling the companion script directly via Bash:
+    ```bash
+    node "$CODEX_INSTALL_PATH/scripts/codex-companion.mjs" adversarial-review --wait
+    ```
+
+    Note: Slash commands (e.g. `/codex:adversarial-review`) are not available inside
+    subagent prompts. Use the companion script directly with `$CODEX_INSTALL_PATH`.
+
+    Output the full stdout as your final message.
+~~~
+
+This runs concurrently with all 5 passes — zero blocking.
+
+**After pass 5 completes, wait for the Codex background agent to finish before presenting results.** Do NOT present pass 5 results until the Codex review has either completed or timed out. This is a synchronous gate — the rule-of-five skill does not have a monitor loop or late-delivery mechanism, so all output must be collected before the skill finishes.
+
+- If Codex completed successfully: present as "Cross-Model Audit (Codex)" section after pass 5 results
+- If Codex failed or timed out: append `_Codex cross-model audit was unavailable for this run._` after pass 5 results
+
+```markdown
+## Cross-Model Audit (Codex)
+
+[Full Codex adversarial review output — verdict, findings, recommendations]
+```
+
 For each pass: re-read the full artifact, evaluate through that lens only, make changes, then mark task complete.
 
 ## Detection Triggers
