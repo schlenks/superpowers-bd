@@ -48,9 +48,7 @@ TaskCreate: "Pass 5: Maintainability"
 
 **Check availability:** Look for `<codex-integration>` in the session context (injected by session-start hook). If absent, **skip this section entirely.**
 
-If present, extract the install path from the tag. This is `{RESOLVED_CODEX_PATH}` — embed it literally in the agent prompt below. No Bash commands needed.
-
-Capture the output as `{RESOLVED_CODEX_PATH}`. Then dispatch:
+If present, extract the install path from the tag. Use this as `{RESOLVED_CODEX_PATH}` — embed it literally in the agent prompt below. No Bash commands needed. Then dispatch:
 
 ~~~
 Agent:

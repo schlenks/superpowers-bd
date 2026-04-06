@@ -98,7 +98,8 @@ fi
 
 if [ -n "$codex_available" ] && [ -n "${CLAUDE_ENV_FILE:-}" ]; then
     printf 'CODEX_REVIEW_AVAILABLE=1\n' >> "$CLAUDE_ENV_FILE"
-    printf 'CODEX_INSTALL_PATH="%s"\n' "$codex_install_path" >> "$CLAUDE_ENV_FILE"
+    safe_codex_path=$(printf '%s' "$codex_install_path" | tr -d '"')
+    printf 'CODEX_INSTALL_PATH="%s"\n' "$safe_codex_path" >> "$CLAUDE_ENV_FILE"
 fi
 
 # Build codex context note for session injection (no Bash needed to read this)

@@ -330,9 +330,7 @@ If the aggregator task fails, present each reviewer's raw report individually (l
 
 **Check availability:** Look for `<codex-integration>` in the session context (injected by session-start hook). If absent, **skip Step 6b entirely** — Codex is not available.
 
-If present, extract the install path from the tag (e.g., `Install path: /Users/.../.claude/plugins/cache/openai-codex/codex/1.0.2`). This is `{RESOLVED_CODEX_PATH}` — embed it literally in the agent prompt below. No Bash commands needed to detect or resolve.
-
-Capture the output as `{RESOLVED_CODEX_PATH}` (a literal path like `/Users/.../.claude/plugins/cache/openai-codex/codex/1.0.2`). Embed this literal path in the agent prompt below — do NOT use `$CODEX_INSTALL_PATH` inside the agent prompt.
+If present, extract the install path from the tag (e.g., `Install path: /Users/.../.claude/plugins/cache/openai-codex/codex/1.0.2`). Use this as `{RESOLVED_CODEX_PATH}` — embed it literally in the agent prompt below. No Bash commands needed.
 
 Dispatch one additional background agent for the Codex adversarial review. **This MUST be included in the same parallel dispatch message as the Claude reviewer(s)** — not as a separate sequential step. For N=1, send a single message with both the Task (code-reviewer) and the Agent (Codex) tool calls together. For N>1, include the Agent call in the same message as the N Task calls.
 
@@ -368,7 +366,7 @@ Agent:
 
 ### Claude Results
 
-For N=1: present the reviewer's structured report. If the reviewer task failed or timed out, inform the user and offer to re-dispatch.
+For N=1: Read `temp/cr-review-1-{RUN_TS}.md` (primary, persisted by the reviewer). If missing, fall back to the background agent's output. If the reviewer task failed or timed out, inform the user and offer to re-dispatch.
 
 For N>1: present the aggregated report (or per-reviewer fallback if aggregation failed).
 
