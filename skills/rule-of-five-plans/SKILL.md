@@ -46,17 +46,9 @@ TaskCreate: "Pass 5: Optimality"
 
 ## Cross-Model Review (Codex)
 
-**Check availability** (use `printenv` to avoid shell expansion permission prompts):
+**Check availability:** Look for `<codex-integration>` in the session context (injected by session-start hook). If absent, **skip this section entirely.**
 
-```bash
-printenv CODEX_REVIEW_AVAILABLE
-```
-
-If empty or fails, **skip this section entirely.** If `1`, resolve the path:
-
-```bash
-printenv CODEX_INSTALL_PATH
-```
+If present, extract the install path from the tag. This is `{RESOLVED_CODEX_PATH}` — embed it literally in the agent prompt below. No Bash commands needed.
 
 Capture the output as `{RESOLVED_CODEX_PATH}`. Then dispatch:
 

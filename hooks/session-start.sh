@@ -99,12 +99,19 @@ if [ -n "$codex_available" ] && [ -n "${CLAUDE_ENV_FILE:-}" ]; then
     printf 'CODEX_INSTALL_PATH="%s"\n' "$codex_install_path" >> "$CLAUDE_ENV_FILE"
 fi
 
+# Build codex context note for session injection (no Bash needed to read this)
+codex_context=""
+if [ -n "$codex_available" ]; then
+    codex_context="<codex-integration>Codex plugin detected and ready. Install path: ${codex_install_path}\nWhen skills or commands reference CODEX_REVIEW_AVAILABLE, it is set to 1.\nUse the install path above directly in agent prompts — do NOT run Bash to resolve it.</codex-integration>"
+fi
+codex_context_escaped=$(escape_for_json "$codex_context")
+
 # Output context injection as JSON
 cat <<EOF
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "<EXTREMELY_IMPORTANT>\nYou have superpowers.\n\n**Below is the full content of your 'superpowers:using-superpowers' skill - your introduction to using skills. For all other skills, use the 'Skill' tool:**\n\n${using_superpowers_escaped}\n\n${warning_escaped}${checkpoint_escaped}\n</EXTREMELY_IMPORTANT>"
+    "additionalContext": "<EXTREMELY_IMPORTANT>\nYou have superpowers.\n\n**Below is the full content of your 'superpowers:using-superpowers' skill - your introduction to using skills. For all other skills, use the 'Skill' tool:**\n\n${using_superpowers_escaped}\n\n${warning_escaped}${checkpoint_escaped}${codex_context_escaped}\n</EXTREMELY_IMPORTANT>"
   }
 }
 EOF
