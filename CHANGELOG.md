@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.6.0] - 2026-04-06
+
+### Added
+
+- Codex cross-model review integration — OpenAI's Codex plugin as a structurally distinct "second opinion" reviewer
+- Session-start codex detection (`hooks/session-start.sh`) — sets `CODEX_REVIEW_AVAILABLE` and `CODEX_INSTALL_PATH` env vars with timeout guard and graceful degradation
+- `/cr` parallel Codex adversarial review dispatch with scope mapping for all 6 review modes (uncommitted, last commit, since push, branch diff, custom, PR)
+- Rule-of-five parallel Codex review for all 3 variants (code, plans, tests) — dispatches at pass 1, waits synchronously after pass 5
+- Unified Step 7 in `/cr` — waits for ALL reviews (Claude + Codex) before presenting, fixing N=1 early exit
+
 ## [5.5.8] - 2026-03-30
 
 ### Changed
@@ -474,7 +484,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Personal superpowers overlay system — replaced with git branch workflow
 - `setup-personal-superpowers` hook — replaced by `initialize-skills.sh`
 
-[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.5.8...HEAD
+[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.6.0...HEAD
+[5.6.0]: https://github.com/schlenks/superpowers-bd/compare/v5.5.8...v5.6.0
 [5.5.8]: https://github.com/schlenks/superpowers-bd/compare/v5.5.7...v5.5.8
 [5.5.7]: https://github.com/schlenks/superpowers-bd/compare/v5.5.6...v5.5.7
 [5.5.6]: https://github.com/schlenks/superpowers-bd/compare/v5.5.5...v5.5.6

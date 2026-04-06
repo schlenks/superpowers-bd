@@ -1,5 +1,27 @@
 # Superpowers Release Notes
 
+## v5.6.0 (2026-04-06) - Beads Fork
+
+Integrates OpenAI's Codex plugin as a cross-model "second opinion" reviewer across `/cr`, rule-of-five-code, rule-of-five-plans, and rule-of-five-tests. When the codex plugin is installed, each review surface automatically dispatches a parallel Codex adversarial review alongside existing Claude reviewers. Codex output is presented in a distinct section, preserving its native structured format. All integration points degrade gracefully when codex is absent.
+
+### Codex Cross-Model Review
+
+Session-start detection checks `installed_plugins.json` for `codex@openai-codex`, verifies readiness via `codex-companion.mjs setup --json` (with 5s timeout guard), and exports `CODEX_REVIEW_AVAILABLE=1` and `CODEX_INSTALL_PATH` via `CLAUDE_ENV_FILE`. Downstream skills/commands check this env var before dispatching.
+
+**`/cr` integration:** New Step 6b dispatches Codex adversarial review in the same parallel message as Claude reviewers. Scope mapping table translates all 6 `/cr` modes (uncommitted, last commit, since push, branch diff, custom, PR) into `--base`/`--scope` flags for `codex-companion.mjs`. Step 7 restructured as a unified presentation gate — waits for ALL reviews before returning, fixing the N=1 early exit bug.
+
+**Rule-of-five integration:** All 3 variants (code, plans, tests) dispatch a background Codex adversarial review when pass 1 starts. After pass 5 completes, a synchronous gate waits for the Codex result before presenting. If Codex fails or times out, a brief unavailability note is appended.
+
+**Key design decisions:**
+- Dedicated cross-model pass (not pooled) — Codex is structurally separate from Claude reviewers
+- Adversarial mode only — maximizes diversity since Claude already covers standard review
+- Both output formats preserved — Codex JSON in distinct section, Claude markdown unchanged
+- Advisory only — Codex does not participate in verdict or severity voting
+
+**Validated by dogfooding:** During planning, Codex adversarial review of our own integration plan found 3 real bugs (2 high, 1 medium) that 5 passes of Claude rule-of-five review missed — scope mismatch, N=1 early exit, missing delivery mechanism. Zero false positives.
+
+**Files Modified (6):** `hooks/session-start.sh`, `commands/cr.md`, `skills/rule-of-five-code/SKILL.md`, `skills/rule-of-five-plans/SKILL.md`, `skills/rule-of-five-tests/SKILL.md`, `.claude-plugin/plugin.json`
+
 ## v5.5.8 (2026-03-30) - Beads Fork
 
 Migrated all `TaskOutput` references to `Read` on agent output files. `TaskOutput` was deprecated in Claude Code 2.1.83 — the new pattern awaits background agent completion notifications, then uses `Read` on the agent's output file path.
