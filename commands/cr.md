@@ -158,6 +158,23 @@ Set `{N}` to the user's choice.
 
 ## Step 6: Dispatch Review(s)
 
+**Generate run ID:** Before dispatching (for both N=1 and N>1), generate a timestamp for this run:
+```bash
+date +%Y%m%d-%H%M%S
+```
+Capture the output as `{RUN_TS}`. All reviewers and the Codex agent in this run share the same timestamp.
+
+**Resolve Codex scope arguments:** Compute `{CODEX_SCOPE_ARGS}` from the resolved `/cr` scope:
+
+| /cr scope | CODEX_SCOPE_ARGS |
+|-----------|-----------------|
+| Uncommitted changes | `--scope working-tree` |
+| Last commit | `--base HEAD~1` |
+| Since last push | `--base {BASE_SHA}` |
+| Branch diff vs main | `--base {BASE_SHA}` |
+| Custom | `--base {BASE_SHA}` |
+| PR mode | `--base {PR_META baseRefName}` |
+
 ### Single Review (N=1)
 
 Dispatch the code-reviewer agent:
@@ -178,15 +195,7 @@ Task:
 
 If the reviewer task fails or times out, inform the user and offer to re-dispatch.
 
-Present the reviewer's structured report to the user. Done.
-
 ### Multi-Review (N>1)
-
-**Generate run ID:** Before dispatching, generate a timestamp for this run:
-```bash
-date +%Y%m%d-%H%M%S
-```
-Capture the output as `{RUN_TS}`. All reviewers in this run share the same timestamp, producing files like `temp/cr-review-1-20260214-153042.md`.
 
 **Dispatch N reviewers in parallel:**
 
@@ -292,11 +301,74 @@ Task:
 
 If the aggregator task fails, present each reviewer's raw report individually (labeled Reviewer 1, Reviewer 2, etc.) and inform the user that aggregation failed.
 
-Present the aggregated report to the user. Done.
+### Step 6b: Dispatch Codex Cross-Model Review (if available)
 
-## Step 7: Present Results
+**Skip this step entirely if `CODEX_REVIEW_AVAILABLE` is not set to `1`.**
 
-Show the final review report (single or aggregated). No automatic follow-up actions — the user decides what to do with the findings.
+Dispatch one additional background agent for the Codex adversarial review. **This MUST be included in the same parallel dispatch message as the Claude reviewer(s)** — not as a separate sequential step. For N=1, send a single message with both the Task (code-reviewer) and the Agent (Codex) tool calls together. For N>1, include the Agent call in the same message as the N Task calls.
+
+```
+Agent:
+  run_in_background: true
+  description: "Codex cross-model review"
+  prompt: |
+    You are dispatching a Codex adversarial review as a cross-model second opinion.
+
+    Check that `CODEX_REVIEW_AVAILABLE` environment variable equals "1".
+    If not, output "Codex not available" and stop.
+
+    Run the Codex adversarial review with the resolved scope:
+    ```bash
+    node "$CODEX_INSTALL_PATH/scripts/codex-companion.mjs" adversarial-review --wait {CODEX_SCOPE_ARGS}
+    ```
+
+    Note: Slash commands (e.g. /codex:adversarial-review) are not available inside
+    subagent prompts. Use the companion script directly with $CODEX_INSTALL_PATH.
+
+    Capture the full stdout. Write it to temp/cr-codex-review-{RUN_TS}.md
+    using tee with a heredoc:
+    ```bash
+    mkdir -p temp
+    tee temp/cr-codex-review-{RUN_TS}.md <<'CODEX_REVIEW_EOF'
+    [full codex review output]
+    CODEX_REVIEW_EOF
+    ```
+
+    Output the full review as your final message.
+```
+
+**Cost note:** Dispatching Codex sends requests to the OpenAI API and incurs charges per invocation. This is visible in your OpenAI usage dashboard.
+
+## Step 7: Present All Results
+
+**Wait for all dispatched reviews to complete** — both Claude reviewer(s) AND the Codex background agent (if dispatched). Do NOT present partial results.
+
+### Claude Results
+
+For N=1: present the reviewer's structured report. If the reviewer task failed or timed out, inform the user and offer to re-dispatch.
+
+For N>1: present the aggregated report (or per-reviewer fallback if aggregation failed).
+
+### Codex Cross-Model Review (if dispatched)
+
+1. Read `temp/cr-codex-review-{RUN_TS}.md`. If missing, fall back to reading the background agent's output.
+2. If the Codex review completed successfully, present it after the Claude review:
+
+```
+## Cross-Model Review (Codex)
+
+[Full Codex review output — verdict, summary, findings with severity/confidence, next steps]
+```
+
+3. If the Codex review failed or timed out, note it briefly:
+
+```
+_Codex cross-model review was unavailable for this run._
+```
+
+The final verdict remains from Claude reviewers only — Codex is advisory.
+
+No automatic follow-up actions — the user decides what to do with the findings.
 
 ## Rules
 
@@ -306,3 +378,4 @@ Show the final review report (single or aggregated). No automatic follow-up acti
 - **No automatic fixes** — present findings, stop
 - **All N reviewers dispatch in a single message** for true parallelism
 - **Always aggregate when N>1** — no fast path that drops reports
+- **If `CODEX_REVIEW_AVAILABLE` is set, always dispatch Codex in parallel and wait for it** — dispatch in the same message as Claude reviewer(s), present in Step 7 after Claude results
