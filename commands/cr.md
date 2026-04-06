@@ -305,12 +305,18 @@ If the aggregator task fails, present each reviewer's raw report individually (l
 
 ### Step 6b: Dispatch Codex Cross-Model Review (if available)
 
-**Skip this step entirely if `CODEX_REVIEW_AVAILABLE` is not set to `1`.**
-
-**IMPORTANT — Resolve paths before dispatching:** Subagents do NOT inherit session env vars set via `CLAUDE_ENV_FILE`. Before constructing the agent prompt, run:
+**Check availability and resolve path:** Run these two commands (use `printenv` — it avoids shell expansion permission prompts):
 
 ```bash
-echo "$CODEX_INSTALL_PATH"
+printenv CODEX_REVIEW_AVAILABLE
+```
+
+If this returns empty or fails, **skip Step 6b entirely** — Codex is not available.
+
+If it returns `1`, resolve the install path for the subagent (subagents do NOT inherit session env vars):
+
+```bash
+printenv CODEX_INSTALL_PATH
 ```
 
 Capture the output as `{RESOLVED_CODEX_PATH}` (a literal path like `/Users/.../.claude/plugins/cache/openai-codex/codex/1.0.2`). Embed this literal path in the agent prompt below — do NOT use `$CODEX_INSTALL_PATH` inside the agent prompt.

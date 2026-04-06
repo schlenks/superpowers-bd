@@ -46,12 +46,16 @@ TaskCreate: "Pass 5: Maintainability"
 
 ## Cross-Model Review (Codex)
 
-**Skip if `CODEX_REVIEW_AVAILABLE` is not `1`.**
-
-**Before dispatching**, resolve the install path (subagents do NOT inherit session env vars):
+**Check availability** (use `printenv` to avoid shell expansion permission prompts):
 
 ```bash
-echo "$CODEX_INSTALL_PATH"
+printenv CODEX_REVIEW_AVAILABLE
+```
+
+If empty or fails, **skip this section entirely.** If `1`, resolve the path:
+
+```bash
+printenv CODEX_INSTALL_PATH
 ```
 
 Capture the output as `{RESOLVED_CODEX_PATH}`. Then dispatch:
