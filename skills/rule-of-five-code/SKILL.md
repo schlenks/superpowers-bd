@@ -63,10 +63,11 @@ Agent:
     node "{RESOLVED_CODEX_PATH}/scripts/codex-companion.mjs" adversarial-review --wait
     ```
 
-    Persist the full output to a temp file (background agent messages may be truncated):
+    Persist the full output to a timestamped temp file (background agent messages may be truncated):
     ```bash
     mkdir -p temp
-    tee temp/codex-audit-code.md <<'CODEX_AUDIT_EOF'
+    AUDIT_TS=$(date +%Y%m%d-%H%M%S)
+    tee temp/codex-audit-code-${AUDIT_TS}.md <<'CODEX_AUDIT_EOF'
     [full codex review output]
     CODEX_AUDIT_EOF
     ```
@@ -78,7 +79,7 @@ This runs concurrently with all 5 passes — zero blocking. Codex uses auto-dete
 
 **After pass 5 completes, wait for the Codex background agent to finish before presenting results.** Do NOT present pass 5 results until the Codex review has either completed or timed out. This is a synchronous gate — the rule-of-five skill does not have a monitor loop or late-delivery mechanism, so all output must be collected before the skill finishes.
 
-- If Codex completed successfully: Read `temp/codex-audit-code.md` (primary) or fall back to agent output. Present as "Cross-Model Audit (Codex)" section after pass 5 results.
+- If Codex completed successfully: Read the Codex agent's persisted temp file (primary) or fall back to agent output. Present as "Cross-Model Audit (Codex)" section after pass 5 results.
 - If Codex failed or timed out: append `_Codex cross-model audit was unavailable for this run._` after pass 5 results
 
 ```markdown

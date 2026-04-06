@@ -179,11 +179,12 @@ Capture the output as `{RUN_TS}`. All reviewers and the Codex agent in this run 
 
 ### Single Review (N=1)
 
-Dispatch the code-reviewer agent:
+Dispatch the code-reviewer agent as a background task (enables true parallel dispatch with Codex in Step 6b):
 
 ```
 Task:
   subagent_type: "superpowers-bd:code-reviewer"
+  run_in_background: true
   description: "Code review: ad-hoc"
   prompt: |
     Review parameters:
@@ -193,7 +194,29 @@ Task:
 
     {UNCOMMITTED_OVERRIDE if HEAD_SHA == WORKING_TREE}
     {PR_OVERRIDE if BASE_SHA == PR_BASE}
+
+    ## Report Persistence (MANDATORY)
+
+    Background task outputs may be truncated. You MUST persist your final
+    structured report to a file as your LAST action before your final message.
+
+    First, ensure the temp directory exists:
+    ```
+    mkdir -p temp
+    ```
+
+    Then write your report using tee with a heredoc (the delimiter MUST
+    start at column 0 with no leading spaces):
+    ```
+    tee temp/cr-review-1-{RUN_TS}.md <<'CR_REPORT_EOF'
+    [your complete structured report]
+    CR_REPORT_EOF
+    ```
+
+    Then output the same report as your final message.
 ```
+
+Wait for the background task to complete before proceeding to Step 7.
 
 If the reviewer task fails or times out, inform the user and offer to re-dispatch.
 

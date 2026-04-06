@@ -85,6 +85,8 @@ if command -v jq >/dev/null 2>&1 && [ -f "$plugins_file" ]; then
     if [ -n "$codex_install_path" ] && [ -d "$codex_install_path" ]; then
         if command -v timeout >/dev/null 2>&1; then
             setup_result=$(timeout 5 node "${codex_install_path}/scripts/codex-companion.mjs" setup --json 2>/dev/null || true)
+        elif command -v perl >/dev/null 2>&1; then
+            setup_result=$(perl -e 'alarm 5; exec @ARGV' node "${codex_install_path}/scripts/codex-companion.mjs" setup --json 2>/dev/null || true)
         else
             setup_result=$(node "${codex_install_path}/scripts/codex-companion.mjs" setup --json 2>/dev/null || true)
         fi
