@@ -18,6 +18,7 @@ Execute beads epic by dispatching parallel subagents for independent issues, wit
 2. Check for `temp/sdd-checkpoint-{epic_id}.json` -- if found, restore state (budget_tier, wave_receipts, closed_issues, metrics), print "Resuming epic {id} from wave {N+1}", jump to LOADING (skip step 3)
 3. Ask budget tier (max-20x / max-5x / pro-api) -- sets model matrix for session.
 4. Detect context tier: check your model ID for `[1m]` suffix. If present → extended (1M). Otherwise → standard (200k). This determines wave cap defaults and budget formula.
+4b. Detect Codex availability: look for `<codex-integration>` in session context. If present, extract install path and store `codex_enabled: true` and `codex_install_path` in checkpoint. If absent, store `codex_enabled: false`. Log result: "Codex reviews: enabled" or "Codex reviews: not available — Claude-only reviews".
 5. Verify `temp/` exists (do NOT run `mkdir`)
 6. `bd ready`, filter to epic children
 6a. If explicit wave cap in invocation (e.g., "wave-cap 7"), use it and skip 6b-6c.
@@ -53,11 +54,11 @@ selects the model; tier ceiling caps it. Code reviewer and verifier use tier def
 
 ### Other Roles (unchanged by complexity)
 
-| Tier | Code Reviewer | N Reviews | Verifier | Simplify |
-|------|--------------|-----------|----------|----------|
-| max-20x | sonnet | 3 | opus | Yes |
-| max-5x | sonnet | 3 | opus | Yes |
-| pro/api | haiku | 1 | sonnet | Skip |
+| Tier | Code Reviewer | N Reviews | Codex Review | Verifier | Simplify |
+|------|--------------|-----------|--------------|----------|----------|
+| max-20x | sonnet | 3 | If available | opus | Yes |
+| max-5x | sonnet | 3 | If available | opus | Yes |
+| pro/api | haiku | 1 | Skip | sonnet | Skip |
 
 Default: if `complexity:*` label missing, use `standard`.
 Store tier selection for session -- don't ask again per wave.
@@ -148,7 +149,7 @@ If out of range, warn and clamp. Stored in checkpoint for recovery.
 LOADING: bd ready -> filter to epic -> check file conflicts -> cap at {wave_cap}
 DISPATCH: serialize wave file map -> bd update --status=in_progress -> dispatch async
 MONITOR: await background agent completion notifications -> Read output file -> route completions
-REVIEW: spec review -> code review (N if tier allows) -> gap closure (max 3 attempts)
+REVIEW: spec review -> code review (N Claude + Codex if available, parallel) -> gap closure (max 3 attempts)
 CLOSE: extract evidence -> bd close --reason -> simplify (if 2+ tasks) -> wave summary
 -> loop back to LOADING until all closed -> COMPLETE
 ```
@@ -173,9 +174,9 @@ Implementers report one of four statuses. The controller routes each:
 
 ## Key Rules (GUARDS)
 
-**Never:** dispatch blocked issues, dispatch cross-epic issues, dispatch file-conflicting issues in same wave, skip `bd update --status=in_progress`, skip `bd close` after review, skip reviews, start code review before spec passes.
+**Never:** dispatch blocked issues, dispatch cross-epic issues, dispatch file-conflicting issues in same wave, skip `bd update --status=in_progress`, skip `bd close` after review, skip reviews, start code review before spec passes, skip Codex review when `codex_enabled: true` in checkpoint (treat Claude-only pipeline as incomplete when Codex is available).
 
-**Always:** check `bd ready` before each wave, compare file lists for conflicts, `bd close` immediately after review passes, re-check `bd ready` after each close.
+**Always:** check `bd ready` before each wave, compare file lists for conflicts, `bd close` immediately after review passes, re-check `bd ready` after each close, dispatch Codex review in parallel with Claude code reviewers when `codex_enabled: true`.
 
 **Deadlock:** `bd ready` empty but issues remain open -> check `bd blocked` for circular deps or forgotten closes.
 

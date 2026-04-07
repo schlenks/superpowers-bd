@@ -48,6 +48,42 @@ Required context: `{epic_id}` (verifier self-reads from beads), base SHA, head S
 | max-5x | sonnet | Good quality/cost balance |
 | pro/api | sonnet | Verification quality matters |
 
+## Cross-Model Review (Codex)
+
+**Check availability:** Look for `<codex-integration>` in the session context (injected by session-start hook). If absent, **skip this section entirely.**
+
+If present, extract the install path from the tag. Dispatch Codex adversarial review of the full epic diff **in parallel with the verification agent** — include both in the same dispatch message:
+
+~~~
+Agent:
+  run_in_background: true
+  description: "Codex cross-model audit (epic)"
+  prompt: |
+    Run a Codex adversarial review of the full epic changes.
+
+    ```bash
+    node "{RESOLVED_CODEX_PATH}/scripts/codex-companion.mjs" adversarial-review --wait --base {base_sha}
+    ```
+
+    Persist the full output:
+    ```bash
+    mkdir -p temp
+    AUDIT_TS=$(date +%Y%m%d-%H%M%S)
+    tee temp/codex-audit-epic-${AUDIT_TS}.md <<'CODEX_AUDIT_EOF'
+    [full codex review output]
+    CODEX_AUDIT_EOF
+    ```
+
+    Output the full review as your final message.
+~~~
+
+**After the verification agent completes, wait for Codex before presenting results.** This is a synchronous gate — do not present the verification report until Codex has either completed or timed out.
+
+- If Codex completed: Read persisted temp file (primary) or fall back to agent output. Present as "Cross-Model Audit (Codex)" section after the verification report.
+- If Codex failed or timed out: append `_Codex cross-model audit was unavailable for this run._`
+
+Codex is advisory-only — the verification PASS/FAIL verdict is determined solely by the engineering checklist.
+
 ## Integration
 
 Mandatory gate: all impl tasks closed -> dispatch epic-verifier -> PASS -> finishing-a-development-branch / FAIL -> fix and re-verify.

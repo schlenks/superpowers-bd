@@ -103,17 +103,18 @@ Reviews for DIFFERENT tasks can run in parallel:
 ```
 Timeline (3 tasks, N=3 reviews, max parallelism):
 ─────────────────────────────────────────────────────────────────────────
-Task A: [implement]────[spec-A]────[code-A×3]────[agg-A]────→ close
-Task B:    [implement]────[spec-B]────[code-B×3]────[agg-B]────→ close
-Task C:       [implement]────[spec-C]────[code-C×3]──[agg-C]──→ close
-                       ↑         ↑            ↑
-                       └─parallel─┘    (always aggregate when N>1)
+Task A: [implement]────[spec-A]────[code-A×3 + codex-A]────[agg-A]────→ close
+Task B:    [implement]────[spec-B]────[code-B×3 + codex-B]────[agg-B]────→ close
+Task C:       [implement]────[spec-C]────[code-C×3 + codex-C]──[agg-C]──→ close
+                       ↑         ↑               ↑
+                       └─parallel─┘    (codex dispatched alongside claude reviewers)
 ```
 
 **Rules:**
 - Spec review for A || Spec review for B ✅
 - Code review A must wait for spec review A ❌ (sequential)
 - Code review for A || Code review for B ✅
+- Codex review for A dispatched in same message as code reviews for A ✅
 
 ## Event-Driven Dispatch
 
@@ -193,8 +194,33 @@ on_spec_review_pass(task_id, result):
 
         # When all N complete: always dispatch aggregator (haiku) per aggregator-prompt.md
         pending_multi_reviews[task_id] = reviewer_tasks
+
+        # Dispatch Codex cross-model review in parallel with Claude reviewers
+        # MUST be in the same dispatch message as the N Claude reviewer Tasks above
+        if checkpoint.codex_enabled and budget_tier != "pro/api":
+            codex_task = Agent(
+                run_in_background=True,
+                description=f"Codex cross-model review: {task_id}",
+                prompt=f"""Run a Codex adversarial review of the changes for {issue_id}.
+
+                    ```bash
+                    node "{checkpoint.codex_install_path}/scripts/codex-companion.mjs" adversarial-review --wait --base {base_sha}
+                    ```
+
+                    Persist the full output:
+                    ```bash
+                    mkdir -p temp
+                    tee temp/{issue_id}-codex-wave-{wave_n}.md <<'CODEX_REVIEW_EOF'
+                    [full codex review output]
+                    CODEX_REVIEW_EOF
+                    ```
+
+                    Output the full review as your final message."""
+            )
+            pending_codex_reviews[task_id] = codex_task
+
     else:
-        # Single review (pro/api) — unchanged
+        # Single review (pro/api) — unchanged, no Codex for pro/api tier
         code_task = Task(
             subagent_type="general-purpose",
             model=tier_code_model,  # NEVER adjusted by complexity
@@ -210,3 +236,21 @@ on_spec_review_pass(task_id, result):
         )
         pending_code_reviews.add(code_task)
 ```
+
+## Codex Review Presentation
+
+After Claude code reviews complete (and aggregation if N>1), check for Codex results:
+
+1. If `pending_codex_reviews[task_id]` exists, wait for the Codex agent to complete
+2. Read `temp/{issue_id}-codex-wave-{wave_n}.md` (primary). Fall back to agent output if file missing
+3. Present as a separate section in the task review summary — **after** the Claude aggregated report:
+
+```markdown
+## Cross-Model Review (Codex) — {issue_id}
+
+[Full Codex adversarial review output]
+```
+
+4. If Codex failed or timed out: `_Codex cross-model review was unavailable for this task._`
+
+**Codex is advisory-only.** The Claude aggregated verdict (Ready to merge: Yes/With fixes/No) remains the gate for `bd close`. Codex findings inform the developer but do not block merge.
