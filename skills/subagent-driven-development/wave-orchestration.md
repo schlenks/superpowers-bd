@@ -12,6 +12,10 @@ conflict_task = TaskCreate(
 # After conflict check, build wave file map for {wave_file_map} template slot
 wave_file_map = build_wave_file_map(parallelizable)  # markdown table serialized into each prompt
 
+# Mark wave in-flight so PreCompact hook blocks compaction during dispatch/monitor/review.
+# Removed at the end of wave cleanup below.
+open(f"temp/sdd-wave-active-{epic_id}.flag", "w").close()
+
 wave_task = TaskCreate(
     subject="Wave 1: hub-abc.1, hub-abc.2",
     activeForm="Executing wave 1",
@@ -51,6 +55,12 @@ TaskUpdate(taskId=summary_task.id, metadata={
 
 After posting the wave summary, remove temp report files: `rm -f temp/<epic-prefix>*`
 
+Also clear the wave-active flag so PreCompact stops blocking until the next wave dispatches:
+
+```bash
+rm -f temp/sdd-wave-active-{epic_id}.flag
+```
+
 The `temp/` directory already exists at the repo root — do NOT run `mkdir` for it.
 
 ## Checkpoint Write
@@ -83,6 +93,6 @@ The `sdd-checkpoint-` prefix survives wave cleanup (`rm -f temp/<epic-prefix>*`)
 At epic completion, delete ephemeral files:
 
 ```bash
-rm -f temp/sdd-checkpoint-{epic_id}.json temp/metrics-{epic_id}.json
+rm -f temp/sdd-checkpoint-{epic_id}.json temp/metrics-{epic_id}.json temp/sdd-wave-active-{epic_id}.flag
 ```
 

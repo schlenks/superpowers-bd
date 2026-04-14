@@ -1,5 +1,23 @@
 # Superpowers Release Notes
 
+## v5.6.2 (2026-04-14) - Beads Fork
+
+Closes the worst subagent-driven-development failure mode: mid-wave compaction silently truncating orchestrator state (background Task IDs, wave file map, reviewer dispatches). Adopts the `PreCompact` hook decision-block capability introduced in Claude Code 2.1.105.
+
+### PreCompact Hook Blocks Mid-Wave Compaction
+
+New `hooks/pre-compact.sh` returns `{"decision":"block","reason":"..."}` when any `temp/sdd-wave-active-{epic_id}.flag` file exists in the project's temp directory. The block reason embeds the epic ID, the failure explanation, and recovery instructions (delete the stale flag file or set `SDD_ALLOW_COMPACT=1`).
+
+`wave-orchestration.md` now writes the flag at dispatch start (alongside the wave file map build) and removes it at wave cleanup and COMPLETE cleanup. Between waves the flag is absent — checkpoint-based recovery still works normally since that's exactly when compaction is safe.
+
+**Escape hatch:** `SDD_ALLOW_COMPACT=1` env var bypasses the block. Use when the flag is stale from a crashed session or when the user has explicitly accepted the loss.
+
+**Why this matters:** Before this change, users who ran `/compact` during a wave — or hit auto-compaction — silently destroyed the orchestrator's in-memory wave state, wasted the wave's tokens, and had no diagnostic signal beyond "the next wave behaves strangely." Now the failure mode is loud and recoverable: the hook refuses, tells the user exactly why, and prints the override command.
+
+**Requires Claude Code 2.1.105+** for `PreCompact` decision-block support.
+
+**Files Modified (3):** `hooks/pre-compact.sh` (new), `hooks/hooks.json`, `skills/subagent-driven-development/wave-orchestration.md`
+
 ## v5.6.0 (2026-04-06) - Beads Fork
 
 Integrates OpenAI's Codex plugin as a cross-model "second opinion" reviewer across `/cr`, rule-of-five-code, rule-of-five-plans, and rule-of-five-tests. When the codex plugin is installed, each review surface automatically dispatches a parallel Codex adversarial review alongside existing Claude reviewers. Codex output is presented in a distinct section, preserving its native structured format. All integration points degrade gracefully when codex is absent.
