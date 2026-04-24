@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.6.3] - 2026-04-24
+
+### Added
+
+- `scripts/sync-plugin-version.sh` — reads version from `plugin.json` and writes it into `marketplace.json` so `claude plugin tag` validation passes without a manual double-bump
+- Releasing workflow documented in `CLAUDE.md` — `bump → sync → commit → tag` loop using `claude plugin tag` (requires Claude Code 2.1.118+)
+- `duration_ms` logged in `temp/file-modifications.log` by the PostToolUse audit hook (requires Claude Code 2.1.119+; older versions record `-ms`)
+
+### Changed
+
+- `code-reviewer` and `epic-verifier` agents bumped from `effort: high` to `effort: xhigh` — Opus 4.7 effort tier introduced in Claude Code 2.1.111. Review agents have no feedback loop, so reasoning depth is the quality lever. Degrades to the model's highest supported effort when invoked on models without `xhigh`.
+- `CLAUDE.md` plugin version documented as 5.6.3 (was 5.6.0); minimum Claude Code bumped from 2.1.73 to 2.1.111
+- `AGENTS.md` plugin version and minimum Claude Code version brought in line with `CLAUDE.md`
+- `.claude-plugin/marketplace.json` version synced to 5.6.3 (was stale at 5.6.2)
+
+## [5.6.2] - 2026-04-14
+
+### Added
+
+- `hooks/pre-compact.sh` returns `{"decision":"block","reason":"..."}` when any `temp/sdd-wave-active-{epic_id}.flag` exists, preventing mid-wave compaction from truncating orchestrator state. Adopts the `PreCompact` hook decision-block capability introduced in Claude Code 2.1.105.
+- `SDD_ALLOW_COMPACT=1` environment variable bypass for stale flag files or explicit user override
+
+### Changed
+
+- `skills/subagent-driven-development/wave-orchestration.md` writes the wave-active flag at dispatch start and removes it during wave cleanup and COMPLETE cleanup — between waves the flag is absent so checkpoint-based recovery still works
+
 ## [5.6.0] - 2026-04-06
 
 ### Added
@@ -484,7 +510,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Personal superpowers overlay system — replaced with git branch workflow
 - `setup-personal-superpowers` hook — replaced by `initialize-skills.sh`
 
-[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.6.0...HEAD
+[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.6.3...HEAD
+[5.6.3]: https://github.com/schlenks/superpowers-bd/compare/v5.6.2...v5.6.3
+[5.6.2]: https://github.com/schlenks/superpowers-bd/compare/v5.6.0...v5.6.2
 [5.6.0]: https://github.com/schlenks/superpowers-bd/compare/v5.5.8...v5.6.0
 [5.5.8]: https://github.com/schlenks/superpowers-bd/compare/v5.5.7...v5.5.8
 [5.5.7]: https://github.com/schlenks/superpowers-bd/compare/v5.5.6...v5.5.7

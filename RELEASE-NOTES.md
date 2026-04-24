@@ -1,5 +1,34 @@
 # Superpowers Release Notes
 
+## v5.6.3 (2026-04-24) - Beads Fork
+
+Three small adoptions from the Claude Code 2.1.108–2.1.119 release window.
+
+### Review agents bumped to `effort: xhigh` (Opus 4.7)
+
+`agents/code-reviewer.md` and `agents/epic-verifier.md` now declare `effort: xhigh` instead of `effort: high`. Opus 4.7 introduced `xhigh` (between `high` and `max`) in Claude Code 2.1.111. Review agents have no feedback loop — reasoning depth is the quality lever — so the extra depth is warranted. When the inherited model does not expose `xhigh`, the level degrades to the model's highest supported effort. Implementation agents remain at default effort.
+
+### `log-file-modification.sh` records tool duration
+
+The PostToolUse audit hook now reads `duration_ms` from the hook input JSON (added in Claude Code 2.1.119) and appends it to `temp/file-modifications.log` between the tool name and the file path. Older Claude Code versions simply record `-ms`. Makes it possible to spot slow Edit/Write calls (format-on-save cycles, large files) in the audit trail.
+
+### Release tagging documented
+
+New "Releasing" section in `CLAUDE.md` documenting `claude plugin tag` (Claude Code 2.1.118+). The command validates `plugin.json` version against any enclosing marketplace entry before creating a `superpowers-bd--v{version}` tag. Replaces implicit manual tagging.
+
+### Version-sync helper
+
+New `scripts/sync-plugin-version.sh` reads the version from `plugin.json` and writes it into `marketplace.json`. Prevents the drift we just had to fix manually (5.6.2 vs 5.6.3). The CLAUDE.md "Releasing" workflow now calls it between the version bump and `claude plugin tag`.
+
+### Doc hygiene
+
+- `CLAUDE.md` updated: plugin version `5.6.0 → 5.6.3`; minimum Claude Code version `2.1.73 → 2.1.111` (with notes on graceful degradation of `claude plugin tag` and `duration_ms` on older versions). Releasing section rewritten to show the full `bump → sync → commit → tag` loop.
+- `AGENTS.md` version lines brought in line with `CLAUDE.md` (was claiming `5.4.0` / `2.1.73`). Structural divergence between the two files left untouched — separate editorial decision.
+- `.claude-plugin/marketplace.json` version synced to `5.6.3` (was stale at `5.6.2`). `claude plugin tag --dry-run` confirms plugin.json and marketplace.json agree.
+- `CHANGELOG.md` backfilled with `[5.6.2]` and `[5.6.3]` entries in Keep-a-Changelog format plus updated compare links. `5.6.1` was never released.
+
+**Files Modified (10):** `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `agents/code-reviewer.md`, `agents/epic-verifier.md`, `hooks/log-file-modification.sh`, `scripts/sync-plugin-version.sh` (new), `CLAUDE.md`, `AGENTS.md`, `CHANGELOG.md`, `RELEASE-NOTES.md`
+
 ## v5.6.2 (2026-04-14) - Beads Fork
 
 Closes the worst subagent-driven-development failure mode: mid-wave compaction silently truncating orchestrator state (background Task IDs, wave file map, reviewer dispatches). Adopts the `PreCompact` hook decision-block capability introduced in Claude Code 2.1.105.

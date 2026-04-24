@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Superpowers-BD is a Claude Code plugin providing workflow skills for TDD, debugging, and collaboration patterns. It integrates with **beads** (git-backed issue tracker) for persistent task management and wave-based parallel execution across sessions.
 
-**Plugin version:** 5.6.0
-**Minimum Claude Code:** 2.1.73 (subagent model selection, SessionStart reliability)
+**Plugin version:** 5.6.3
+**Minimum Claude Code:** 2.1.111 (`effort: xhigh` on review agents; `claude plugin tag` requires 2.1.118; PostToolUse `duration_ms` requires 2.1.119 — both degrade gracefully on older versions)
 
 ## Development Commands
 
@@ -128,6 +128,24 @@ See `skills/writing-skills/SKILL.md` for complete guide.
 - **Audit logging**: `hooks/log-file-modification.sh` (PostToolUse hook via code-reviewer agent frontmatter)
 - **Beads config**: `.beads/metadata.json`
 - **Note**: Plugin frontmatter hooks are broken ([#17688](https://github.com/anthropics/claude-code/issues/17688)). `link-plugin-components.sh` works around this.
+
+## Releasing
+
+`.claude-plugin/plugin.json` is the source of truth for the plugin version. `.claude-plugin/marketplace.json` must agree or `claude plugin tag` refuses to tag. The helper below keeps them in lockstep.
+
+```bash
+# 1. Bump the version in .claude-plugin/plugin.json
+# 2. Sync marketplace.json from plugin.json
+./scripts/sync-plugin-version.sh
+
+# 3. Commit the version + release notes
+git commit -am "Release vX.Y.Z"
+
+# 4. Tag (validates plugin.json and marketplace.json agree) and push
+claude plugin tag -m "Release %s" --push
+```
+
+`claude plugin tag` requires Claude Code 2.1.118+. Creates a `superpowers-bd--v{version}` annotated tag. Users with semver-pinned marketplace entries auto-update to the latest matching tag on their side.
 
 ## Bash Safety
 
