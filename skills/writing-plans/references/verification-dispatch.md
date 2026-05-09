@@ -1,13 +1,15 @@
 # Verification Dispatch
 
-Dispatch each verification pass (tasks 2-7) as a sequential foreground sub-agent. Each sub-agent gets a fresh context window, reads the plan from disk, applies its single lens, edits the plan, and returns a structured verdict.
+The Plan Verification Checklist (task 2) is run inline by the orchestrator, not dispatched. This file describes only the 5 rule-of-five passes (tasks 3–7).
+
+Dispatch each rule-of-five pass (tasks 3–7) as a sequential foreground sub-agent. Each sub-agent gets a fresh context window, reads the plan from disk, applies its single lens, edits the plan, and returns a structured verdict.
 
 ## Dispatch Flow
 
-After task 1 completes, the main session drives this loop. On `[1m]` (default) dispatch begins immediately; on 200k, wait for compact + "continue" first.
+After task 2 (inline checklist) completes, the main session drives this loop for tasks 3–7. On `[1m]` (default) dispatch begins immediately after task 2; on 200k, wait for compact + "continue" before task 2, then proceed to task 3 after.
 
 ```
-for each pass in [checklist, draft, feasibility, completeness, risk, optimality]:
+for each pass in [draft, feasibility, completeness, risk, optimality]:
   1. TaskUpdate(task_id, status: "in_progress")
   2. Announce: "Dispatching verification sub-agent: {pass_name}..."
   3. Task(subagent_type: "general-purpose", model: "sonnet",
@@ -18,7 +20,7 @@ for each pass in [checklist, draft, feasibility, completeness, risk, optimality]
   6. If verdict STATUS == "BLOCKED" or "FAIL": stop, report to user, do NOT continue
   7. TaskUpdate(task_id, status: "completed")
 
-After all 6 passes:
+After all 5 passes:
   8. Read plan file one final time
   9. Assemble Verification Record from accumulated verdicts
   10. Append Verification Record to plan file (see references/verification-footer.md)
@@ -51,47 +53,6 @@ PASS: {pass_name}
 STATUS: CLEAN | EDITED | BLOCKED
 CHANGES: <number of edits made>
 SUMMARY: <1-3 sentences — what you found and changed>
-```
-
-## Prompt Template — Checklist Pass
-
-The checklist pass uses an extended verdict format to populate the Verification Record table:
-
-```
-You are verifying an implementation plan. You have ONE job: the Plan Verification Checklist.
-
-## Your Checklist
-Evaluate each item:
-- **Complete** — All requirements from brainstorming addressed?
-- **Accurate** — File paths verified? (use Glob to check existing files exist, new files in correct locations)
-- **Commands valid** — Test/build commands correct and runnable?
-- **YAGNI** — Every task directly serves a stated requirement?
-- **Minimal** — Could any task be removed/combined without losing functionality?
-- **Not over-engineered** — Simplest approach that works?
-- **Key Decisions documented** — 3-5 decisions with rationale?
-- **Context sections present** — Purpose for non-obvious tasks? Not In Scope for boundary tasks?
-- **File Structure complete** — Every file in task `Files:` sections appears in File Structure table? No undeclared files?
-
-## Instructions
-1. Read the plan file: {plan_path}
-2. Evaluate each checklist item. Use Glob and Grep to verify file paths and commands.
-3. Edit the plan file to fix any issues found.
-4. Return your verdict in the EXACT format below — nothing after the verdict block.
-
-## Verdict Format
-PASS: Plan Verification Checklist
-STATUS: PASS | FAIL
-RESULTS:
-- Complete: <checkmark-or-cross> <explanation>
-- Accurate: <checkmark-or-cross> <explanation>
-- Commands valid: <checkmark-or-cross> <explanation>
-- YAGNI: <checkmark-or-cross> <explanation>
-- Minimal: <checkmark-or-cross> <explanation>
-- Not over-engineered: <checkmark-or-cross> <explanation>
-- Key Decisions documented: <checkmark-or-cross> <explanation>
-- Context sections present: <checkmark-or-cross> <explanation>
-CHANGES: <number of edits made>
-SUMMARY: <1-3 sentences>
 ```
 
 ## Pass Definitions
@@ -161,4 +122,3 @@ SUMMARY: <1-3 sentences>
 
 - **BLOCKED verdict:** Stop the dispatch loop immediately. Report the SUMMARY to the user and do NOT continue to the next pass. The user must resolve the issue before verification can proceed.
 - **Malformed verdict:** If a sub-agent returns output that doesn't match the verdict format, treat it as BLOCKED with SUMMARY: "Sub-agent returned malformed verdict. Re-run this pass."
-- **FAIL on checklist:** Treat as BLOCKED — checklist failures must be resolved before proceeding to rule-of-five passes.

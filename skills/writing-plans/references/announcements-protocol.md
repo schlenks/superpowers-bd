@@ -12,7 +12,7 @@ Check your model ID in the system prompt for `[1m]` suffix (e.g., `claude-opus-4
 Plan written to docs/plans/2026-02-12-user-auth.md. Proceeding to verification.
 ```
 
-Continue immediately to task 2 dispatching verification sub-agents.
+Continue immediately to task 2 (inline Plan Verification Checklist).
 
 ### No `[1m]` (200k) — compact and pause
 
@@ -30,6 +30,33 @@ After compaction finishes, type `continue` to resume verification.
 
 Substitute the real path. The "type `continue`" line is critical — `/compact` doesn't give the model a turn.
 
+## Plan Verification Checklist (Inline)
+
+Mark task 2 in_progress, then announce:
+
+```
+Running Plan Verification Checklist inline...
+```
+
+After completing the checklist (and any inline fixes), announce per-item results:
+
+```
+Plan Verification Checklist results:
+- Complete: {check/cross} {explanation}
+- Accurate: {check/cross} {explanation}
+- Commands valid: {check/cross} {explanation}
+- YAGNI: {check/cross} {explanation}
+- Minimal: {check/cross} {explanation}
+- Not over-engineered: {check/cross} {explanation}
+- Key Decisions documented: {check/cross} {explanation}
+- Context sections present: {check/cross} {explanation}
+- File Structure complete: {check/cross} {explanation}
+
+{N} fixes applied inline. Proceeding to rule-of-five-plans dispatch.
+```
+
+Then mark task 2 completed and proceed to task 3.
+
 ## Before Each Verification Sub-Agent Dispatch
 
 Mark the corresponding native task in_progress, then announce:
@@ -44,21 +71,6 @@ Announce the verdict immediately:
 
 ```
 {pass_name} verdict: {STATUS} — {SUMMARY}
-```
-
-For the checklist pass, include the per-item results:
-
-```
-Plan Verification Checklist verdict: {STATUS}
-- Complete: {check/cross} {explanation}
-- Accurate: {check/cross} {explanation}
-- Commands valid: {check/cross} {explanation}
-- YAGNI: {check/cross} {explanation}
-- Minimal: {check/cross} {explanation}
-- Not over-engineered: {check/cross} {explanation}
-- Key Decisions documented: {check/cross} {explanation}
-- Context sections present: {check/cross} {explanation}
-{CHANGES} changes — {SUMMARY}
 ```
 
 ## After All Verdicts Collected

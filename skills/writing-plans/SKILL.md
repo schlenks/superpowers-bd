@@ -28,7 +28,9 @@ Create these 7 native tasks at plan start (each blocked by previous via addBlock
 6. **Rule-of-five-plans: Risk pass** -- What could go wrong? Migration, breaking changes?
 7. **Rule-of-five-plans: Optimality pass** -- Simplest approach? YAGNI?
 
-**Tasks 2-7: Sub-Agent Dispatch.** After proceeding from task 1 (immediately on 1M, after user "continue" on 200k), dispatch each pass sequentially as a **sonnet** sub-agent using the template in `references/verification-dispatch.md`. Mark each native task in_progress before dispatch, completed after collecting verdict. If any verdict is BLOCKED/FAIL, stop and report to user. After all 6 verdicts collected, assemble Verification Record (see `references/verification-footer.md`) and append to plan file.
+**Task 2: Inline Self-Review.** The orchestrator runs the Plan Verification Checklist directly — no sub-agent dispatch. The orchestrator just wrote the plan and has full context; a sub-agent would only re-read it from disk. Mark task 2 in_progress, run each checklist item against the plan, edit the plan to fix any issues, mark task 2 completed, then proceed to task 3.
+
+**Tasks 3–7: Sub-Agent Dispatch.** After task 2 completes, dispatch each rule-of-five-plans pass sequentially as a **sonnet** sub-agent using the template in `references/verification-dispatch.md`. Mark each native task in_progress before dispatch, completed after collecting verdict. If any verdict is BLOCKED/FAIL, stop and report to user. After all 5 verdicts collected, assemble Verification Record (see `references/verification-footer.md`) and append to plan file.
 
 See `references/task-enforcement-examples.md` for full TaskCreate blocks and dispatch loop.
 

@@ -45,9 +45,26 @@ TaskCreate: "Rule-of-five-plans: Optimality pass"
 - TaskList shows exactly where you are in the process
 - Skipping tasks is visible - blocked tasks cannot be marked in_progress
 
-## Sub-Agent Dispatch
+## Task 2: Inline Self-Review
 
-After task 1 completes (immediately if `[1m]` model, after compact + "continue" otherwise), drive this loop for tasks 2-7:
+After task 1 completes, the orchestrator runs the Plan Verification Checklist inline:
+
+```
+TaskUpdate(checklist-task-id, status: "in_progress")
+→ Announce: "Running Plan Verification Checklist inline..."
+→ Read the plan file
+→ For each item (Complete, Accurate, Commands valid, YAGNI, Minimal, Not over-engineered, Key Decisions, Context sections, File Structure complete):
+    - Evaluate against the plan
+    - Use Glob/Grep to verify file paths and commands where needed
+    - Edit the plan inline to fix any issues
+→ Announce per-item results (see references/announcements-protocol.md)
+→ If any item fails irrecoverably: stop, report to user
+→ TaskUpdate(checklist-task-id, status: "completed")
+```
+
+## Sub-Agent Dispatch (Tasks 3–7)
+
+After task 2 completes, drive this loop for tasks 3–7:
 
 ```
 TaskUpdate(id, status: "in_progress")
