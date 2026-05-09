@@ -1,7 +1,7 @@
 ---
 name: test-driven-development
 description: Use when implementing any feature or bugfix, before writing implementation code
-effort: high
+effort: xhigh
 ---
 
 # Test-Driven Development (TDD)

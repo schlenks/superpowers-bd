@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.6.4] - 2026-05-09
+
+### Changed
+
+- All 15 skills and commands previously pinned to `effort: high` bumped to `effort: xhigh` to match Anthropic's recommended floor for Opus 4.7 coding/agentic work. Claude Code 2.1.117 made `xhigh` the default effort on Opus 4.7, and skill `effort:` frontmatter is a strict override (not a floor) — so every `effort: high` pin was silently downgrading Opus 4.7 sessions below the recommended depth, including capping rule-of-five passes inside the `xhigh` review agents back to `high`. `xhigh` falls back to the highest supported level (`high`) on Opus 4.6 and Sonnet 4.6, so no behavior change on those models. Files: `skills/{rule-of-five-code,rule-of-five-tests,rule-of-five-plans,test-driven-development,systematic-debugging,finishing-a-development-branch,epic-verifier,brainstorming,writing-plans,receiving-code-review,writing-skills,verification-before-completion,subagent-driven-development,multi-review-aggregation}/SKILL.md`, `commands/cr.md`. The 10 `effort: medium` skills and commands stay at `medium` — intentional downgrade for routing/mechanical work.
+- Minimum Claude Code bumped from 2.1.111 to 2.1.133. Claude Code 2.1.133 fixes a bug where subagents could not discover project, user, or plugin skills via the `Skill` tool, so the `skills:` frontmatter on `agents/code-reviewer.md` and `agents/epic-verifier.md` (`rule-of-five-code`, `rule-of-five-tests`) is now actually loadable from inside those agents instead of being silently ignored.
+- `hooks/log-file-modification.sh` records the active effort level alongside `duration_ms` in `temp/file-modifications.log`. Hook input gained the `effort.level` JSON field in Claude Code 2.1.133. Older versions log `effort=-`.
+
 ## [5.6.3] - 2026-04-24
 
 ### Added
@@ -510,7 +518,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Personal superpowers overlay system — replaced with git branch workflow
 - `setup-personal-superpowers` hook — replaced by `initialize-skills.sh`
 
-[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.6.3...HEAD
+[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.6.4...HEAD
+[5.6.4]: https://github.com/schlenks/superpowers-bd/compare/v5.6.3...v5.6.4
 [5.6.3]: https://github.com/schlenks/superpowers-bd/compare/v5.6.2...v5.6.3
 [5.6.2]: https://github.com/schlenks/superpowers-bd/compare/v5.6.0...v5.6.2
 [5.6.0]: https://github.com/schlenks/superpowers-bd/compare/v5.5.8...v5.6.0

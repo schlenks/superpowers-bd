@@ -17,19 +17,22 @@ log_file="$log_dir/file-modifications.log"
 input=$(cat)
 
 # Extract fields via jq if available, otherwise skip gracefully.
-# duration_ms is provided by Claude Code 2.1.119+ PostToolUse inputs; older versions omit it.
+# duration_ms is provided by Claude Code 2.1.119+ PostToolUse inputs.
+# effort.level is provided by Claude Code 2.1.133+ hook inputs; older versions omit it.
 if command -v jq &>/dev/null; then
   tool_name=$(echo "$input" | jq -r '.tool_name // "unknown"' 2>/dev/null || echo "unknown")
   file_path=$(echo "$input" | jq -r '.tool_input.file_path // "unknown"' 2>/dev/null || echo "unknown")
   duration_ms=$(echo "$input" | jq -r '.duration_ms // "-"' 2>/dev/null || echo "-")
+  effort=$(echo "$input" | jq -r '.effort.level // "-"' 2>/dev/null || echo "-")
 else
   tool_name="unknown"
   file_path="unknown"
   duration_ms="-"
+  effort="-"
 fi
 
 # temp/ directory should already exist; create only if missing (e.g. fresh clone)
 [[ -d "$log_dir" ]] || mkdir -p "$log_dir"
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) ${tool_name} ${duration_ms}ms ${file_path}" >> "$log_file"
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) ${tool_name} effort=${effort} ${duration_ms}ms ${file_path}" >> "$log_file"
 
 exit 0

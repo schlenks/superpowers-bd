@@ -1,7 +1,7 @@
 ---
 name: epic-verifier
 description: Use when all implementation tasks in an epic are closed, before calling finishing-a-development-branch
-effort: high
+effort: xhigh
 ---
 
 # Epic Verifier

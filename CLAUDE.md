@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Superpowers-BD is a Claude Code plugin providing workflow skills for TDD, debugging, and collaboration patterns. It integrates with **beads** (git-backed issue tracker) for persistent task management and wave-based parallel execution across sessions.
 
-**Plugin version:** 5.6.3
-**Minimum Claude Code:** 2.1.111 (`effort: xhigh` on review agents; `claude plugin tag` requires 2.1.118; PostToolUse `duration_ms` requires 2.1.119 — both degrade gracefully on older versions)
+**Plugin version:** 5.6.4
+**Minimum Claude Code:** 2.1.133 (subagent skill discovery via Skill tool — agents' `skills:` frontmatter now actually loads; `effort.level` in hook input JSON; `effort: xhigh` on review agents from 2.1.111; `claude plugin tag` from 2.1.118; PostToolUse `duration_ms` from 2.1.119)
 
 ## Development Commands
 

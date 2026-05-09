@@ -1,5 +1,47 @@
 # Superpowers Release Notes
 
+## v5.6.4 (2026-05-09) - Beads Fork
+
+Three adoptions from the Claude Code 2.1.120–2.1.138 release window. Minimum supported Claude Code version is now 2.1.133.
+
+### `effort: high` skills and commands bumped to `effort: xhigh`
+
+Claude Code 2.1.117 made `xhigh` the default effort level on Opus 4.7 (Opus 4.6 and Sonnet 4.6 default to `high`). Anthropic's published guidance is *"start with `xhigh` for coding and agentic use cases"* on Opus 4.7. Skill `effort:` frontmatter is a strict override of session effort (not a floor), so every `effort: high` pin was silently downgrading Opus 4.7 sessions below the recommended depth — including capping rule-of-five passes inside the `xhigh` review agents back down to `high`. The `effort: xhigh` pin we set on `code-reviewer` and `epic-verifier` in v5.6.3 was therefore less effective than advertised.
+
+This release bumps all 15 skills and commands previously at `effort: high` to `effort: xhigh`:
+
+- All three rule-of-five variants (`rule-of-five-code`, `rule-of-five-tests`, `rule-of-five-plans`)
+- Quality gates: `verification-before-completion`, `systematic-debugging`, `epic-verifier` (skill), `multi-review-aggregation`
+- Workflow skills: `subagent-driven-development`, `writing-plans`, `brainstorming`, `writing-skills`, `test-driven-development`, `receiving-code-review`, `finishing-a-development-branch`
+- Slash command: `/cr`
+
+`xhigh` falls back to the highest supported level (`high`) on Opus 4.6 and Sonnet 4.6 per Claude Code's documented model-aware effort handling, so this is a no-op for those models. The change is observable only on Opus 4.7, where it stops the silent downgrade.
+
+The 10 skills/commands at `effort: medium` are unchanged — they're deliberate downgrades for routing/mechanical work (`using-superpowers`, `using-git-worktrees`, `beads`, `dispatching-parallel-agents`, `requesting-code-review`, `executing-plans`, `commands/{brainstorm,write-plan,plan2beads,execute-plan}`).
+
+Sources for the policy decision:
+- [Claude Code Model Configuration docs](https://code.claude.com/docs/en/model-config) — *"As of v2.1.117, the default effort is `xhigh` on Opus 4.7 and `high` on Opus 4.6 and Sonnet 4.6."*
+- [Effort levels in the Claude API docs](https://platform.claude.com/docs/en/build-with-claude/effort) — *"Start with `xhigh` for coding and agentic use cases."*
+- [Best practices for using Claude Opus 4.7 with Claude Code](https://claude.com/blog/best-practices-for-using-claude-opus-4-7-with-claude-code)
+
+### Subagent skill discovery actually works (min Claude Code 2.1.133)
+
+Before 2.1.133, plugin subagents could not load skills via the `Skill` tool — the `skills:` frontmatter on `agents/code-reviewer.md` and `agents/epic-verifier.md` (`rule-of-five-code`, `rule-of-five-tests`) was advertised but silently inert from inside the agent. 2.1.133 fixed this. The agents themselves are unchanged; they just stop being misleading. Agent methodology continues to load via `Glob + Read` for now (separate decision).
+
+`CLAUDE.md` minimum bumped from 2.1.111 to 2.1.133. The previous floor (2.1.111 for `effort: xhigh`, 2.1.118 for `claude plugin tag`, 2.1.119 for `duration_ms`) is still required and still listed in the version note.
+
+### Audit hook records active effort level
+
+`hooks/log-file-modification.sh` now extracts `.effort.level` from the PostToolUse hook input JSON (added in Claude Code 2.1.133) and writes it into `temp/file-modifications.log` between the tool name and `duration_ms`:
+
+```
+2026-05-09T12:34:56Z Edit effort=xhigh 1234ms /path/to/file
+```
+
+Forensic value when reviewing why a particular edit was poor — you can see whether the model was operating at `medium`, `high`, `xhigh`, etc. when it ran. Older Claude Code versions omit the field; the line records `effort=-` and is still parseable.
+
+**Files Modified (21):** `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `hooks/log-file-modification.sh`, `CLAUDE.md`, `AGENTS.md`, `CHANGELOG.md`, `RELEASE-NOTES.md`, `commands/cr.md`, `skills/{rule-of-five-code,rule-of-five-tests,rule-of-five-plans,test-driven-development,systematic-debugging,finishing-a-development-branch,epic-verifier,brainstorming,writing-plans,receiving-code-review,writing-skills,verification-before-completion,subagent-driven-development,multi-review-aggregation}/SKILL.md`
+
 ## v5.6.3 (2026-04-24) - Beads Fork
 
 Three small adoptions from the Claude Code 2.1.108–2.1.119 release window.
