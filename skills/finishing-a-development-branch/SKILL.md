@@ -52,7 +52,7 @@ This determines which menu to show in Step 3:
 | `SUPERPROJECT` non-empty (submodule) | Standard 4 options | Treat as normal repo |
 | `GIT_DIR == GIT_COMMON` (normal repo) | Standard 4 options | No worktree to clean up |
 | `GIT_DIR != GIT_COMMON`, named branch | Standard 4 options | Provenance-based (Step 5) |
-| `GIT_DIR != GIT_COMMON`, detached HEAD | Reduced 3 options (no merge) | No cleanup (externally managed) |
+| `GIT_DIR != GIT_COMMON`, detached HEAD | Reduced 3 options (no merge) | Provenance-based on Discard (Option 3); harness exit tool if not superpowers-owned |
 
 ### Step 2: Determine Base Branch
 
@@ -102,10 +102,33 @@ Keep options concise. See `references/completion-strategies.md`.
 
 Execute the user's chosen option. Each option has specific bash commands and confirmation requirements. Option 4 (Discard) requires typed "discard" confirmation. See `references/option-workflows.md`.
 
-### Step 5: Cleanup Worktree
+### Step 5: Cleanup Workspace
 
-**Options 1, 2, 4:** Check if in worktree (`git worktree list`), remove if yes.
-**Option 3:** Keep worktree. See `references/worktree-cleanup.md`.
+Only runs for actions that delete the branch (Merge locally, Discard). Branch on env state from Step 1.7 first, then map options to actions:
+
+- **Named branch (4-option menu):** Options 1 (Merge) and 4 (Discard) trigger cleanup; Options 2 (PR) and 3 (Keep) preserve the worktree.
+- **Detached HEAD (3-option menu):** Option 3 (Discard) triggers cleanup; Options 1 (PR) and 2 (Keep) preserve the worktree.
+
+```bash
+GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
+GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
+WORKTREE_PATH=$(git rev-parse --show-toplevel)
+```
+
+**If `GIT_DIR == GIT_COMMON`:** Normal repo, no worktree to clean up. Done.
+
+**If worktree path is under `.worktrees/`, `worktrees/`, or `~/.config/superpowers/worktrees/`:** Superpowers-bd created this worktree — we own cleanup.
+
+```bash
+MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
+cd "$MAIN_ROOT"
+git worktree remove "$WORKTREE_PATH"
+git worktree prune  # Self-healing: clean up any stale registrations
+```
+
+**Otherwise (harness-owned workspace):** Do NOT remove it. If your platform provides a workspace-exit tool (e.g., `ExitWorktree`), use it. Otherwise, leave the workspace in place.
+
+See `references/worktree-cleanup.md` for full provenance check and removal commands.
 
 ## Quick Reference
 
@@ -130,7 +153,9 @@ Execute the user's chosen option. Each option has specific bash commands and con
 
 - **Skip test verification** -> merge broken code. Always verify tests first.
 - **Open-ended questions** -> present exactly 4 options (named branch) or 3 options (detached HEAD), not "what should I do?"
-- **Auto-cleanup worktree** -> only for Options 1 & 4, not 2 & 3.
+- **Remove harness-owned worktree** -> creates phantom state in harness registry. Check provenance (path under `.worktrees/`, `worktrees/`, or `~/.config/superpowers/worktrees/`) before running `git worktree remove`.
+- **Run `git worktree remove` from inside the worktree** -> fails silently. Always `cd` to main repo root first.
+- **Auto-cleanup without provenance check** -> only remove worktrees we created; harness-owned workspaces need the harness exit tool.
 - **No discard confirmation** -> require typed "discard" before the Discard option (Option 4 on named branch, Option 3 on detached HEAD).
 
 See `references/red-flags.md` for detailed Never/Always lists.
