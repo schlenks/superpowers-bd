@@ -2,42 +2,48 @@
 
 ## v5.6.5 (2026-05-09) - Beads Fork
 
-Three skill adoptions from the Claude Code 2.1.72+ release window: native worktree tool detection, detached-HEAD-aware branch finishing, and inline orchestrator self-review for plan verification.
+Three patterns adopted from upstream superpowers (review of v5.0.0 → v5.1.0): native worktree-tool detection, detached-HEAD-aware branch finishing, and inline orchestrator self-review for the Plan Verification Checklist. Skill prose only — no code changes, no test additions.
 
 ### Native worktree tool detection in `using-git-worktrees`
 
-The Claude Code 2.1.72 release introduced two new tools: `EnterWorktree` (create and enter a git worktree with automatic cleanup on exit) and `ExitWorktree` (clean up and return to the original directory). The `using-git-worktrees` skill now detects whether the harness has native support for these tools and prefers them over the manual `git worktree add` flow when available.
+When the harness exposes a native worktree tool (`EnterWorktree`, `WorktreeCreate`, `/worktree`, or `--worktree` flag), the skill now prefers it over manual `git worktree add`. Native tools manage directory placement, branch creation, and lifecycle hooks; using `git worktree add` alongside them creates phantom state the harness can't track.
 
-**Step 0** runs environment detection using `GIT_DIR != GIT_COMMON` to distinguish existing worktrees from normal checkouts (with a submodule guard via `git rev-parse --show-superproject-working-tree` to avoid false positives). If no preference is declared and the harness supports native tools, Step 0 asks for consent before proceeding.
+**Step 0** detects existing isolation via `GIT_DIR != GIT_COMMON` with a submodule guard (`git rev-parse --show-superproject-working-tree`) so submodule checkouts aren't misclassified as worktrees. If you're already in an isolated workspace, the skill skips creation. If not, it honors any declared preference (CLAUDE.md, prior instructions) without re-asking, otherwise prompts for consent before creating.
 
-**Step 1a** detects native worktree tool availability and dispatches to the appropriate isolation strategy:
-- **Native path:** `EnterWorktree` creates the worktree and switches into it; the user runs their work; cleanup happens automatically on exit.
-- **Fallback path:** The existing 4-task-tracked safety verification flow (select directory, gitignore check, create worktree via `git worktree add`, proceed to Step 3).
+**Step 1a** uses native tools when available. **Step 1b** is the git fallback — a 4-task-tracked sequence (select directory → verify gitignore → `git worktree add` → proceed to Step 3) that runs only when no native tool is present. Steps 3 (Project Setup: dependency install) and 4 (Verify Clean Baseline) apply to both paths.
 
-Reference files updated: `red-flags.md` now lists native-tool preferences; `creation-steps.md` scoped to the fallback path.
+Reference files updated: `red-flags.md` leads its Never list with the native-tool preference; `creation-steps.md` scoped to the fallback path.
 
 ### Detached-HEAD-aware branch finishing in `finishing-a-development-branch`
 
-The `finishing-a-development-branch` skill's Step 1.7 (environment detection) now detects whether the current branch is a named branch or a detached HEAD and adjusts the completion menu accordingly:
+Step 1.7 (new) detects environment state and chooses the completion menu:
 
-- **Named branch:** 4 options (merge locally, merge and push, rebase and push, push without merge)
-- **Detached HEAD:** 3 options (rebase and push, push without merge, create new branch). The "merge locally" option is omitted — it is not valid when not on a named branch, and offering it produces user confusion or shell errors.
+- **Named branch:** 4 options — Merge locally / Push and create PR / Keep as-is / Discard.
+- **Detached HEAD:** 3 options — Push as new branch + PR / Keep as-is / Discard. "Merge locally" is omitted because it's invalid without a named branch.
 
-Step 3's Auto mode now guards the `completion:merge-local` flow on environment state, ensuring detached HEAD prevents silent merge attempts.
+The same submodule guard from `using-git-worktrees` is reused here so submodules are treated as normal repos rather than detached worktrees.
 
-**Step 5** cleanup is now provenance-based: worktrees are only removed if their path is anchored under `$MAIN_ROOT/.worktrees/`, `$MAIN_ROOT/worktrees/`, or `$HOME/.config/superpowers/worktrees/`. Harness-owned workspaces are detected and left in place; only worktrees we created (under known prefixes) are cleaned up. When the harness exposes `ExitWorktree`, it is preferred for cleanup.
+Step 3 Auto's `completion:merge-local` strategy now guards on env state — on detached HEAD it aborts with a clear message rather than executing an invalid merge.
 
-Quick Reference tables cover both the 4-option and 3-option menus.
+**Step 5** cleanup is provenance-based with prefix-anchored matching. A worktree is removed only if its path begins with `$MAIN_ROOT/.worktrees/`, `$MAIN_ROOT/worktrees/`, or `$HOME/.config/superpowers/worktrees/`. Harness-owned workspaces use `ExitWorktree` if available, otherwise stay in place. Anchored prefix matching avoids false positives on directories whose names happen to contain `worktrees/` as a substring.
 
-### Inline orchestrator self-review for plan verification in `writing-plans`
+Common Mistakes and the Quick Reference tables cover both the 4-option and 3-option menus.
 
-The `writing-plans` skill's Plan Verification Checklist (task 2) previously dispatched a sub-agent to review the draft plan against a 9-item checklist. This release moves the checklist inline into the orchestrator (the main writing-plans skill) — the orchestrator already has full plan context and re-reading from disk would be a bottleneck.
+### Inline orchestrator self-review in `writing-plans`
 
-The self-review checklist covers the same 9 items (design clarity, scope fit, risk mitigation, rollback strategy, manual test plan, integration impact, long-term maintainability, architecture coherence, and effort estimation reasonableness). The workflow saves ~10–30 seconds per plan by skipping the sub-agent dispatch.
+Plan Verification Checklist (task 2) is now inline orchestrator self-review instead of a sonnet sub-agent dispatch. The orchestrator just wrote the plan and has full context — a sub-agent would re-read it from disk for no gain.
 
-Tasks 3–7 (the rule-of-five-plans passes) continue to dispatch sub-agents for independent review. The verification-footer.md contract updated to document "5 sub-agent verdicts + 1 inline checklist".
+The 9 checklist items are unchanged: **Complete, Accurate, Commands valid, YAGNI, Minimal, Not over-engineered, Key Decisions documented, Context sections present, File Structure complete**. The orchestrator runs through them, edits the plan inline to fix any issues, and announces per-item results before proceeding to rule-of-five-plans dispatch.
 
-**Files Modified (21):** `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `skills/{using-git-worktrees,finishing-a-development-branch,writing-plans}/SKILL.md`, `skills/using-git-worktrees/{red-flags.md,creation-steps.md}`, `skills/finishing-a-development-branch/{common-mistakes.md,quick-reference.md}`, `skills/writing-plans/{verification-footer.md}`
+Tasks 3–7 (rule-of-five-plans Draft, Feasibility, Completeness, Risk, Optimality passes) continue to dispatch sub-agents — they apply distinct lenses worth fresh context. `verification-footer.md` updated to document the new "5 sub-agent verdicts + 1 inline checklist" contract; `verification-dispatch.md` no longer carries the Checklist Pass template.
+
+Net savings: one fewer sub-agent dispatch per plan (~10–30s), same defect coverage.
+
+### Adoption sourcing
+
+These patterns were ported from upstream superpowers v5.0.0 → v5.1.0 (50-day window, 8 patch releases + one major). The fork-side review identified them as high-value alongside lower-priority items (multi-platform support, slash command deprecation, code-reviewer agent consolidation) that we deliberately skipped given our different harness surface.
+
+**Files Modified:** 14 files across the worktree-create flow (`skills/using-git-worktrees/SKILL.md` + 2 references), the worktree-finish flow (`skills/finishing-a-development-branch/SKILL.md` + `worktree-cleanup.md`), the plan-verification flow (`skills/writing-plans/SKILL.md` + 3 references), plus release artifacts (`.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `CHANGELOG.md`, `RELEASE-NOTES.md`) and the planning doc (`docs/plans/2026-05-09-worktree-detection-and-inline-plan-review.md`).
 
 ## v5.6.4 (2026-05-09) - Beads Fork
 
