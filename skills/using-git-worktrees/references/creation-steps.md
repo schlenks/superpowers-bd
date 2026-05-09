@@ -1,5 +1,7 @@
 # Creation Steps (Full Detail)
 
+**Scope:** This file describes the **Step 1b git-worktree fallback** flow. If a native worktree tool (`EnterWorktree`, etc.) is available, Step 1a applies and the harness manages directory placement, branch creation, and lifecycle — the task-tracked flow below does NOT apply.
+
 ## Task Definitions
 
 **Create setup tasks with dependencies:**

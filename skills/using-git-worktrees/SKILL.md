@@ -72,14 +72,12 @@ See `references/directory-selection.md` for full bash commands and ask-user flow
 
 See `references/safety-verification.md` for full verification protocol.
 
-**Creation Steps (Task-Tracked):** Create 6 native tasks, each blocked by the previous (non-skippable sequence):
+**Creation Steps (Task-Tracked):** Create 4 native tasks, each blocked by the previous (non-skippable sequence):
 
 1. **Select worktree directory location** -- Check existing dirs, CLAUDE.md, or ask user
 2. **Verify gitignore for project-local directory** -- Run `git check-ignore`, add to `.gitignore` if needed
 3. **Create worktree** -- `git worktree add <path> -b <branch>`
-4. **Install dependencies** -- Auto-detect project type, run appropriate install command
-5. **Run baseline tests** -- Capture output showing pass/fail; ask user if tests fail
-6. **Worktree ready** -- Report location and test status; only complete if tests passed
+4. **Proceed to Step 3 (Project Setup)** -- Steps 3 and 4 below run dependency installation and baseline tests for both native and fallback paths.
 
 See `references/creation-steps.md` for full TaskCreate blocks, bash commands, and setup detection.
 
