@@ -40,12 +40,16 @@ Create a "Pre-merge simplification" task blocked by test verification. Get chang
 GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
 GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
 BRANCH=$(git branch --show-current)
+SUPERPROJECT=$(git rev-parse --show-superproject-working-tree 2>/dev/null)
 ```
+
+**Submodule guard:** If `SUPERPROJECT` is non-empty, you are inside a submodule. Treat it as a normal repo (no worktree cleanup, no detached-HEAD menu reduction). `GIT_DIR != GIT_COMMON` is also true in submodules, so always check `SUPERPROJECT` first.
 
 This determines which menu to show in Step 3:
 
 | State | Menu | Cleanup behavior |
 |-------|------|------------------|
+| `SUPERPROJECT` non-empty (submodule) | Standard 4 options | Treat as normal repo |
 | `GIT_DIR == GIT_COMMON` (normal repo) | Standard 4 options | No worktree to clean up |
 | `GIT_DIR != GIT_COMMON`, named branch | Standard 4 options | Provenance-based (Step 5) |
 | `GIT_DIR != GIT_COMMON`, detached HEAD | Reduced 3 options (no merge) | No cleanup (externally managed) |
@@ -62,6 +66,9 @@ Or ask: "This branch split from main - is that correct?"
 ### Step 3 Auto: Execute Pre-Chosen Strategy
 
 If the epic has a `completion:*` label, execute automatically:
+
+**Before executing:** check env state from Step 1.7. If `BRANCH` is empty (detached HEAD) AND label is `completion:merge-local`, abort:
+> "completion:merge-local is invalid on detached HEAD. Re-tag the epic with completion:push-pr or resolve manually."
 
 | Label | Action |
 |-------|--------|
@@ -102,6 +109,8 @@ Execute the user's chosen option. Each option has specific bash commands and con
 
 ## Quick Reference
 
+**Named branch:**
+
 | Option | Merge | Push | Keep Worktree | Cleanup Branch |
 |--------|-------|------|---------------|----------------|
 | 1. Merge locally | Y | - | - | Y |
@@ -109,12 +118,20 @@ Execute the user's chosen option. Each option has specific bash commands and con
 | 3. Keep as-is | - | - | Y | - |
 | 4. Discard | - | - | - | Y (force) |
 
+**Detached HEAD:**
+
+| Option | Push | Keep Worktree | Cleanup Branch |
+|--------|------|---------------|----------------|
+| 1. Push as new branch + PR | yes | yes | - |
+| 2. Keep as-is | - | yes | - |
+| 3. Discard | - | - | yes (force) |
+
 ## Common Mistakes
 
 - **Skip test verification** -> merge broken code. Always verify tests first.
-- **Open-ended questions** -> present exactly 4 options, not "what should I do?"
+- **Open-ended questions** -> present exactly 4 options (named branch) or 3 options (detached HEAD), not "what should I do?"
 - **Auto-cleanup worktree** -> only for Options 1 & 4, not 2 & 3.
-- **No discard confirmation** -> require typed "discard" before Option 4.
+- **No discard confirmation** -> require typed "discard" before the Discard option (Option 4 on named branch, Option 3 on detached HEAD).
 
 See `references/red-flags.md` for detailed Never/Always lists.
 
