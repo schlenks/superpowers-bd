@@ -110,6 +110,7 @@ Only runs for actions that delete the branch (Merge locally, Discard). Branch on
 - **Detached HEAD (3-option menu):** Option 3 (Discard) triggers cleanup; Options 1 (PR) and 2 (Keep) preserve the worktree.
 
 ```bash
+# Re-detecting for clarity; may already be set from Step 1.7
 GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
 GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
 WORKTREE_PATH=$(git rev-parse --show-toplevel)
@@ -117,13 +118,22 @@ WORKTREE_PATH=$(git rev-parse --show-toplevel)
 
 **If `GIT_DIR == GIT_COMMON`:** Normal repo, no worktree to clean up. Done.
 
-**If worktree path is under `.worktrees/`, `worktrees/`, or `~/.config/superpowers/worktrees/`:** Superpowers-bd created this worktree — we own cleanup.
+**Use prefix-anchored matching against `$MAIN_ROOT` and `$HOME`** to determine ownership. Substring matching risks false-positives (e.g. `/home/user/worktrees-backup/` would incorrectly match an unanchored `worktrees/` check):
 
 ```bash
+# Compute MAIN_ROOT for anchored matching
 MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
-cd "$MAIN_ROOT"
-git worktree remove "$WORKTREE_PATH"
-git worktree prune  # Self-healing: clean up any stale registrations
+
+if [[ "$WORKTREE_PATH" == "$MAIN_ROOT/.worktrees/"* ]] || \
+   [[ "$WORKTREE_PATH" == "$MAIN_ROOT/worktrees/"* ]] || \
+   [[ "$WORKTREE_PATH" == "$HOME/.config/superpowers/worktrees/"* ]]; then
+  # superpowers-owned: git worktree remove
+  cd "$MAIN_ROOT"
+  git worktree remove "$WORKTREE_PATH"
+  git worktree prune  # Self-healing: clean up any stale registrations
+else
+  # harness-owned: ExitWorktree or leave in place
+fi
 ```
 
 **Otherwise (harness-owned workspace):** Do NOT remove it. If your platform provides a workspace-exit tool (e.g., `ExitWorktree`), use it. Otherwise, leave the workspace in place.
@@ -153,7 +163,7 @@ See `references/worktree-cleanup.md` for full provenance check and removal comma
 
 - **Skip test verification** -> merge broken code. Always verify tests first.
 - **Open-ended questions** -> present exactly 4 options (named branch) or 3 options (detached HEAD), not "what should I do?"
-- **Remove harness-owned worktree** -> creates phantom state in harness registry. Check provenance (path under `.worktrees/`, `worktrees/`, or `~/.config/superpowers/worktrees/`) before running `git worktree remove`.
+- **Remove harness-owned worktree** -> creates phantom state in harness registry. Check provenance (prefix-anchored to `$MAIN_ROOT/.worktrees/`, `$MAIN_ROOT/worktrees/`, or `$HOME/.config/superpowers/worktrees/`) before running `git worktree remove`.
 - **Run `git worktree remove` from inside the worktree** -> fails silently. Always `cd` to main repo root first.
 - **Auto-cleanup without provenance check** -> only remove worktrees we created; harness-owned workspaces need the harness exit tool.
 - **No discard confirmation** -> require typed "discard" before the Discard option (Option 4 on named branch, Option 3 on detached HEAD).
