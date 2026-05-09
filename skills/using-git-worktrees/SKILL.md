@@ -43,9 +43,21 @@ Has the user already indicated their worktree preference (CLAUDE.md, brainstormi
 
 If the user declines consent, work in place and skip to Step 3 (Project Setup).
 
-## Directory Selection Process
+## Step 1: Create Isolated Workspace
 
-Follow this priority order:
+### Step 1a: Native Worktree Tool (preferred)
+
+The user has consented to an isolated workspace (Step 0). Do you already have a way to create one? It might be a tool with a name like `EnterWorktree`, `WorktreeCreate`, a `/worktree` command, or a `--worktree` flag. If you do, use it and skip directly to Step 3 (Project Setup).
+
+Native tools manage directory placement, branch creation, and harness lifecycle hooks (`WorktreeCreate`/`WorktreeRemove`). Using `git worktree add` when you have a native tool creates phantom state your harness can't see or manage.
+
+Only proceed to Step 1b if you have no native worktree tool available.
+
+### Step 1b: Git Worktree Fallback
+
+**Only use this if Step 1a does not apply** — you have no native worktree tool. Create a worktree manually using git via the task-tracked flow below.
+
+Follow this priority order to select the directory:
 
 1. **Check existing directories** -- Use `.worktrees/` or `worktrees/` if present (`.worktrees/` wins if both exist)
 2. **Check CLAUDE.md** -- Use any worktree directory preference specified there
@@ -53,19 +65,14 @@ Follow this priority order:
 
 See `references/directory-selection.md` for full bash commands and ask-user flow.
 
-## Safety Verification
-
-For project-local directories only (not needed for global):
-
+**Safety verification (project-local only):**
 1. **Check gitignore** -- `git check-ignore -q .worktrees` to verify directory is ignored
 2. **Add if needed** -- Add to `.gitignore` if not ignored
 3. **Commit** -- Commit the `.gitignore` change before proceeding
 
 See `references/safety-verification.md` for full verification protocol.
 
-## Creation Steps (Task-Tracked)
-
-**Create 6 native tasks, each blocked by the previous (non-skippable sequence):**
+**Creation Steps (Task-Tracked):** Create 6 native tasks, each blocked by the previous (non-skippable sequence):
 
 1. **Select worktree directory location** -- Check existing dirs, CLAUDE.md, or ask user
 2. **Verify gitignore for project-local directory** -- Run `git check-ignore`, add to `.gitignore` if needed
@@ -76,10 +83,30 @@ See `references/safety-verification.md` for full verification protocol.
 
 See `references/creation-steps.md` for full TaskCreate blocks, bash commands, and setup detection.
 
+## Step 3: Project Setup
+
+After workspace is established (whether via native tool or git fallback), auto-detect and run setup:
+
+```bash
+if [ -f package.json ]; then npm install; fi
+if [ -f Cargo.toml ]; then cargo build; fi
+if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+if [ -f pyproject.toml ]; then poetry install; fi
+if [ -f go.mod ]; then go mod download; fi
+```
+
+## Step 4: Verify Clean Baseline
+
+Run the project test suite. Report pass/fail. If failing, ask before proceeding.
+
 ## Quick Reference
 
 | Situation | Action |
 |-----------|--------|
+| Already in linked worktree (Step 0) | Skip creation, go to Step 3 |
+| In a submodule | Treat as normal repo (Step 0 guard) |
+| Native worktree tool available | Use it (Step 1a), skip fallback |
+| No native tool | Git worktree fallback (Step 1b) |
 | `.worktrees/` exists | Use it (verify ignored) |
 | `worktrees/` exists | Use it (verify ignored) |
 | Both exist | Use `.worktrees/` |
