@@ -1,5 +1,44 @@
 # Superpowers Release Notes
 
+## v5.6.5 (2026-05-09) - Beads Fork
+
+Three skill adoptions from the Claude Code 2.1.72+ release window: native worktree tool detection, detached-HEAD-aware branch finishing, and inline orchestrator self-review for plan verification.
+
+### Native worktree tool detection in `using-git-worktrees`
+
+The Claude Code 2.1.72 release introduced two new tools: `EnterWorktree` (create and enter a git worktree with automatic cleanup on exit) and `ExitWorktree` (clean up and return to the original directory). The `using-git-worktrees` skill now detects whether the harness has native support for these tools and prefers them over the manual `git worktree add` flow when available.
+
+**Step 0** runs environment detection using `GIT_DIR != GIT_COMMON` to distinguish existing worktrees from normal checkouts (with a submodule guard via `git rev-parse --show-superproject-working-tree` to avoid false positives). If no preference is declared and the harness supports native tools, Step 0 asks for consent before proceeding.
+
+**Step 1a** detects native worktree tool availability and dispatches to the appropriate isolation strategy:
+- **Native path:** `EnterWorktree` creates the worktree and switches into it; the user runs their work; cleanup happens automatically on exit.
+- **Fallback path:** The existing 4-task-tracked safety verification flow (select directory, gitignore check, create worktree via `git worktree add`, proceed to Step 3).
+
+Reference files updated: `red-flags.md` now lists native-tool preferences; `creation-steps.md` scoped to the fallback path.
+
+### Detached-HEAD-aware branch finishing in `finishing-a-development-branch`
+
+The `finishing-a-development-branch` skill's Step 1.7 (environment detection) now detects whether the current branch is a named branch or a detached HEAD and adjusts the completion menu accordingly:
+
+- **Named branch:** 4 options (merge locally, merge and push, rebase and push, push without merge)
+- **Detached HEAD:** 3 options (rebase and push, push without merge, create new branch). The "merge locally" option is omitted — it is not valid when not on a named branch, and offering it produces user confusion or shell errors.
+
+Step 3's Auto mode now guards the `completion:merge-local` flow on environment state, ensuring detached HEAD prevents silent merge attempts.
+
+**Step 5** cleanup is now provenance-based: worktrees are only removed if their path is anchored under `$MAIN_ROOT/.worktrees/`, `$MAIN_ROOT/worktrees/`, or `$HOME/.config/superpowers/worktrees/`. Harness-owned workspaces are detected and left in place; only worktrees we created (under known prefixes) are cleaned up. When the harness exposes `ExitWorktree`, it is preferred for cleanup.
+
+Quick Reference tables cover both the 4-option and 3-option menus.
+
+### Inline orchestrator self-review for plan verification in `writing-plans`
+
+The `writing-plans` skill's Plan Verification Checklist (task 2) previously dispatched a sub-agent to review the draft plan against a 9-item checklist. This release moves the checklist inline into the orchestrator (the main writing-plans skill) — the orchestrator already has full plan context and re-reading from disk would be a bottleneck.
+
+The self-review checklist covers the same 9 items (design clarity, scope fit, risk mitigation, rollback strategy, manual test plan, integration impact, long-term maintainability, architecture coherence, and effort estimation reasonableness). The workflow saves ~10–30 seconds per plan by skipping the sub-agent dispatch.
+
+Tasks 3–7 (the rule-of-five-plans passes) continue to dispatch sub-agents for independent review. The verification-footer.md contract updated to document "5 sub-agent verdicts + 1 inline checklist".
+
+**Files Modified (21):** `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `skills/{using-git-worktrees,finishing-a-development-branch,writing-plans}/SKILL.md`, `skills/using-git-worktrees/{red-flags.md,creation-steps.md}`, `skills/finishing-a-development-branch/{common-mistakes.md,quick-reference.md}`, `skills/writing-plans/{verification-footer.md}`
+
 ## v5.6.4 (2026-05-09) - Beads Fork
 
 Three adoptions from the Claude Code 2.1.120–2.1.138 release window. Minimum supported Claude Code version is now 2.1.133.

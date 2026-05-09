@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.6.5] - 2026-05-09
+
+### Changed
+
+- **Worktree native-tool detection** (`using-git-worktrees`):
+  - Step 0: detect existing isolation via `GIT_DIR != GIT_COMMON` (with submodule guard via `git rev-parse --show-superproject-working-tree`)
+  - Consent gating before creation when no preference declared
+  - Step 1a: prefer native worktree tools (`EnterWorktree`, `WorktreeCreate`, `--worktree`) over `git worktree add`
+  - Step 1b: fallback flow simplified to 4 task-tracked steps (select dir, gitignore check, create worktree, proceed to Step 3)
+  - Reference files: red-flags.md updated; creation-steps.md scoped to fallback path
+
+- **Branch finishing** (`finishing-a-development-branch`):
+  - Step 1.7: environment detection chooses menu (4 options on named branch, 3 options on detached HEAD; submodule guard present)
+  - Step 3 Auto: detached-HEAD env-state guard rejects `completion:merge-local`
+  - Step 5 cleanup: provenance-based with prefix-anchored path matching against `$MAIN_ROOT/.worktrees/`, `$MAIN_ROOT/worktrees/`, `$HOME/.config/superpowers/worktrees/`. Harness-owned workspaces use ExitWorktree if available
+  - Quick Reference includes both 4-option and 3-option tables
+
+- **Plan verification** (`writing-plans`):
+  - Plan Verification Checklist (task 2) is now inline orchestrator self-review, not a sonnet sub-agent dispatch
+  - Tasks 3–7 (rule-of-five-plans passes) continue to dispatch sub-agents as before
+  - ~10–30s saved per plan; same 9-item checklist coverage
+  - verification-footer.md updated to "5 sub-agent verdicts + 1 inline checklist" contract
+
 ## [5.6.4] - 2026-05-09
 
 ### Changed
