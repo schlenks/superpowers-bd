@@ -32,6 +32,24 @@ Create a "Verify all tests pass" task. Run the project's full test suite.
 
 Create a "Pre-merge simplification" task blocked by test verification. Get changed files: first run `git merge-base HEAD main` to get the base SHA, then `git diff --name-only <base-sha>..HEAD`. Dispatch `code-simplifier:code-simplifier` on the full changeset. If changes made, re-run tests -- revert if they fail, commit if they pass. See `references/pre-merge-simplification.md`.
 
+### Step 1.7: Detect Environment
+
+**Determine workspace state before presenting options:**
+
+```bash
+GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
+GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
+BRANCH=$(git branch --show-current)
+```
+
+This determines which menu to show in Step 3:
+
+| State | Menu | Cleanup behavior |
+|-------|------|------------------|
+| `GIT_DIR == GIT_COMMON` (normal repo) | Standard 4 options | No worktree to clean up |
+| `GIT_DIR != GIT_COMMON`, named branch | Standard 4 options | Provenance-based (Step 5) |
+| `GIT_DIR != GIT_COMMON`, detached HEAD | Reduced 3 options (no merge) | No cleanup (externally managed) |
+
 ### Step 2: Determine Base Branch
 
 ```bash
@@ -56,12 +74,20 @@ Skip to Step 5 if applicable. See `references/completion-strategies.md`.
 
 ### Step 3 Manual: Present Options
 
-If no `completion:*` label, present exactly 4 choices:
+If no `completion:*` label, present options based on HEAD state from Step 1.7.
+
+**On a named branch (normal repo or named-branch worktree) — present exactly these 4 choices:**
 
 1. Merge back to \<base-branch\> locally
 2. Push and create a Pull Request
 3. Keep the branch as-is (I'll handle it later)
 4. Discard this work
+
+**On detached HEAD (externally managed workspace) — present exactly these 3 choices:**
+
+1. Push as new branch and create a Pull Request
+2. Keep as-is (I'll handle it later)
+3. Discard this work
 
 Keep options concise. See `references/completion-strategies.md`.
 
