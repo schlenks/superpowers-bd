@@ -21,20 +21,10 @@ TaskCreate: "Create worktree"
   activeForm: "Creating worktree"
   addBlockedBy: [verify-gitignore-task-id]
 
-TaskCreate: "Install dependencies"
-  description: "Auto-detect project type. Run appropriate install command."
-  activeForm: "Installing dependencies"
+TaskCreate: "Proceed to Step 3 (Project Setup)"
+  description: "Steps 3 and 4 (project setup and baseline tests) run outside this task-tracked sequence — same work for both native and fallback paths."
+  activeForm: "Transitioning to Step 3"
   addBlockedBy: [create-task-id]
-
-TaskCreate: "Run baseline tests"
-  description: "Run project test suite. MUST capture output showing pass/fail."
-  activeForm: "Running baseline tests"
-  addBlockedBy: [install-task-id]
-
-TaskCreate: "Worktree ready"
-  description: "Report location and test status. Only complete if tests passed."
-  activeForm: "Finalizing worktree setup"
-  addBlockedBy: [baseline-tests-task-id]
 ```
 
 **ENFORCEMENT:** Each step is blocked by the previous, making the setup process visible and non-skippable.
@@ -95,9 +85,9 @@ pytest
 go test ./...
 ```
 
-**If tests fail:** Report failures, ask whether to proceed or investigate. Leave baseline tests task incomplete.
+**If tests fail:** Report failures, ask whether to proceed or investigate.
 
-**If tests pass:** Mark baseline tests task complete. Report ready.
+**If tests pass:** Report ready.
 
 ## 5. Report Location
 
@@ -106,8 +96,6 @@ Worktree ready at <full-path>
 Tests passing (<N> tests, 0 failures)
 Ready to implement <feature-name>
 ```
-
-**Mark "Worktree ready" task as complete.**
 
 ## 6. Leaving a Worktree
 
