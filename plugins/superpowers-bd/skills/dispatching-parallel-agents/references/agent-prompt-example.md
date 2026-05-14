@@ -1,0 +1,39 @@
+# Agent Prompt Example
+
+## Full Detailed Prompt
+
+Good agent prompts are:
+1. **Focused** - One clear problem domain
+2. **Self-contained** - All context needed to understand the problem
+3. **Specific about output** - What should the agent return?
+
+### Example: Fixing Test Failures
+
+```markdown
+Fix the 3 failing tests in src/agents/agent-tool-abort.test.ts:
+
+1. "should abort tool with partial output capture" - expects 'interrupted at' in message
+2. "should handle mixed completed and aborted tools" - fast tool aborted instead of completed
+3. "should properly track pendingToolCount" - expects 3 results but gets 0
+
+These are timing/race condition issues. Your task:
+
+1. Read the test file and understand what each test verifies
+2. Identify root cause - timing issues or actual bugs?
+3. Fix by:
+   - Replacing arbitrary timeouts with event-based waiting
+   - Fixing bugs in abort implementation if found
+   - Adjusting test expectations if testing changed behavior
+
+Do NOT just increase timeouts - find the real issue.
+
+Return: Summary of what you found and what you fixed.
+```
+
+### Why This Works
+
+- **Test names listed explicitly** - agent knows exactly which tests to focus on
+- **Error descriptions included** - agent understands the symptoms
+- **Root cause hint provided** - "timing/race condition" narrows investigation
+- **Constraints are clear** - "Do NOT just increase timeouts"
+- **Output format specified** - "Summary of what you found and what you fixed"

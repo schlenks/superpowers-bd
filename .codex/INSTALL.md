@@ -12,28 +12,28 @@ codex plugin marketplace add ~/.codex/plugins/superpowers-bd
 
 Then install or enable `superpowers-bd` in Codex and restart Codex so the bundled skills load.
 
-## Legacy Bootstrap Fallback
+## Manual Bootstrap Fallback
 
 Use this only if native plugin installation is unavailable.
 
 ```bash
 mkdir -p ~/.codex
-git clone https://github.com/schlenks/superpowers-bd.git ~/.codex/superpowers
+git clone https://github.com/schlenks/superpowers-bd.git ~/.codex/superpowers-bd
 mkdir -p ~/.codex/skills
 ```
 
 Add this to `~/.codex/AGENTS.md`:
 
 ```markdown
-## Superpowers System
+## Superpowers-BD System
 
 <EXTREMELY_IMPORTANT>
-You have superpowers. RIGHT NOW run: `~/.codex/superpowers/.codex/superpowers-codex bootstrap` and follow the instructions it returns.
+You have Superpowers-BD. RIGHT NOW run: `~/.codex/superpowers-bd/.codex/superpowers-bd-codex bootstrap` and follow the instructions it returns.
 </EXTREMELY_IMPORTANT>
 ```
 
 Verify:
 
 ```bash
-~/.codex/superpowers/.codex/superpowers-codex find-skills
+~/.codex/superpowers-bd/.codex/superpowers-bd-codex find-skills
 ```

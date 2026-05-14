@@ -3,7 +3,7 @@
 Superpowers-BD can be used from Codex in two ways:
 
 1. **Native Codex plugin** (preferred): Codex reads `.codex-plugin/plugin.json` and bundled skills directly.
-2. **Legacy bootstrap fallback**: Codex loads skills through `.codex/superpowers-codex` from `~/.codex/AGENTS.md`.
+2. **Manual bootstrap fallback**: Codex loads skills through `.codex/superpowers-bd-codex` from `~/.codex/AGENTS.md`.
 
 ## Native Plugin Install
 
@@ -23,30 +23,30 @@ codex plugin marketplace add ~/.codex/plugins/superpowers-bd
 
 Then install or enable `superpowers-bd` from Codex's plugin UI/flow. Restart Codex after enabling the plugin so bundled skills are discovered.
 
-## Legacy Bootstrap Install
+## Manual Bootstrap Install
 
 Use this only when native plugin installation is unavailable.
 
 ```bash
 mkdir -p ~/.codex
-git clone https://github.com/schlenks/superpowers-bd.git ~/.codex/superpowers
+git clone https://github.com/schlenks/superpowers-bd.git ~/.codex/superpowers-bd
 mkdir -p ~/.codex/skills
 ```
 
 Add this section to `~/.codex/AGENTS.md`:
 
 ```markdown
-## Superpowers System
+## Superpowers-BD System
 
 <EXTREMELY_IMPORTANT>
-You have superpowers. RIGHT NOW run: `~/.codex/superpowers/.codex/superpowers-codex bootstrap` and follow the instructions it returns.
+You have Superpowers-BD. RIGHT NOW run: `~/.codex/superpowers-bd/.codex/superpowers-bd-codex bootstrap` and follow the instructions it returns.
 </EXTREMELY_IMPORTANT>
 ```
 
 Verify:
 
 ```bash
-~/.codex/superpowers/.codex/superpowers-codex find-skills
+~/.codex/superpowers-bd/.codex/superpowers-bd-codex find-skills
 ```
 
 ## Skill Usage
@@ -59,11 +59,11 @@ Use $plan2beads to import docs/plans/my-plan.md.
 Use $ad-hoc-code-review to review my uncommitted changes.
 ```
 
-Legacy bootstrap install:
+Manual bootstrap install:
 
 ```bash
-~/.codex/superpowers/.codex/superpowers-codex use-skill superpowers:brainstorming
-~/.codex/superpowers/.codex/superpowers-codex use-skill superpowers:plan2beads
+~/.codex/superpowers-bd/.codex/superpowers-bd-codex use-skill superpowers-bd:brainstorming
+~/.codex/superpowers-bd/.codex/superpowers-bd-codex use-skill superpowers-bd:plan2beads
 ```
 
 ## Codex Tool Mapping
@@ -73,7 +73,7 @@ Skills were originally written for Claude Code and are adapted for Codex with th
 - `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` -> `update_plan`
 - `Task` with `run_in_background: true` -> `spawn_agent`, then `wait_agent` only when blocked on results
 - `AskUserQuestion` -> direct user question, or structured question tool when available
-- `Skill` tool -> native `$skill-name` invocation, or the legacy `superpowers-codex use-skill` command
+- `Skill` tool -> native `$skill-name` invocation, or the manual `superpowers-bd-codex use-skill` command
 - File operations -> native Codex tools
 
 For durable project tracking in repositories that use beads, keep `bd` as the source of truth for work items and dependencies. Use Codex progress tools for the execution checklist inside a skill.
@@ -97,10 +97,10 @@ cd ~/.codex/plugins/superpowers-bd
 git pull
 ```
 
-Legacy bootstrap install:
+Manual bootstrap install:
 
 ```bash
-cd ~/.codex/superpowers
+cd ~/.codex/superpowers-bd
 git pull
 ```
 
@@ -114,15 +114,15 @@ Restart Codex after updating.
 2. Verify plugin manifest: `jq . ~/.codex/plugins/superpowers-bd/.codex-plugin/plugin.json`
 3. Restart Codex after enabling the plugin
 
-### Legacy CLI script not executable
+### Manual fallback CLI script not executable
 
 ```bash
-chmod +x ~/.codex/superpowers/.codex/superpowers-codex
+chmod +x ~/.codex/superpowers-bd/.codex/superpowers-bd-codex
 ```
 
-### Node.js errors in legacy mode
+### Node.js errors in manual mode
 
-The legacy CLI is tested with modern Node.js. Use Node 20+.
+The manual fallback CLI is tested with modern Node.js. Use Node 20+.
 
 ## Development Tests
 

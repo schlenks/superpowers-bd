@@ -1,0 +1,256 @@
+# Background Execution with Polling
+
+## When to Use
+
+For 2+ tasks per wave (up to the configured wave cap — default 5 for 1M context, 3 for 200k), background execution lets you monitor all tasks simultaneously and start reviews as soon as each completes—without waiting for all implementations to finish.
+
+Use `run_in_background: true` — you are automatically notified when each agent completes, then `Read` its output file for the verdict.
+
+## Dispatch Phase
+
+```python
+pending_tasks = {}  # task_id -> {issue_id, complexity, base_sha, ...}
+task_ids = []
+
+# Capture pre-implementation SHA (see dispatch-and-conflict.md)
+# Note: all tasks in wave share this base. If A commits before B, B's review
+# diff will include A's files — non-overlapping by design, bounded noise.
+wave_base_sha = run("git rev-parse HEAD")
+
+for issue in parallelizable:
+    bd update <issue.id> --status=in_progress
+    # Read complexity label (set at plan time, see dispatch-and-conflict.md)
+    impl_model = resolve_impl_model(issue.complexity, budget_tier)
+    result = Task(
+        subagent_type="general-purpose",
+        model=impl_model,  # complexity-adjusted: see SKILL.md Budget Tier Selection
+        run_in_background=True,
+        description=f"Implement: {issue.id} {issue.title}",
+        prompt=implementer_prompt
+    )
+    pending_tasks[result.task_id] = {
+        "issue_id": issue.id,
+        "complexity": issue.complexity,
+        "base_sha": wave_base_sha  # stored for review dispatch
+    }
+    task_ids.append(result.task_id)
+```
+
+## Monitor Phase
+
+Sub-agents persist full reports to beads comments. Only structured verdicts flow through the agent's final output.
+
+Background agents notify automatically on completion — do NOT poll or sleep. When notified, `Read` the agent's output file path to retrieve the verdict.
+
+```python
+# Event-driven: you are notified per-agent as each completes
+on_agent_complete(task_id, output_file_path):
+    result = Read(output_file_path)
+    # Parse structured verdict (5-6 lines, not full report)
+    verdict = parse_verdict(result)
+            # Expected fields vary by status:
+            # DONE/DONE_WITH_CONCERNS: VERDICT, COMMIT, FILES, TESTS, SCOPE, REPORT_PERSISTED, [CONCERNS]
+            # BLOCKED/NEEDS_CONTEXT: VERDICT, BLOCKER, REPORT_PERSISTED
+
+            # Capture metrics per metrics-tracking.md keying scheme (accumulate on retry, don't overwrite)
+
+            # Fallback: if REPORT_PERSISTED: NO, try to recover the report
+            if verdict.report_persisted == "NO":
+                dispatch_full_report_fallback(task_id, issue_id)
+
+            # Route by status (always — report persistence is independent of routing)
+            on_implementer_complete(task_id, verdict)
+            task_ids.remove(task_id)
+
+    # Review completions arrive the same way — notification + Read
+    on_review_complete(review_id, output_file_path):
+        result = Read(output_file_path)
+        # Parse structured verdict (2-3 lines)
+        verdict = parse_verdict(result)
+
+            # Capture metrics per metrics-tracking.md keying scheme (accumulate on retry, don't overwrite)
+
+            # Fallback: if REPORT_PERSISTED: NO, re-dispatch for full report
+            if verdict.report_persisted == "NO":
+                dispatch_full_report_fallback(review_id, issue_id)
+            else:
+                process_review(review_id, verdict)
+```
+
+## REPORT_PERSISTED Fallback
+
+If a sub-agent returns `REPORT_PERSISTED: NO`, the full report was not saved to beads. The orchestrator re-dispatches a lightweight agent to retrieve it:
+
+```python
+def dispatch_full_report_fallback(task_id, issue_id):
+    # One-time context cost — only triggers on bd write failure
+    fallback = Task(
+        subagent_type="general-purpose",
+        model="haiku",
+        description=f"Retrieve report: {issue_id}",
+        prompt=f"The previous agent for {issue_id} failed to persist its report. "
+               f"Run: bd comments {issue_id} --json "
+               f"If the report is missing, report MISSING. Otherwise return the report."
+    )
+    # If still missing, orchestrator falls back to old pattern:
+    # re-dispatch the original agent asking for full report via Read on output file
+```
+
+## Review Pipeline Parallelism
+
+Reviews for DIFFERENT tasks can run in parallel:
+
+```
+Timeline (3 tasks, N=3 reviews, max parallelism):
+─────────────────────────────────────────────────────────────────────────
+Task A: [implement]────[spec-A]────[code-A×3 + codex-A]────[agg-A]────→ close
+Task B:    [implement]────[spec-B]────[code-B×3 + codex-B]────[agg-B]────→ close
+Task C:       [implement]────[spec-C]────[code-C×3 + codex-C]──[agg-C]──→ close
+                       ↑         ↑               ↑
+                       └─parallel─┘    (codex dispatched alongside claude reviewers)
+```
+
+**Rules:**
+- Spec review for A || Spec review for B ✅
+- Code review A must wait for spec review A ❌ (sequential)
+- Code review for A || Code review for B ✅
+- Codex review for A dispatched in same message as code reviews for A ✅
+
+## Event-Driven Dispatch
+
+```python
+on_implementer_complete(task_id, result):
+    verdict = parse_verdict(result.output)
+    # Expected: VERDICT, and conditionally COMMIT/FILES/TESTS/SCOPE/REPORT_PERSISTED/CONCERNS/BLOCKER
+
+    if verdict.status in ("DONE", "DONE_WITH_CONCERNS"):
+        head_sha = verdict.COMMIT
+        base_sha = pending_tasks[task_id]["base_sha"]
+        pending_tasks[task_id]["head_sha"] = head_sha
+
+        if verdict.status == "DONE_WITH_CONCERNS":
+            pending_tasks[task_id]["concerns"] = verdict.CONCERNS
+            # Forward concerns to spec reviewer for focused attention
+
+        # Dispatch spec review (unchanged from here)
+        task_complexity = pending_tasks[task_id]["complexity"]
+        spec_model = "sonnet" if task_complexity == "complex" and budget_tier != "pro/api" else "haiku"
+        spec_task = Task(
+            model=spec_model,
+            run_in_background=True,
+            description=f"Spec review: {task_id}",
+            ...
+        )
+        pending_spec_reviews.add(spec_task)
+
+    elif verdict.status == "NEEDS_CONTEXT":
+        redispatch_count = pending_tasks[task_id].get("redispatch_count", 0) + 1
+        pending_tasks[task_id]["redispatch_count"] = redispatch_count
+        if redispatch_count > 2:
+            escalated_tasks[task_id] = verdict.BLOCKER
+            report_to_human(task_id, verdict.BLOCKER,
+                note="Implementer asked for context 3 times. Human clarification needed.")
+        else:
+            # Re-dispatch with same model + additional context addressing the BLOCKER
+            redispatch_with_context(task_id, verdict.BLOCKER, same_model=True)
+
+    elif verdict.status == "BLOCKED":
+        blocker = verdict.BLOCKER
+        # Assess blocker — see failure-recovery.md for full playbook
+        # Options: provide context, upgrade model, break task, escalate to human
+        handle_blocked_implementer(task_id, blocker)
+
+on_spec_review_pass(task_id, result):
+    base_sha = pending_tasks[task_id]["base_sha"]  # captured before wave dispatch
+    head_sha = pending_tasks[task_id]["head_sha"]   # from implementer's COMMIT verdict
+    n_reviews = tier_n_reviews  # 3 for max-20x/max-5x, 1 for pro/api
+
+    # Trivial change override: skip multi-review for tiny diffs
+    diff_stat = run(f"git diff --stat {base_sha}..{head_sha}")
+    diff_lines = parse_insertions_plus_deletions(diff_stat)
+    if diff_lines <= 10 and n_reviews > 1:
+        n_reviews = 1  # Single reviewer sufficient for trivial changes
+
+    if n_reviews > 1:
+        # Dispatch N independent code reviews in parallel
+        # See superpowers-bd:multi-review-aggregation for full algorithm
+        reviewer_tasks = []
+        for i in range(n_reviews):
+            code_task = Task(
+                subagent_type="general-purpose",
+                model=tier_code_model,  # NEVER adjusted by complexity
+                run_in_background=True,
+                description=f"Code review {i+1}/{n_reviews}: {task_id}",
+                prompt=code_reviewer_prompt.format(
+                    code_reviewer_path=code_reviewer_path,
+                    issue_id=issue_id,
+                    base_sha=base_sha,
+                    head_sha=head_sha,
+                    wave_number=wave_n
+                ) + f"\nYou are Reviewer {i+1} of {n_reviews}. "
+                    "Review independently — do not reference other reviewers."
+            )
+            reviewer_tasks.append(code_task)
+
+        # When all N complete: always dispatch aggregator (haiku) per aggregator-prompt.md
+        pending_multi_reviews[task_id] = reviewer_tasks
+
+        # Dispatch Codex cross-model review in parallel with Claude reviewers
+        # MUST be in the same dispatch message as the N Claude reviewer Tasks above
+        if checkpoint.codex_enabled and budget_tier != "pro/api":
+            codex_task = Agent(
+                run_in_background=True,
+                description=f"Codex cross-model review: {task_id}",
+                prompt=f"""Run a Codex adversarial review of the changes for {issue_id}.
+
+                    ```bash
+                    node "{checkpoint.codex_install_path}/scripts/codex-companion.mjs" adversarial-review --wait --base {base_sha}
+                    ```
+
+                    Persist the full output:
+                    ```bash
+                    mkdir -p temp
+                    tee temp/{issue_id}-codex-wave-{wave_n}.md <<'CODEX_REVIEW_EOF'
+                    [full codex review output]
+                    CODEX_REVIEW_EOF
+                    ```
+
+                    Output the full review as your final message."""
+            )
+            pending_codex_reviews[task_id] = codex_task
+
+    else:
+        # Single review (pro/api) — unchanged, no Codex for pro/api tier
+        code_task = Task(
+            subagent_type="general-purpose",
+            model=tier_code_model,  # NEVER adjusted by complexity
+            run_in_background=True,
+            prompt=code_reviewer_prompt.format(
+                code_reviewer_path=code_reviewer_path,
+                issue_id=issue_id,
+                base_sha=base_sha,
+                head_sha=head_sha,
+                wave_number=wave_n
+            ),  # from ./code-quality-reviewer-prompt.md — sub-agent self-reads methodology
+            ...
+        )
+        pending_code_reviews.add(code_task)
+```
+
+## Codex Review Presentation
+
+After Claude code reviews complete (and aggregation if N>1), check for Codex results:
+
+1. If `pending_codex_reviews[task_id]` exists, wait for the Codex agent to complete
+2. Read `temp/{issue_id}-codex-wave-{wave_n}.md` (primary). Fall back to agent output if file missing
+3. Present as a separate section in the task review summary — **after** the Claude aggregated report:
+
+```markdown
+## Cross-Model Review (Codex) — {issue_id}
+
+[Full Codex adversarial review output]
+```
+
+4. If Codex failed or timed out: `_Codex cross-model review was unavailable for this task._`
+
+**Codex is advisory-only.** The Claude aggregated verdict (Ready to merge: Yes/With fixes/No) remains the gate for `bd close`. Codex findings inform the developer but do not block merge.

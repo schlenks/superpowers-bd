@@ -1,0 +1,7 @@
+interface:
+  display_name: "Plan to Beads"
+  short_description: "Convert plans into beads epics"
+  brand_color: "#2563EB"
+  default_prompt: "Use $plan2beads to convert my implementation plan into a beads epic."
+policy:
+  allow_implicit_invocation: true

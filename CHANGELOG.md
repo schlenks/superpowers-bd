@@ -9,7 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [5.6.5] - 2026-05-09
 
+### Added
+
+- **Codex plugin packaging addendum** (2026-05-14):
+  - Added `.codex-plugin/plugin.json` and `.agents/plugins/marketplace.json` for native Codex plugin discovery
+  - Added `.codex/superpowers-bd-codex` as the manual Codex fallback CLI using the `superpowers-bd:` namespace
+  - Added a local marketplace wrapper under `plugins/superpowers-bd/` with real manifest and skill files instead of symlinks
+  - Added `tests/codex/run-tests.sh` coverage for the manifest, marketplace wrapper, fallback CLI, and frontmatter parsing
+
 ### Changed
+
+- **Codex docs and naming**:
+  - Codex install docs now prefer native plugin installation and describe the manual fallback under `~/.codex/superpowers-bd`
+  - Codex UI metadata and fallback examples use Superpowers-BD naming consistently
 
 - **Worktree native-tool detection** (`using-git-worktrees`):
   - Step 0: detect existing isolation via `GIT_DIR != GIT_COMMON` (with submodule guard via `git rev-parse --show-superproject-working-tree`)
@@ -29,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tasks 3–7 (rule-of-five-plans passes) continue to dispatch sub-agents as before
   - ~10–30s saved per plan; same 9-item checklist coverage
   - verification-footer.md updated to "5 sub-agent verdicts + 1 inline checklist" contract
+
+### Removed
+
+- Removed the old `.codex/superpowers-codex` fallback script and the `superpowers:` fallback namespace from Codex packaging.
 
 ## [5.6.4] - 2026-05-09
 
