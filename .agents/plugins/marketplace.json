@@ -8,7 +8,7 @@
       "name": "superpowers-bd",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./plugins/superpowers-bd"
       },
       "policy": {
         "installation": "AVAILABLE",

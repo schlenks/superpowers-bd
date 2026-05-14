@@ -170,9 +170,7 @@ Check that commands appear:
 Preferred native plugin install:
 
 ```bash
-mkdir -p ~/.codex/plugins
-git clone https://github.com/schlenks/superpowers-bd.git ~/.codex/plugins/superpowers-bd
-codex plugin marketplace add ~/.codex/plugins/superpowers-bd
+codex plugin marketplace add schlenks/superpowers-bd@main
 ```
 
 Then install or enable `superpowers-bd` from Codex and restart Codex so bundled skills load.

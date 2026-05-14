@@ -45,9 +45,12 @@ const entry = marketplace.plugins.find((plugin) => plugin.name === 'superpowers-
 assert(Boolean(entry), 'marketplace contains superpowers-bd entry');
 assert(entry.policy.installation === 'AVAILABLE', 'marketplace installation policy is AVAILABLE');
 assert(entry.policy.authentication === 'ON_INSTALL', 'marketplace authentication policy is ON_INSTALL');
+assert(entry.source.source === 'local', 'marketplace source is local');
+assert(entry.source.path === './plugins/superpowers-bd', 'marketplace source path is non-empty plugin directory');
 
 const pluginRoot = path.resolve(path.dirname(marketplacePath), '..', '..', entry.source.path);
 assert(fs.existsSync(path.join(pluginRoot, '.codex-plugin', 'plugin.json')), 'marketplace source path resolves to plugin manifest');
+assert(fs.existsSync(path.join(pluginRoot, 'skills', 'using-superpowers', 'SKILL.md')), 'marketplace source path resolves to plugin skills');
 NODE
 
 echo ""

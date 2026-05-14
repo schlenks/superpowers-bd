@@ -7,16 +7,17 @@ Superpowers-BD can be used from Codex in two ways:
 
 ## Native Plugin Install
 
-Clone this repository:
+Register this repository as a Codex marketplace:
+
+```bash
+codex plugin marketplace add schlenks/superpowers-bd@main
+```
+
+For local development, clone the repository and register that checkout instead:
 
 ```bash
 mkdir -p ~/.codex/plugins
 git clone https://github.com/schlenks/superpowers-bd.git ~/.codex/plugins/superpowers-bd
-```
-
-Register the repository as a local Codex marketplace:
-
-```bash
 codex plugin marketplace add ~/.codex/plugins/superpowers-bd
 ```
 
