@@ -16,7 +16,9 @@ This is not negotiable. This is not optional. You cannot rationalize your way ou
 
 **In Claude Code:** Use the `Skill` tool. When you invoke a skill, its content is loaded and presented to you--follow it directly. Never use the Read tool on skill files.
 
-**In other environments:** Check your platform's documentation for how skills are loaded.
+**In Codex:** Use native `$skill-name` invocation when installed as a Codex plugin. If using the legacy manual install, run `~/.codex/superpowers/.codex/superpowers-codex use-skill <skill-name>` and follow the returned instructions.
+
+**In other environments:** Use the platform's skill loader, then apply the tool mappings in that platform's Superpowers docs.
 
 # Using Skills
 
@@ -81,5 +83,11 @@ TaskCreate: "Phase 2: [Description]"
 **Note:** TaskCreate returns a task ID in its response. Capture this ID to use in `addBlockedBy` for dependent tasks. The `[phase-1-id]` placeholders in skill documentation represent where you insert the actual returned ID.
 
 **When invoking skills with tasks:** Tasks are created automatically. Follow the skill's instructions for when to mark tasks complete.
+
+## Platform Tool Mappings
+
+**Codex:** map TaskCreate/TaskUpdate progress blocks to `update_plan`. Preserve ordering manually: do not mark a later phase complete before the earlier phase has evidence. Map Claude `Task(run_in_background: true)` to `spawn_agent`; use `wait_agent` only when the next step needs the result. When spawning workers, give explicit file ownership and tell them other agents may also be editing the repo.
+
+**Beads-aware repos:** use `bd` for durable work tracking when the repo requires it. Native task/progress tools track execution phases; beads tracks the actual project work.
 
 <!-- compressed: 2026-02-11, original: 850 words, compressed: 599 words -->

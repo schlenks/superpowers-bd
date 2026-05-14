@@ -1,0 +1,7 @@
+interface:
+  display_name: "Ad-hoc Code Review"
+  short_description: "Review local diffs and PRs"
+  brand_color: "#2563EB"
+  default_prompt: "Use $ad-hoc-code-review to review my current changes."
+policy:
+  allow_implicit_invocation: true

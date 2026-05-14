@@ -1,0 +1,7 @@
+interface:
+  display_name: "Using Superpowers"
+  short_description: "Load the right workflow skill"
+  brand_color: "#2563EB"
+  default_prompt: "Use $using-superpowers to choose the right Superpowers workflow."
+policy:
+  allow_implicit_invocation: true

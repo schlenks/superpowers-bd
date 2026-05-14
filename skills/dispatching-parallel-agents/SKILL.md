@@ -36,6 +36,8 @@ Task("Fix tool-approval-race-conditions.test.ts failures")
 // All three run concurrently
 ```
 
+Platform mapping: Claude uses `Task`/`run_in_background`; Codex uses `spawn_agent` and `wait_agent`. In Codex, define each worker's file ownership, tell workers they are not alone in the repo, and keep write scopes disjoint.
+
 ### 4. Review and Integrate
 Read each summary, verify fixes don't conflict, run full test suite, integrate all changes.
 

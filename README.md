@@ -167,11 +167,15 @@ Check that commands appear:
 
 ### Codex
 
-Tell Codex:
+Preferred native plugin install:
 
+```bash
+mkdir -p ~/.codex/plugins
+git clone https://github.com/schlenks/superpowers-bd.git ~/.codex/plugins/superpowers-bd
+codex plugin marketplace add ~/.codex/plugins/superpowers-bd
 ```
-Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.codex/INSTALL.md
-```
+
+Then install or enable `superpowers-bd` from Codex and restart Codex so bundled skills load.
 
 **Detailed docs:** [docs/README.codex.md](docs/README.codex.md)
 

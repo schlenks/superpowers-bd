@@ -1,35 +1,39 @@
-# Installing Superpowers for Codex
+# Installing Superpowers-BD for Codex
 
-Quick setup to enable superpowers skills in Codex.
+Prefer the native Codex plugin path when available.
 
-## Installation
+## Native Plugin
 
-1. **Clone superpowers repository**:
-   ```bash
-   mkdir -p ~/.codex/superpowers
-   cd ~/.codex/superpowers
-   git clone https://github.com/obra/superpowers.git .
-   ```
-
-2. **Create personal skills directory**:
-   ```bash
-   mkdir -p ~/.codex/skills
-   ```
-
-3. **Update ~/.codex/AGENTS.md** to include this superpowers section:
-   ```markdown
-   ## Superpowers System
-
-   <EXTREMELY_IMPORTANT>
-   You have superpowers. Superpowers teach you new skills and capabilities. RIGHT NOW run: `~/.codex/superpowers/.codex/superpowers-codex bootstrap` and follow the instructions it returns.
-   </EXTREMELY_IMPORTANT>
-   ```
-
-## Verification
-
-Test the installation:
 ```bash
-~/.codex/superpowers/.codex/superpowers-codex bootstrap
+mkdir -p ~/.codex/plugins
+git clone https://github.com/schlenks/superpowers-bd.git ~/.codex/plugins/superpowers-bd
+codex plugin marketplace add ~/.codex/plugins/superpowers-bd
 ```
 
-You should see skill listings and bootstrap instructions. The system is now ready for use.
+Then install or enable `superpowers-bd` in Codex and restart Codex so the bundled skills load.
+
+## Legacy Bootstrap Fallback
+
+Use this only if native plugin installation is unavailable.
+
+```bash
+mkdir -p ~/.codex
+git clone https://github.com/schlenks/superpowers-bd.git ~/.codex/superpowers
+mkdir -p ~/.codex/skills
+```
+
+Add this to `~/.codex/AGENTS.md`:
+
+```markdown
+## Superpowers System
+
+<EXTREMELY_IMPORTANT>
+You have superpowers. RIGHT NOW run: `~/.codex/superpowers/.codex/superpowers-codex bootstrap` and follow the instructions it returns.
+</EXTREMELY_IMPORTANT>
+```
+
+Verify:
+
+```bash
+~/.codex/superpowers/.codex/superpowers-codex find-skills
+```

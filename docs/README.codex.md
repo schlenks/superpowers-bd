@@ -1,154 +1,132 @@
-# Superpowers for Codex
+# Superpowers-BD for Codex
 
-Complete guide for using Superpowers with OpenAI Codex.
+Superpowers-BD can be used from Codex in two ways:
 
-## Quick Install
+1. **Native Codex plugin** (preferred): Codex reads `.codex-plugin/plugin.json` and bundled skills directly.
+2. **Legacy bootstrap fallback**: Codex loads skills through `.codex/superpowers-codex` from `~/.codex/AGENTS.md`.
 
-Tell Codex:
+## Native Plugin Install
 
-```
-Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.codex/INSTALL.md
-```
-
-## Manual Installation
-
-### Prerequisites
-
-- OpenAI Codex access
-- Shell access to install files
-
-### Installation Steps
-
-#### 1. Clone Superpowers
+Clone this repository:
 
 ```bash
-mkdir -p ~/.codex/superpowers
-git clone https://github.com/obra/superpowers.git ~/.codex/superpowers
+mkdir -p ~/.codex/plugins
+git clone https://github.com/schlenks/superpowers-bd.git ~/.codex/plugins/superpowers-bd
 ```
 
-#### 2. Install Bootstrap
-
-The bootstrap file is included in the repository at `.codex/superpowers-bootstrap.md`. Codex will automatically use it from the cloned location.
-
-#### 3. Verify Installation
-
-Tell Codex:
-
-```
-Run ~/.codex/superpowers/.codex/superpowers-codex find-skills to show available skills
-```
-
-You should see a list of available skills with descriptions.
-
-## Usage
-
-### Finding Skills
-
-```
-Run ~/.codex/superpowers/.codex/superpowers-codex find-skills
-```
-
-### Loading a Skill
-
-```
-Run ~/.codex/superpowers/.codex/superpowers-codex use-skill superpowers:brainstorming
-```
-
-### Bootstrap All Skills
-
-```
-Run ~/.codex/superpowers/.codex/superpowers-codex bootstrap
-```
-
-This loads the complete bootstrap with all skill information.
-
-### Personal Skills
-
-Create your own skills in `~/.codex/skills/`:
+Register the repository as a local Codex marketplace:
 
 ```bash
-mkdir -p ~/.codex/skills/my-skill
+codex plugin marketplace add ~/.codex/plugins/superpowers-bd
 ```
 
-Create `~/.codex/skills/my-skill/SKILL.md`:
+Then install or enable `superpowers-bd` from Codex's plugin UI/flow. Restart Codex after enabling the plugin so bundled skills are discovered.
+
+## Legacy Bootstrap Install
+
+Use this only when native plugin installation is unavailable.
+
+```bash
+mkdir -p ~/.codex
+git clone https://github.com/schlenks/superpowers-bd.git ~/.codex/superpowers
+mkdir -p ~/.codex/skills
+```
+
+Add this section to `~/.codex/AGENTS.md`:
 
 ```markdown
----
-name: my-skill
-description: Use when [condition] - [what it does]
----
+## Superpowers System
 
-# My Skill
-
-[Your skill content here]
+<EXTREMELY_IMPORTANT>
+You have superpowers. RIGHT NOW run: `~/.codex/superpowers/.codex/superpowers-codex bootstrap` and follow the instructions it returns.
+</EXTREMELY_IMPORTANT>
 ```
 
-Personal skills override superpowers skills with the same name.
+Verify:
 
-## Architecture
+```bash
+~/.codex/superpowers/.codex/superpowers-codex find-skills
+```
 
-### Codex CLI Tool
+## Skill Usage
 
-**Location:** `~/.codex/superpowers/.codex/superpowers-codex`
+Native plugin install:
 
-A Node.js CLI script that provides three commands:
-- `bootstrap` - Load complete bootstrap with all skills
-- `use-skill <name>` - Load a specific skill
-- `find-skills` - List all available skills
+```text
+Use $brainstorming before implementing this feature.
+Use $plan2beads to import docs/plans/my-plan.md.
+Use $ad-hoc-code-review to review my uncommitted changes.
+```
 
-### Shared Core Module
+Legacy bootstrap install:
 
-**Location:** `~/.codex/superpowers/lib/skills-core.js`
+```bash
+~/.codex/superpowers/.codex/superpowers-codex use-skill superpowers:brainstorming
+~/.codex/superpowers/.codex/superpowers-codex use-skill superpowers:plan2beads
+```
 
-The Codex implementation uses the shared `skills-core` module (ES module format) for skill discovery and parsing. This is the same module used by the OpenCode plugin, ensuring consistent behavior across platforms.
+## Codex Tool Mapping
 
-### Tool Mapping
+Skills were originally written for Claude Code and are adapted for Codex with these mappings:
 
-Skills written for Claude Code are adapted for Codex with these mappings:
+- `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` -> `update_plan`
+- `Task` with `run_in_background: true` -> `spawn_agent`, then `wait_agent` only when blocked on results
+- `AskUserQuestion` -> direct user question, or structured question tool when available
+- `Skill` tool -> native `$skill-name` invocation, or the legacy `superpowers-codex use-skill` command
+- File operations -> native Codex tools
 
-- `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` → `update_plan`
-- `TodoWrite` (legacy) → `update_plan`
-- `Task` with subagents → Tell user subagents aren't available, do work directly
-- `Skill` tool → `~/.codex/superpowers/.codex/superpowers-codex use-skill`
-- File operations → Native Codex tools
+For durable project tracking in repositories that use beads, keep `bd` as the source of truth for work items and dependencies. Use Codex progress tools for the execution checklist inside a skill.
+
+## Codex-Specific Entry Points
+
+- `$using-superpowers` - how to load and apply skills
+- `$brainstorming` - design refinement before coding
+- `$writing-plans` - implementation plan creation
+- `$plan2beads` - convert a plan or Shortcut story into beads issues
+- `$subagent-driven-development` - execute beads epics in parallel waves
+- `$ad-hoc-code-review` - `/cr`-style local or PR review from Codex
+- `$verification-before-completion` - evidence before completion claims
 
 ## Updating
+
+Native plugin install:
+
+```bash
+cd ~/.codex/plugins/superpowers-bd
+git pull
+```
+
+Legacy bootstrap install:
 
 ```bash
 cd ~/.codex/superpowers
 git pull
 ```
 
+Restart Codex after updating.
+
 ## Troubleshooting
 
 ### Skills not found
 
-1. Verify installation: `ls ~/.codex/superpowers/skills`
-2. Check CLI works: `~/.codex/superpowers/.codex/superpowers-codex find-skills`
-3. Verify skills have SKILL.md files
+1. Verify clone location: `ls ~/.codex/plugins/superpowers-bd/skills`
+2. Verify plugin manifest: `jq . ~/.codex/plugins/superpowers-bd/.codex-plugin/plugin.json`
+3. Restart Codex after enabling the plugin
 
-### CLI script not executable
+### Legacy CLI script not executable
 
 ```bash
 chmod +x ~/.codex/superpowers/.codex/superpowers-codex
 ```
 
-### Node.js errors
+### Node.js errors in legacy mode
 
-The CLI script requires Node.js. Verify:
+The legacy CLI is tested with modern Node.js. Use Node 20+.
+
+## Development Tests
+
+From the repository root:
 
 ```bash
-node --version
+./tests/codex/run-tests.sh
 ```
-
-Should show v14 or higher (v18+ recommended for ES module support).
-
-## Getting Help
-
-- Report issues: https://github.com/obra/superpowers/issues
-- Main documentation: https://github.com/obra/superpowers
-- Blog post: https://blog.fsck.com/2025/10/27/skills-for-openai-codex/
-
-## Note
-
-Codex support is experimental and may require refinement based on user feedback. If you encounter issues, please report them on GitHub.
