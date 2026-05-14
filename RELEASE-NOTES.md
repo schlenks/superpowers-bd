@@ -1,6 +1,26 @@
 # Superpowers Release Notes
 
-## v5.6.5 (2026-05-09) - Beads Fork
+## v5.6.5 (2026-05-09; Codex addendum 2026-05-14) - Beads Fork
+
+### Native Codex plugin packaging (2026-05-14 addendum)
+
+Superpowers-BD now ships first-class Codex plugin metadata alongside the Claude Code plugin metadata. This is an additive packaging/docs release under the existing `5.6.5` version: `.codex-plugin/plugin.json` and `.claude-plugin/plugin.json` both declare `5.6.5` and should stay in lockstep for this fork unless we deliberately cut a new release.
+
+**Codex plugin manifest:** New `.codex-plugin/plugin.json` exposes `./skills/` directly to Codex and includes plugin UI metadata (`displayName`, `shortDescription`, `longDescription`, category, capabilities, starter prompts, and brand color). New `.agents/plugins/marketplace.json` registers the repo as a local Codex marketplace source.
+
+**Codex skill entry points:** New `$plan2beads` and `$ad-hoc-code-review` skills wrap the existing Claude slash-command procedures so Codex users can invoke the core beads import and `/cr` review workflows without relying on Claude command loading. Key workflow skills now include `agents/openai.yaml` UI metadata for Codex (`using-superpowers`, `plan2beads`, `ad-hoc-code-review`, `subagent-driven-development`).
+
+**Tool mapping updates:** The legacy `.codex/superpowers-bootstrap.md` no longer says Codex lacks subagents. Claude `Task(run_in_background: true)` now maps to Codex `spawn_agent` + `wait_agent`, with explicit guidance for disjoint file ownership and parallel work. `using-superpowers`, `dispatching-parallel-agents`, and `subagent-driven-development` document the same mapping in skill prose.
+
+**SDD progressive disclosure cleanup:** `subagent-driven-development/SKILL.md` was compressed below the validator hard limit and the detailed budget/wave-cap formulas moved to `budget-and-wave-cap.md`. Behavior is intended to remain the same; the hot path is just easier for Codex and Claude to load.
+
+**Codex docs and fallback:** `README.md`, `.codex/INSTALL.md`, and `docs/README.codex.md` now install from `schlenks/superpowers-bd` instead of upstream `obra/superpowers`, with native Codex plugin install as the preferred path and `.codex/superpowers-codex` retained as a legacy fallback. The shared skills loader now strips quoted YAML scalar values so fallback skill listings do not display quoted descriptions.
+
+**Validation added:** New `tests/codex/run-tests.sh` verifies the Codex plugin manifest, marketplace entry, skill UI metadata, fallback CLI discovery, and frontmatter quote handling. Local marketplace registration was also verified with `codex plugin marketplace add /Users/schlenks/Developer/personal/superpowers-bd`.
+
+**Files Modified (Codex addendum):** `.codex-plugin/plugin.json` (new), `.agents/plugins/marketplace.json` (new), `.codex/INSTALL.md`, `.codex/superpowers-bootstrap.md`, `docs/README.codex.md`, `README.md`, `lib/skills-core.js`, `skills/{plan2beads,ad-hoc-code-review}/SKILL.md` (new), `skills/{plan2beads,ad-hoc-code-review,subagent-driven-development,using-superpowers}/agents/openai.yaml` (new), `skills/subagent-driven-development/SKILL.md`, `skills/subagent-driven-development/budget-and-wave-cap.md` (new), `skills/{using-superpowers,dispatching-parallel-agents}/SKILL.md`, and `tests/codex/*` (new).
+
+### Upstream workflow adoption (2026-05-09)
 
 Three patterns adopted from upstream superpowers (review of v5.0.0 → v5.1.0): native worktree-tool detection, detached-HEAD-aware branch finishing, and inline orchestrator self-review for the Plan Verification Checklist. Skill prose only — no code changes, no test additions.
 
