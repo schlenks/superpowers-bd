@@ -134,7 +134,7 @@ If Superpowers has helped you, consider [sponsoring Jesse Vincent's opensource w
 
 ## Installation
 
-**Note:** Installation differs by platform. Claude Code has a built-in plugin system. Codex and OpenCode require manual setup.
+**Note:** Installation differs by platform. Claude Code and Codex have plugin marketplace flows. OpenCode uses a local plugin symlink.
 
 ### Claude Code (via Plugin Marketplace)
 

@@ -18,8 +18,9 @@ run_test() {
   local expected_stderr_pattern="${4:-}"
 
   local stderr_file="$TEST_DIR/stderr"
+  local stdout_file="$TEST_DIR/stdout"
   local actual_exit=0
-  echo "$input" | "$HOOK" 2>"$stderr_file" || actual_exit=$?
+  echo "$input" | "$HOOK" >"$stdout_file" 2>"$stderr_file" || actual_exit=$?
 
   if [[ "$actual_exit" -ne "$expected_exit" ]]; then
     echo "FAIL: $name — expected exit $expected_exit, got $actual_exit"
@@ -34,6 +35,21 @@ run_test() {
     if ! grep -q "$expected_stderr_pattern" "$stderr_file" 2>/dev/null; then
       echo "FAIL: $name — stderr missing pattern: $expected_stderr_pattern"
       echo "  stderr: $(cat "$stderr_file")"
+      fail=$((fail + 1))
+      return
+    fi
+  fi
+
+  if [[ "$name" == *"blocked"* || "$name" == Invalid* || "$name" == Non-existent* ]]; then
+    if ! node -e '
+      const fs = require("fs");
+      const text = fs.readFileSync(process.argv[1], "utf8").trim();
+      const payload = JSON.parse(text);
+      if (payload.decision !== "block") process.exit(1);
+      if (!payload.reason && !payload.hookSpecificOutput?.additionalContext) process.exit(1);
+    ' "$stdout_file" 2>/dev/null; then
+      echo "FAIL: $name — blocking PostToolUse hooks must emit JSON decision feedback"
+      echo "  stdout: $(cat "$stdout_file")"
       fail=$((fail + 1))
       return
     fi
@@ -410,7 +426,7 @@ run_test "Valid .sh file" \
 # 2. Invalid .sh file
 run_test "Invalid .sh file (shellcheck errors)" \
   "{\"tool_input\":{\"file_path\":\"$TEST_DIR/invalid.sh\"}}" \
-  2 \
+  0 \
   "LINTER ERROR"
 
 # 3. Valid .json file
@@ -421,7 +437,7 @@ run_test "Valid .json file" \
 # 4. Invalid .json file
 run_test "Invalid .json file (missing brace)" \
   "{\"tool_input\":{\"file_path\":\"$TEST_DIR/invalid.json\"}}" \
-  2 \
+  0 \
   "LINTER ERROR"
 
 # 5. .py file (simple, no functions for lizard to analyze)
@@ -442,7 +458,7 @@ run_test "Empty JSON input" \
 # 8. Non-existent .json file
 run_test "Non-existent .json file" \
   "{\"tool_input\":{\"file_path\":\"$TEST_DIR/does-not-exist.json\"}}" \
-  2 \
+  0 \
   "LINTER ERROR"
 
 # 9. Python file with low complexity (CC=4, clean)
@@ -459,13 +475,13 @@ run_test ".py file — medium complexity (CC=12, warning)" \
 # 11. Python file with high complexity (CC=18, must block)
 run_test ".py file — high complexity (CC=18, blocked)" \
   "{\"tool_input\":{\"file_path\":\"$TEST_DIR/cc_block.py\"}}" \
-  2 \
+  0 \
   "COMPLEXITY ERROR"
 
 # 12. Python file with very long function (105 NLOC, must block)
 run_test ".py file — long function (105 NLOC, blocked)" \
   "{\"tool_input\":{\"file_path\":\"$TEST_DIR/long_func.py\"}}" \
-  2 \
+  0 \
   "COMPLEXITY ERROR"
 
 # --- TypeScript / cognitive-complexity-ts tests ---
@@ -484,7 +500,7 @@ run_test ".ts file — medium cognitive complexity (warning)" \
 # 15. TS file with high cognitive complexity (must block)
 run_test ".ts file — high cognitive complexity (blocked)" \
   "{\"tool_input\":{\"file_path\":\"$TEST_DIR/cc_block.ts\"}}" \
-  2 \
+  0 \
   "COMPLEXITY ERROR"
 
 # 16. TS file with very long function (low cognitive complexity — passes)

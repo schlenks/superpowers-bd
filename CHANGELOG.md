@@ -11,9 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **OpenCode plugin packaging**:
   - OpenCode install docs now clone `schlenks/superpowers-bd` into `~/.config/opencode/superpowers-bd`
-  - OpenCode plugin file renamed to `.opencode/plugin/superpowers-bd.js`
+  - OpenCode plugin file moved to `.opencode/plugins/superpowers-bd.js`, with `.opencode/plugin/superpowers-bd.js` kept as a compatibility wrapper
+  - `.opencode/package.json` is now tracked so local installs keep the `@opencode-ai/plugin` dependency metadata and Node loads the plugin as ESM without reparsing
   - OpenCode forced skill namespace changed from `superpowers:` to `superpowers-bd:`
-  - OpenCode tests updated for the new install path, plugin filename, and namespace
+  - OpenCode tests updated for the current install path, plugin filename, dependency metadata, and namespace
+
+- **Cross-agent setup drift checks**:
+  - Added `tests/verification/test-plugin-config-drift.sh` to keep Claude Code, Codex, and OpenCode plugin metadata/docs in sync
+  - Root `settings.json` disables Codex git-instruction import so Codex uses `AGENTS.md` as the single project instruction source
+  - Claude Code linter hook blocking paths now return PostToolUse decision JSON instead of relying on exit-code blocking semantics
 
 ## [5.6.5] - 2026-05-09
 

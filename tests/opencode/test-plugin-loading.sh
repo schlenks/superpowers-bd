@@ -15,18 +15,25 @@ trap cleanup_test_env EXIT
 
 # Test 1: Verify plugin file exists and is registered
 echo "Test 1: Checking plugin registration..."
-if [ -L "$HOME/.config/opencode/plugin/superpowers-bd.js" ]; then
-    echo "  [PASS] Plugin symlink exists"
+if [ -L "$HOME/.config/opencode/plugins/superpowers-bd.js" ]; then
+    echo "  [PASS] Plugin symlink exists in plural plugins directory"
 else
-    echo "  [FAIL] Plugin symlink not found at $HOME/.config/opencode/plugin/superpowers-bd.js"
+    echo "  [FAIL] Plugin symlink not found at $HOME/.config/opencode/plugins/superpowers-bd.js"
     exit 1
 fi
 
 # Verify symlink target exists
-if [ -f "$(readlink -f "$HOME/.config/opencode/plugin/superpowers-bd.js")" ]; then
+if [ -f "$(readlink -f "$HOME/.config/opencode/plugins/superpowers-bd.js")" ]; then
     echo "  [PASS] Plugin symlink target exists"
 else
     echo "  [FAIL] Plugin symlink target does not exist"
+    exit 1
+fi
+
+if [ -f "$REPO_ROOT/.opencode/plugins/superpowers-bd.js" ]; then
+    echo "  [PASS] Source plugin uses current .opencode/plugins directory"
+else
+    echo "  [FAIL] Source plugin missing at .opencode/plugins/superpowers-bd.js"
     exit 1
 fi
 
@@ -60,7 +67,7 @@ fi
 
 # Test 5: Verify plugin JavaScript syntax (basic check)
 echo "Test 5: Checking plugin JavaScript syntax..."
-plugin_file="$HOME/.config/opencode/superpowers-bd/.opencode/plugin/superpowers-bd.js"
+plugin_file="$HOME/.config/opencode/superpowers-bd/.opencode/plugins/superpowers-bd.js"
 if node --check "$plugin_file" 2>/dev/null; then
     echo "  [PASS] Plugin JavaScript syntax is valid"
 else
@@ -68,8 +75,38 @@ else
     exit 1
 fi
 
-# Test 6: Verify personal test skill was created
-echo "Test 6: Checking test fixtures..."
+# Test 6: Verify dependency metadata is tracked for fresh OpenCode installs
+echo "Test 6: Checking OpenCode dependency metadata..."
+if [ -f "$REPO_ROOT/.opencode/package.json" ] && ! git -C "$REPO_ROOT" check-ignore -q .opencode/package.json; then
+    echo "  [PASS] .opencode/package.json is available for packaging"
+else
+    echo "  [FAIL] .opencode/package.json must exist and must not be gitignored"
+    exit 1
+fi
+
+if [ -f "$HOME/.config/opencode/superpowers-bd/.opencode/package.json" ]; then
+    echo "  [PASS] package metadata installed with plugin"
+else
+    echo "  [FAIL] package metadata missing from installed plugin fixture"
+    exit 1
+fi
+
+if node -e 'const p=require(process.argv[1]); process.exit(p.dependencies && p.dependencies["@opencode-ai/plugin"] ? 0 : 1)' "$REPO_ROOT/.opencode/package.json"; then
+    echo "  [PASS] @opencode-ai/plugin dependency declared"
+else
+    echo "  [FAIL] @opencode-ai/plugin dependency missing"
+    exit 1
+fi
+
+if node -e 'const p=require(process.argv[1]); process.exit(p.type === "module" ? 0 : 1)' "$REPO_ROOT/.opencode/package.json"; then
+    echo "  [PASS] OpenCode package marked as ESM"
+else
+    echo "  [FAIL] .opencode/package.json must set type=module for ESM plugins"
+    exit 1
+fi
+
+# Test 7: Verify personal test skill was created
+echo "Test 7: Checking test fixtures..."
 if [ -f "$HOME/.config/opencode/skills/personal-test/SKILL.md" ]; then
     echo "  [PASS] Personal test skill fixture created"
 else

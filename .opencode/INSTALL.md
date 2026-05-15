@@ -13,6 +13,8 @@
 ```bash
 mkdir -p ~/.config/opencode/superpowers-bd
 git clone https://github.com/schlenks/superpowers-bd.git ~/.config/opencode/superpowers-bd
+cd ~/.config/opencode/superpowers-bd/.opencode
+npm install
 ```
 
 ### 2. Register the Plugin
@@ -20,13 +22,13 @@ git clone https://github.com/schlenks/superpowers-bd.git ~/.config/opencode/supe
 Create a symlink so OpenCode discovers the plugin:
 
 ```bash
-mkdir -p ~/.config/opencode/plugin
-ln -sf ~/.config/opencode/superpowers-bd/.opencode/plugin/superpowers-bd.js ~/.config/opencode/plugin/superpowers-bd.js
+mkdir -p ~/.config/opencode/plugins
+ln -sf ~/.config/opencode/superpowers-bd/.opencode/plugins/superpowers-bd.js ~/.config/opencode/plugins/superpowers-bd.js
 ```
 
 ### 3. Restart OpenCode
 
-Restart OpenCode. The plugin will automatically inject Superpowers-BD context via the chat.message hook.
+Restart OpenCode. The plugin will automatically inject Superpowers-BD context when a session is created.
 
 You should see Superpowers-BD is active when you ask "do you have superpowers?"
 
@@ -111,7 +113,7 @@ git pull
 
 ### Plugin not loading
 
-1. Check plugin file exists: `ls ~/.config/opencode/superpowers-bd/.opencode/plugin/superpowers-bd.js`
+1. Check plugin file exists: `ls ~/.config/opencode/superpowers-bd/.opencode/plugins/superpowers-bd.js`
 2. Check OpenCode logs for errors
 3. Verify Node.js is installed: `node --version`
 

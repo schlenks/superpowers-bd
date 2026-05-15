@@ -18,13 +18,14 @@ cp -r "$REPO_ROOT/lib" "$HOME/.config/opencode/superpowers-bd/"
 cp -r "$REPO_ROOT/skills" "$HOME/.config/opencode/superpowers-bd/"
 
 # Copy plugin directory
-mkdir -p "$HOME/.config/opencode/superpowers-bd/.opencode/plugin"
-cp "$REPO_ROOT/.opencode/plugin/superpowers-bd.js" "$HOME/.config/opencode/superpowers-bd/.opencode/plugin/"
+mkdir -p "$HOME/.config/opencode/superpowers-bd/.opencode/plugins"
+cp "$REPO_ROOT/.opencode/plugins/superpowers-bd.js" "$HOME/.config/opencode/superpowers-bd/.opencode/plugins/"
+cp "$REPO_ROOT/.opencode/package.json" "$HOME/.config/opencode/superpowers-bd/.opencode/"
 
 # Register plugin via symlink
-mkdir -p "$HOME/.config/opencode/plugin"
-ln -sf "$HOME/.config/opencode/superpowers-bd/.opencode/plugin/superpowers-bd.js" \
-       "$HOME/.config/opencode/plugin/superpowers-bd.js"
+mkdir -p "$HOME/.config/opencode/plugins"
+ln -sf "$HOME/.config/opencode/superpowers-bd/.opencode/plugins/superpowers-bd.js" \
+       "$HOME/.config/opencode/plugins/superpowers-bd.js"
 
 # Create test skills in different locations for testing
 
@@ -57,8 +58,8 @@ PROJECT_SKILL_MARKER_67890
 EOF
 
 echo "Setup complete: $TEST_HOME"
-echo "Plugin installed to: $HOME/.config/opencode/superpowers-bd/.opencode/plugin/superpowers-bd.js"
-echo "Plugin registered at: $HOME/.config/opencode/plugin/superpowers-bd.js"
+echo "Plugin installed to: $HOME/.config/opencode/superpowers-bd/.opencode/plugins/superpowers-bd.js"
+echo "Plugin registered at: $HOME/.config/opencode/plugins/superpowers-bd.js"
 echo "Test project at: $TEST_HOME/test-project"
 
 # Helper function for cleanup (call from tests or trap)

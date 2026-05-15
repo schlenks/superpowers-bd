@@ -24,7 +24,13 @@ Superpowers-BD now ships first-class Codex plugin metadata alongside the Claude 
 
 ### OpenCode packaging cleanup (2026-05-14 addendum)
 
-OpenCode install instructions now point to `schlenks/superpowers-bd` and install under `~/.config/opencode/superpowers-bd`. The OpenCode plugin file is now `.opencode/plugin/superpowers-bd.js`, and forced bundled skill lookup uses the `superpowers-bd:` namespace instead of the upstream `superpowers:` namespace. OpenCode tests were updated to cover the new install path, plugin filename, and namespace behavior, including rejection of the old forced namespace.
+OpenCode install instructions now point to `schlenks/superpowers-bd` and install under `~/.config/opencode/superpowers-bd`. The OpenCode plugin file is now `.opencode/plugins/superpowers-bd.js` to match current OpenCode discovery paths, with `.opencode/plugin/superpowers-bd.js` kept as a compatibility wrapper for older local setups. `.opencode/package.json` is tracked so the `@opencode-ai/plugin` dependency metadata travels with the repo, declares ESM loading, and install docs include the local `npm install` step.
+
+Forced bundled skill lookup uses the `superpowers-bd:` namespace instead of the upstream `superpowers:` namespace. OpenCode tests were updated to cover the install path, plugin filename, dependency metadata, and namespace behavior, including rejection of the old forced namespace.
+
+### Cross-agent setup drift checks (2026-05-15 addendum)
+
+Added `tests/verification/test-plugin-config-drift.sh` to keep Claude Code, Codex, and OpenCode setup in sync across manifests, versioned docs, namespace strings, OpenCode discovery paths, and Codex instruction import behavior. Root `settings.json` now disables Codex git-instruction import (`includeGitInstructions: false`) so Codex reads `AGENTS.md` as the single project instruction source. Claude Code PostToolUse linter blocking now emits decision JSON on stdout instead of depending on legacy exit-code blocking semantics.
 
 ### Upstream workflow adoption (2026-05-09)
 

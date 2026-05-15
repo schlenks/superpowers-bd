@@ -17,6 +17,12 @@ input=$(cat)
 # jq required to parse hook input
 if ! command -v jq &>/dev/null; then exit 0; fi
 
+block_with_reason() {
+  local reason="$1"
+  jq -nc --arg reason "$reason" '{decision:"block", reason:$reason}'
+  exit 0
+}
+
 file_path=$(echo "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 [ -z "$file_path" ] && exit 0
 
@@ -27,7 +33,7 @@ case "$file_path" in
       echo "LINTER ERROR: shellcheck found issues in $file_path" >&2
       echo "$output" >&2
       echo "Please fix the shellcheck errors above and retry." >&2
-      exit 2
+      block_with_reason "shellcheck found issues in $file_path. Fix the reported shell warnings before continuing."
     fi
     ;;
   *.json)
@@ -35,7 +41,7 @@ case "$file_path" in
       echo "LINTER ERROR: JSON syntax error in $file_path" >&2
       echo "$output" >&2
       echo "Please fix the JSON syntax error above and retry." >&2
-      exit 2
+      block_with_reason "JSON syntax error in $file_path. Fix the parse error before continuing."
     fi
     ;;
   *.ts|*.tsx)
@@ -53,7 +59,7 @@ case "$file_path" in
           while IFS=$'\t' read -r fname fline fscore; do
             echo "  ${file_path}:${fline} — ${fname}() cognitive complexity = ${fscore}" >&2
           done <<< "$violations_block"
-          exit 2
+          block_with_reason "Critical cognitive complexity found in $file_path. Decompose functions scoring above 25 before continuing."
         fi
         # Warn: cognitive complexity > 15
         violations_warn=$(echo "$ccts_output" | jq -r \
@@ -75,7 +81,7 @@ case "$file_path" in
           echo "COMPLEXITY ERROR: functions exceed critical thresholds in $file_path" >&2
           echo "$block_output" >&2
           echo "Functions with CC>15 must be decomposed. Functions >100 lines must be split." >&2
-          exit 2
+          block_with_reason "Critical complexity thresholds exceeded in $file_path. Decompose CC>15 functions or split functions longer than 100 lines before continuing."
         fi
         warn_output=$(lizard -C 10 -L 50 -w "$file_path" 2>/dev/null || true)
         if [[ -n "$warn_output" ]]; then
@@ -99,7 +105,7 @@ case "$file_path" in
       echo "COMPLEXITY ERROR: functions exceed critical thresholds in $file_path" >&2
       echo "$block_output" >&2
       echo "Functions with CC>15 must be decomposed. Functions >100 lines must be split." >&2
-      exit 2
+      block_with_reason "Critical complexity thresholds exceeded in $file_path. Decompose CC>15 functions or split functions longer than 100 lines before continuing."
     fi
     # Pass 2: warn on CC>10 or length>50
     warn_output=$(lizard -C 10 -L 50 -w "$file_path" 2>/dev/null || true)

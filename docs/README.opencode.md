@@ -7,7 +7,7 @@ Complete guide for using Superpowers-BD with [OpenCode.ai](https://opencode.ai).
 Tell OpenCode:
 
 ```
-Clone https://github.com/schlenks/superpowers-bd to ~/.config/opencode/superpowers-bd, then create directory ~/.config/opencode/plugin, then symlink ~/.config/opencode/superpowers-bd/.opencode/plugin/superpowers-bd.js to ~/.config/opencode/plugin/superpowers-bd.js, then restart opencode.
+Clone https://github.com/schlenks/superpowers-bd to ~/.config/opencode/superpowers-bd, run npm install in ~/.config/opencode/superpowers-bd/.opencode, then create directory ~/.config/opencode/plugins, then symlink ~/.config/opencode/superpowers-bd/.opencode/plugins/superpowers-bd.js to ~/.config/opencode/plugins/superpowers-bd.js, then restart opencode.
 ```
 
 ## Manual Installation
@@ -25,23 +25,25 @@ Clone https://github.com/schlenks/superpowers-bd to ~/.config/opencode/superpowe
 ```bash
 mkdir -p ~/.config/opencode/superpowers-bd
 git clone https://github.com/schlenks/superpowers-bd.git ~/.config/opencode/superpowers-bd
+cd ~/.config/opencode/superpowers-bd/.opencode
+npm install
 ```
 
 #### 2. Register the Plugin
 
-OpenCode discovers plugins from `~/.config/opencode/plugin/`. Create a symlink:
+OpenCode discovers plugins from `~/.config/opencode/plugins/`. Create a symlink:
 
 ```bash
-mkdir -p ~/.config/opencode/plugin
-ln -sf ~/.config/opencode/superpowers-bd/.opencode/plugin/superpowers-bd.js ~/.config/opencode/plugin/superpowers-bd.js
+mkdir -p ~/.config/opencode/plugins
+ln -sf ~/.config/opencode/superpowers-bd/.opencode/plugins/superpowers-bd.js ~/.config/opencode/plugins/superpowers-bd.js
 ```
 
 Alternatively, for project-local installation:
 
 ```bash
 # In your OpenCode project
-mkdir -p .opencode/plugin
-ln -sf ~/.config/opencode/superpowers-bd/.opencode/plugin/superpowers-bd.js .opencode/plugin/superpowers-bd.js
+mkdir -p .opencode/plugins
+ln -sf ~/.config/opencode/superpowers-bd/.opencode/plugins/superpowers-bd.js .opencode/plugins/superpowers-bd.js
 ```
 
 #### 3. Restart OpenCode
@@ -128,7 +130,7 @@ You can force resolution to a specific level:
 
 ### Automatic Context Injection
 
-The plugin automatically injects Superpowers-BD context via the chat.message hook on every session. No manual configuration needed.
+The plugin automatically injects Superpowers-BD context when OpenCode emits `session.created`. No manual configuration needed.
 
 ### Message Insertion Pattern
 
@@ -152,11 +154,11 @@ Skills written for Claude Code are automatically adapted for OpenCode. The plugi
 
 ### Plugin Structure
 
-**Location:** `~/.config/opencode/superpowers-bd/.opencode/plugin/superpowers-bd.js`
+**Location:** `~/.config/opencode/superpowers-bd/.opencode/plugins/superpowers-bd.js`
 
 **Components:**
 - Two custom tools: `use_skill`, `find_skills`
-- chat.message hook for initial context injection
+- `session.created` event handler for initial context injection
 - event handler for session.compacted re-injection
 - Uses shared `lib/skills-core.js` module (also used by Codex)
 
@@ -186,8 +188,8 @@ Restart OpenCode to load the updates.
 
 ### Plugin not loading
 
-1. Check plugin file exists: `ls ~/.config/opencode/superpowers-bd/.opencode/plugin/superpowers-bd.js`
-2. Check symlink: `ls -l ~/.config/opencode/plugin/superpowers-bd.js`
+1. Check plugin file exists: `ls ~/.config/opencode/superpowers-bd/.opencode/plugins/superpowers-bd.js`
+2. Check symlink: `ls -l ~/.config/opencode/plugins/superpowers-bd.js`
 3. Check OpenCode logs: `opencode run "test" --print-logs --log-level DEBUG`
 4. Look for: `service=plugin path=file:///.../superpowers-bd.js loading plugin`
 
@@ -201,11 +203,11 @@ Restart OpenCode to load the updates.
 
 1. Verify plugin loaded: Check OpenCode logs for plugin loading message
 2. Check Node.js version: The plugin requires Node.js for ES modules
-3. Test plugin manually: `node --input-type=module -e "import('file://~/.config/opencode/plugin/superpowers-bd.js').then(m => console.log(Object.keys(m)))"`
+3. Test plugin manually: `node --input-type=module -e "import('file://~/.config/opencode/plugins/superpowers-bd.js').then(m => console.log(Object.keys(m)))"`
 
 ### Context not injecting
 
-1. Check if chat.message hook is working
+1. Check whether `session.created` events are reaching the plugin
 2. Verify using-superpowers skill exists
 3. Check OpenCode version (requires recent version with plugin support)
 
