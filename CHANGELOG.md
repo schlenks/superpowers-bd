@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **OpenCode plugin packaging**:
+  - OpenCode install docs now clone `schlenks/superpowers-bd` into `~/.config/opencode/superpowers-bd`
+  - OpenCode plugin file renamed to `.opencode/plugin/superpowers-bd.js`
+  - OpenCode forced skill namespace changed from `superpowers:` to `superpowers-bd:`
+  - OpenCode tests updated for the new install path, plugin filename, and namespace
+
 ## [5.6.5] - 2026-05-09
 
 ### Added

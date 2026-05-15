@@ -249,10 +249,10 @@ fi
 echo ""
 echo "Test 4: Testing resolveSkillPath..."
 
-# Create skills in personal and superpowers locations for testing
+# Create skills in personal and Superpowers-BD locations for testing
 mkdir -p "$TEST_HOME/personal-skills/shared-skill"
-mkdir -p "$TEST_HOME/superpowers-skills/shared-skill"
-mkdir -p "$TEST_HOME/superpowers-skills/unique-skill"
+mkdir -p "$TEST_HOME/superpowers-bd-skills/shared-skill"
+mkdir -p "$TEST_HOME/superpowers-bd-skills/unique-skill"
 
 cat > "$TEST_HOME/personal-skills/shared-skill/SKILL.md" <<'EOF'
 ---
@@ -262,18 +262,18 @@ description: Personal version
 # Personal Shared
 EOF
 
-cat > "$TEST_HOME/superpowers-skills/shared-skill/SKILL.md" <<'EOF'
+cat > "$TEST_HOME/superpowers-bd-skills/shared-skill/SKILL.md" <<'EOF'
 ---
 name: shared-skill
-description: Superpowers version
+description: Superpowers-BD version
 ---
-# Superpowers Shared
+# Superpowers-BD Shared
 EOF
 
-cat > "$TEST_HOME/superpowers-skills/unique-skill/SKILL.md" <<'EOF'
+cat > "$TEST_HOME/superpowers-bd-skills/unique-skill/SKILL.md" <<'EOF'
 ---
 name: unique-skill
-description: Only in superpowers
+description: Only in Superpowers-BD
 ---
 # Unique
 EOF
@@ -282,11 +282,11 @@ result=$(node -e "
 const fs = require('fs');
 const path = require('path');
 
-function resolveSkillPath(skillName, superpowersDir, personalDir) {
-    const forceSuperpowers = skillName.startsWith('superpowers:');
-    const actualSkillName = forceSuperpowers ? skillName.replace(/^superpowers:/, '') : skillName;
+function resolveSkillPath(skillName, bundledDir, personalDir, bundledPrefix = 'superpowers-bd:') {
+    const forceBundled = skillName.startsWith(bundledPrefix);
+    const actualSkillName = forceBundled ? skillName.substring(bundledPrefix.length) : skillName;
 
-    if (!forceSuperpowers && personalDir) {
+    if (!forceBundled && personalDir) {
         const personalPath = path.join(personalDir, actualSkillName);
         const personalSkillFile = path.join(personalPath, 'SKILL.md');
         if (fs.existsSync(personalSkillFile)) {
@@ -298,13 +298,13 @@ function resolveSkillPath(skillName, superpowersDir, personalDir) {
         }
     }
 
-    if (superpowersDir) {
-        const superpowersPath = path.join(superpowersDir, actualSkillName);
-        const superpowersSkillFile = path.join(superpowersPath, 'SKILL.md');
-        if (fs.existsSync(superpowersSkillFile)) {
+    if (bundledDir) {
+        const bundledPath = path.join(bundledDir, actualSkillName);
+        const bundledSkillFile = path.join(bundledPath, 'SKILL.md');
+        if (fs.existsSync(bundledSkillFile)) {
             return {
-                skillFile: superpowersSkillFile,
-                sourceType: 'superpowers',
+                skillFile: bundledSkillFile,
+                sourceType: 'superpowers-bd',
                 skillPath: actualSkillName
             };
         }
@@ -313,45 +313,56 @@ function resolveSkillPath(skillName, superpowersDir, personalDir) {
     return null;
 }
 
-const superpowersDir = '$TEST_HOME/superpowers-skills';
+const bundledDir = '$TEST_HOME/superpowers-bd-skills';
 const personalDir = '$TEST_HOME/personal-skills';
 
 // Test 1: Shared skill should resolve to personal
-const shared = resolveSkillPath('shared-skill', superpowersDir, personalDir);
+const shared = resolveSkillPath('shared-skill', bundledDir, personalDir);
 console.log('SHARED:', JSON.stringify(shared));
 
-// Test 2: superpowers: prefix should force superpowers
-const forced = resolveSkillPath('superpowers:shared-skill', superpowersDir, personalDir);
+// Test 2: superpowers-bd: prefix should force Superpowers-BD
+const forced = resolveSkillPath('superpowers-bd:shared-skill', bundledDir, personalDir);
 console.log('FORCED:', JSON.stringify(forced));
 
-// Test 3: Unique skill should resolve to superpowers
-const unique = resolveSkillPath('unique-skill', superpowersDir, personalDir);
+// Test 3: Unique skill should resolve to Superpowers-BD
+const unique = resolveSkillPath('unique-skill', bundledDir, personalDir);
 console.log('UNIQUE:', JSON.stringify(unique));
 
-// Test 4: Non-existent skill
-const notfound = resolveSkillPath('not-a-skill', superpowersDir, personalDir);
+// Test 4: Old superpowers: prefix should not force Superpowers-BD
+const oldPrefix = resolveSkillPath('superpowers:shared-skill', bundledDir, personalDir);
+console.log('OLDPREFIX:', JSON.stringify(oldPrefix));
+
+// Test 5: Non-existent skill
+const notfound = resolveSkillPath('not-a-skill', bundledDir, personalDir);
 console.log('NOTFOUND:', JSON.stringify(notfound));
 " 2>&1)
 
 if echo "$result" | grep -q 'SHARED:.*"sourceType":"personal"'; then
-    echo "  [PASS] Personal skills shadow superpowers skills"
+    echo "  [PASS] Personal skills shadow Superpowers-BD skills"
 else
     echo "  [FAIL] Personal skills not shadowing correctly"
     echo "  Result: $result"
     exit 1
 fi
 
-if echo "$result" | grep -q 'FORCED:.*"sourceType":"superpowers"'; then
-    echo "  [PASS] superpowers: prefix forces superpowers resolution"
+if echo "$result" | grep -q 'FORCED:.*"sourceType":"superpowers-bd"'; then
+    echo "  [PASS] superpowers-bd: prefix forces Superpowers-BD resolution"
 else
-    echo "  [FAIL] superpowers: prefix not working"
+    echo "  [FAIL] superpowers-bd: prefix not working"
     exit 1
 fi
 
-if echo "$result" | grep -q 'UNIQUE:.*"sourceType":"superpowers"'; then
-    echo "  [PASS] Unique superpowers skills are found"
+if echo "$result" | grep -q 'UNIQUE:.*"sourceType":"superpowers-bd"'; then
+    echo "  [PASS] Unique Superpowers-BD skills are found"
 else
-    echo "  [FAIL] Unique superpowers skills not found"
+    echo "  [FAIL] Unique Superpowers-BD skills not found"
+    exit 1
+fi
+
+if echo "$result" | grep -q 'OLDPREFIX: null'; then
+    echo "  [PASS] old superpowers: prefix is not captured by Superpowers-BD"
+else
+    echo "  [FAIL] old superpowers: prefix should not force Superpowers-BD lookup"
     exit 1
 fi
 

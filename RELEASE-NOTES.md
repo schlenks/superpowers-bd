@@ -22,6 +22,10 @@ Superpowers-BD now ships first-class Codex plugin metadata alongside the Claude 
 
 **Files Modified (Codex addendum):** `.codex-plugin/plugin.json` (new), `.agents/plugins/marketplace.json` (new), `.codex/INSTALL.md`, `.codex/superpowers-bootstrap.md`, `.codex/superpowers-bd-codex` (new), `.codex/superpowers-codex` (removed), `docs/README.codex.md`, `README.md`, `lib/skills-core.js`, `plugins/superpowers-bd/**` (wrapper copy), `skills/{plan2beads,ad-hoc-code-review}/SKILL.md` (new), `skills/{plan2beads,ad-hoc-code-review,subagent-driven-development,using-superpowers}/agents/openai.yaml` (new), `skills/subagent-driven-development/SKILL.md`, `skills/subagent-driven-development/budget-and-wave-cap.md` (new), `skills/{using-superpowers,dispatching-parallel-agents}/SKILL.md`, and `tests/codex/*` (new).
 
+### OpenCode packaging cleanup (2026-05-14 addendum)
+
+OpenCode install instructions now point to `schlenks/superpowers-bd` and install under `~/.config/opencode/superpowers-bd`. The OpenCode plugin file is now `.opencode/plugin/superpowers-bd.js`, and forced bundled skill lookup uses the `superpowers-bd:` namespace instead of the upstream `superpowers:` namespace. OpenCode tests were updated to cover the new install path, plugin filename, and namespace behavior, including rejection of the old forced namespace.
+
 ### Upstream workflow adoption (2026-05-09)
 
 Three patterns adopted from upstream superpowers (review of v5.0.0 → v5.1.0): native worktree-tool detection, detached-HEAD-aware branch finishing, and inline orchestrator self-review for the Plan Verification Checklist. Skill prose only — no code changes, no test additions.
