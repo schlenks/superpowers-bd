@@ -33,11 +33,11 @@ For PR reviews:
 
 ## Reviewer Standard
 
-Use Codex native agent `code_reviewer` when available. If it is unavailable, perform the review directly using `../requesting-code-review/code-reviewer.md` as the shared review standard.
+Use Codex native agent `code_reviewer` when available. If it is unavailable, perform the review directly using `../../requesting-code-review/code-reviewer.md` as the shared review standard.
 
 Each reviewer must produce a structured report with changed files, rules consulted, requirement mapping, uncovered paths, not checked items, findings by severity, and readiness assessment.
 
-For two or more successful reviewer reports, use Codex native agent `review_aggregator` when available. If it is unavailable, aggregate directly using `../multi-review-aggregation/aggregator-prompt.md` as the shared aggregation standard.
+For two or more successful reviewer reports, use Codex native agent `review_aggregator` when available. If it is unavailable, aggregate directly using `../../multi-review-aggregation/aggregator-prompt.md` as the shared aggregation standard.
 
 ## Output Rules
 

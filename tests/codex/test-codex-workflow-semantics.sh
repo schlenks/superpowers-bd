@@ -47,6 +47,30 @@ assert_not_contains() {
   fi
 }
 
+assert_same_file() {
+  local left="$1"
+  local right="$2"
+  local message="$3"
+  if cmp -s "$left" "$right"; then
+    pass "$message"
+  else
+    fail "$message"
+  fi
+}
+
+assert_reference_path_resolves() {
+  local source_file="$1"
+  local relative_path="$2"
+  local message="$3"
+  local resolved
+  resolved="$(cd "$(dirname "$source_file")" && pwd)/$relative_path"
+  if [ -f "$resolved" ]; then
+    pass "$message"
+  else
+    fail "$message"
+  fi
+}
+
 assert_codex_reference_clean() {
   local file="$1"
   assert_file "$file"
@@ -64,6 +88,7 @@ codex_refs=(
 for ref in "${codex_refs[@]}"; do
   assert_codex_reference_clean "$ref"
   assert_file "plugins/superpowers-bd/$ref"
+  assert_same_file "$ref" "plugins/superpowers-bd/$ref" "plugin wrapper mirrors $ref"
 done
 
 assert_contains "skills/writing-plans/SKILL.md" "codex-plan-verification.md" "writing-plans links Codex verification reference"
@@ -77,6 +102,10 @@ assert_not_contains "skills/plan2beads/SKILL.md" "AskUserQuestion|Task:|TaskCrea
 assert_not_contains "skills/ad-hoc-code-review/SKILL.md" "AskUserQuestion|Task:|TaskCreate|ExitPlanMode|subagent_type|Claude .* maps" "ad-hoc-code-review skill avoids Claude translation mappings"
 
 assert_contains "skills/ad-hoc-code-review/SKILL.md" "../requesting-code-review/code-reviewer.md" "ad-hoc review keeps shared review standard"
+assert_contains "skills/ad-hoc-code-review/references/codex-review-flow.md" "../../requesting-code-review/code-reviewer.md" "Codex ad-hoc reference points to shared review standard"
+assert_contains "skills/ad-hoc-code-review/references/codex-review-flow.md" "../../multi-review-aggregation/aggregator-prompt.md" "Codex ad-hoc reference points to shared aggregation standard"
+assert_reference_path_resolves "skills/ad-hoc-code-review/references/codex-review-flow.md" "../../requesting-code-review/code-reviewer.md" "Codex ad-hoc review standard path resolves"
+assert_reference_path_resolves "skills/ad-hoc-code-review/references/codex-review-flow.md" "../../multi-review-aggregation/aggregator-prompt.md" "Codex ad-hoc aggregation path resolves"
 assert_contains "commands/cr.md" "Claude Code command implementation" "cr command declares Claude command ownership"
 assert_contains "commands/cr.md" "Codex.*ad-hoc-code-review" "cr command points Codex users to native skill flow"
 
