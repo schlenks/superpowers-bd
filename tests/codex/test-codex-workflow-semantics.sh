@@ -71,11 +71,17 @@ assert_reference_path_resolves() {
   fi
 }
 
+assert_section() {
+  local file="$1"
+  local heading="$2"
+  assert_contains "$file" "^## $heading$" "$file has $heading section"
+}
+
 assert_codex_reference_clean() {
   local file="$1"
   assert_file "$file"
   assert_contains "$file" "Codex" "$file is explicitly Codex-native"
-  assert_not_contains "$file" "AskUserQuestion|Task:|TaskCreate|ExitPlanMode|subagent_type|Claude .* maps" "$file avoids Claude-only tool translation"
+  assert_not_contains "$file" "AskUserQuestion|Task:|TaskCreate|ExitPlanMode|subagent_type|Claude .* maps|tool mapping|translation table" "$file avoids Claude-only tool translation"
 }
 
 codex_refs=(
@@ -98,6 +104,20 @@ assert_contains "skills/ad-hoc-code-review/SKILL.md" "codex-review-flow.md" "ad-
 assert_not_contains "skills/writing-plans/SKILL.md" "For Claude:" "writing-plans header is platform-neutral"
 assert_not_contains "skills/writing-plans/references/codex-plan-verification.md" "For Claude|/superpowers-bd:" "Codex plan guidance avoids Claude-only handoff text"
 
+assert_section "skills/subagent-driven-development/SKILL.md" "Quick Start: Shared Workflow"
+assert_section "skills/subagent-driven-development/SKILL.md" "Claude Code Dispatch Path"
+assert_section "skills/subagent-driven-development/SKILL.md" "Codex Dispatch Path"
+assert_section "skills/subagent-driven-development/SKILL.md" "Checkpoint Platform Fields"
+assert_section "skills/subagent-driven-development/SKILL.md" "Review Rules"
+assert_section "skills/subagent-driven-development/SKILL.md" "Guardrails"
+assert_section "skills/subagent-driven-development/SKILL.md" "State Machine"
+assert_contains "skills/subagent-driven-development/SKILL.md" '"platform": "codex"' "SDD checkpoint schema records native platform"
+assert_contains "skills/subagent-driven-development/SKILL.md" '"spec_review": "spawn_agent agent=spec_reviewer"' "SDD checkpoint names Codex spec reviewer dispatch"
+assert_contains "skills/subagent-driven-development/SKILL.md" '"code_review": "spawn_agent agent=code_reviewer"' "SDD checkpoint names Codex code reviewer dispatch"
+assert_contains "skills/subagent-driven-development/SKILL.md" '"review_aggregation": "spawn_agent agent=review_aggregator when N > 1"' "SDD checkpoint names Codex aggregation dispatch"
+assert_contains "skills/subagent-driven-development/SKILL.md" '"epic_verification": "spawn_agent agent=epic_verifier"' "SDD checkpoint names Codex verifier dispatch"
+assert_contains "skills/subagent-driven-development/SKILL.md" 'native Codex sessions do not run a separate Codex cross-model advisory review' "SDD separates native Codex from Claude advisory review"
+
 assert_not_contains "skills/plan2beads/SKILL.md" "Codex: invoke this skill.*read ../../commands" "plan2beads does not route Codex through Claude command docs"
 assert_not_contains "skills/ad-hoc-code-review/SKILL.md" "Codex: invoke this skill.*read ../../commands" "ad-hoc-code-review does not route Codex through Claude command docs"
 assert_not_contains "skills/plan2beads/SKILL.md" "AskUserQuestion|Task:|TaskCreate|ExitPlanMode|subagent_type|Claude .* maps" "plan2beads skill avoids Claude translation mappings"
@@ -116,12 +136,19 @@ assert_contains "skills/executing-plans/references/codex-execution-checkpoints.m
 assert_not_contains "skills/executing-plans/references/codex-execution-checkpoints.md" "autonomous execution" "Codex executing-plans does not bypass feedback checkpoints"
 
 assert_contains "skills/ad-hoc-code-review/SKILL.md" "../requesting-code-review/code-reviewer.md" "ad-hoc review keeps shared review standard"
+assert_section "skills/ad-hoc-code-review/references/codex-review-flow.md" "Native Flow"
+assert_section "skills/ad-hoc-code-review/references/codex-review-flow.md" "Scope Resolution"
+assert_section "skills/ad-hoc-code-review/references/codex-review-flow.md" "Reviewer Standard"
+assert_section "skills/ad-hoc-code-review/references/codex-review-flow.md" "Output Rules"
 assert_contains "skills/ad-hoc-code-review/references/codex-review-flow.md" "../../requesting-code-review/code-reviewer.md" "Codex ad-hoc reference points to shared review standard"
 assert_contains "skills/ad-hoc-code-review/references/codex-review-flow.md" "../../multi-review-aggregation/aggregator-prompt.md" "Codex ad-hoc reference points to shared aggregation standard"
 assert_reference_path_resolves "skills/ad-hoc-code-review/references/codex-review-flow.md" "../../requesting-code-review/code-reviewer.md" "Codex ad-hoc review standard path resolves"
 assert_reference_path_resolves "skills/ad-hoc-code-review/references/codex-review-flow.md" "../../multi-review-aggregation/aggregator-prompt.md" "Codex ad-hoc aggregation path resolves"
 assert_contains "skills/ad-hoc-code-review/references/codex-review-flow.md" "follow .*code-reviewer\\.md.*exactly" "Codex ad-hoc fallback follows shared report structure"
 assert_contains "skills/ad-hoc-code-review/references/codex-review-flow.md" "final human presentation" "Codex ad-hoc findings-first applies only to final presentation"
+assert_contains "skills/ad-hoc-code-review/references/codex-review-flow.md" "Do not edit code during this workflow" "Codex ad-hoc review flow is read-only"
+assert_contains "skills/ad-hoc-code-review/references/codex-review-flow.md" "Present findings and stop" "Codex ad-hoc review stops after findings"
+assert_not_contains "skills/ad-hoc-code-review/references/codex-review-flow.md" "Claude reviewer|Claude Code reviewer|Claude-only reviewer|Task tool|subagent_type" "Codex ad-hoc review has no stray Claude reviewer wording"
 assert_contains "commands/cr.md" "Claude Code command implementation" "cr command declares Claude command ownership"
 assert_contains "commands/cr.md" "Codex.*ad-hoc-code-review" "cr command points Codex users to native skill flow"
 

@@ -57,14 +57,35 @@ check_node "Codex hooks config has SessionStart and PostToolUse command hooks" '
   if (post?.command !== "bash \"$(git rev-parse --show-toplevel)/hooks/codex-post-tool-use.sh\"") process.exit(1);
 '
 
+check_node "Codex hooks config resolves to existing executable wrappers" '
+  const fs = require("fs");
+  const path = require("path");
+  const config = JSON.parse(fs.readFileSync(".codex/hooks.json", "utf8"));
+  const commands = Object.values(config.hooks || {})
+    .flatMap((entries) => entries.flatMap((entry) => entry.hooks || []))
+    .map((hook) => hook.command);
+  const wrappers = commands.map((command) => {
+    const match = command.match(/\/hooks\/([^"]+)"/);
+    if (!match) process.exit(1);
+    return path.join("hooks", match[1]);
+  });
+  if (wrappers.length !== 2) process.exit(1);
+  for (const wrapper of wrappers) {
+    fs.accessSync(wrapper, fs.constants.X_OK);
+  }
+'
+
 check "Codex session wrapper exists and is executable" \
   test -x hooks/codex-session-start.sh
 
 check "Codex PostToolUse wrapper exists and is executable" \
   test -x hooks/codex-post-tool-use.sh
 
+check "Codex hooks config has no Claude environment variables" \
+  bash -c "! grep -E '\\$\\{?CLAUDE_' .codex/hooks.json"
+
 check "Codex wrappers do not depend on Claude hook environment" \
-  bash -c "! grep -E 'CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR' hooks/codex-session-start.sh hooks/codex-post-tool-use.sh"
+  bash -c "! grep -E '\\$\\{?CLAUDE_|CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR' hooks/codex-session-start.sh hooks/codex-post-tool-use.sh"
 
 mkdir -p "$TEST_DIR/subdir"
 subdir_session_stdout="$TEST_DIR/subdir-session-stdout.json"
@@ -131,6 +152,16 @@ check_node "Codex plugin manifest does not overclaim bundled hook support" '
   const manifest = JSON.parse(fs.readFileSync(".codex-plugin/plugin.json", "utf8"));
   if (Object.prototype.hasOwnProperty.call(manifest, "hooks")) process.exit(1);
   if (!manifest.interface?.longDescription?.includes("Project-local Codex hooks")) process.exit(1);
+'
+
+check_node "Codex plugin manifest stays consistent with project-local hook packaging" '
+  const fs = require("fs");
+  const manifest = JSON.parse(fs.readFileSync(".codex-plugin/plugin.json", "utf8"));
+  if (manifest.name !== "superpowers-bd") process.exit(1);
+  if (manifest.skills !== "./skills/") process.exit(1);
+  if (!manifest.interface?.defaultPrompt?.every((line) => line.includes("$"))) process.exit(1);
+  if (manifest.interface.defaultPrompt.some((line) => line.includes("/superpowers-bd:"))) process.exit(1);
+  if (!fs.existsSync(".codex/hooks.json")) process.exit(1);
 '
 
 echo ""
