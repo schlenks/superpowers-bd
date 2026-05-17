@@ -1,13 +1,26 @@
 # AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to agent tools when working with code in this repository. Claude Code-specific behavior is called out explicitly; Codex-specific behavior is first-class and should use native Codex tools.
 
 ## Project Overview
 
-Superpowers-BD is a Claude Code plugin providing workflow skills for TDD, debugging, and collaboration patterns. It integrates with **beads** (git-backed issue tracker) for persistent task management and wave-based parallel execution across sessions.
+Superpowers-BD is a multi-agent-tool plugin providing workflow skills for TDD, debugging, and collaboration patterns. It has first-class Claude Code, Codex, and OpenCode support, and integrates with **beads** (git-backed issue tracker) for persistent task management and wave-based parallel execution across sessions.
 
 **Plugin version:** 5.6.5
 **Minimum Claude Code:** 2.1.133 (subagent skill discovery via Skill tool — agents' `skills:` frontmatter now actually loads; `effort.level` in hook input JSON; `effort: xhigh` on review agents from 2.1.111; `claude plugin tag` from 2.1.118; PostToolUse `duration_ms` from 2.1.119)
+
+## Platform Boundary
+
+Shared skills describe workflow intent. Each supported agent tool executes that intent through its own native platform layer, with comparable outcomes implemented in platform-native terms.
+
+| Shared intent | Claude Code implementation | Codex implementation |
+|---------------|----------------------------|----------------------|
+| Track progress | `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` | `update_plan` |
+| Delegate work | `Task` with background execution when appropriate | `spawn_agent`, then `wait_agent` when blocked on results |
+| Ask questions | `AskUserQuestion` | Direct user question, or structured question tool when available |
+| Verify completion | `Skill` plus verification commands and captured evidence | `$skill` plus verification commands and captured evidence |
+
+Command-backed workflows must expose native entry points for each supported platform. Claude Code slash commands, Codex `$skill`/plugin entry points, OpenCode commands, and fallback CLIs may share shell scripts and skill content, but orchestration must remain native to the current platform.
 
 ## Development Commands
 
@@ -61,17 +74,17 @@ skills/                     # Core skill definitions (SKILL.md files)
   rule-of-five-tests/           # 5-pass test quality review
   ...
 
-agents/                     # Subagent definitions for Task tool
+agents/                     # Claude Code subagent definitions for Task tool
   code-reviewer.md         # Code review subagent
   epic-verifier.md         # Epic verification subagent
 
-commands/                   # User-invocable slash commands
+commands/                   # Claude Code user-invocable slash commands
   brainstorm.md            # /superpowers-bd:brainstorm
   write-plan.md            # /superpowers-bd:write-plan
   execute-plan.md          # /superpowers-bd:execute-plan
   plan2beads.md            # /superpowers-bd:plan2beads
 
-hooks/                      # Session lifecycle hooks
+hooks/                      # Claude Code session lifecycle hooks
   session-start.sh         # Runs on session start/resume/clear
   link-plugin-components.sh  # Copies hooked components to .claude/ (#17688 workaround)
   log-file-modification.sh   # PostToolUse audit logger for Write|Edit
@@ -79,6 +92,7 @@ hooks/                      # Session lifecycle hooks
 
 tests/
   claude-code/             # Headless Claude Code integration tests
+  codex/                   # Codex plugin and native-loading tests
   explicit-skill-requests/ # Skill invocation tests
   skill-triggering/        # Automatic skill triggering tests
   subagent-driven-dev/     # End-to-end workflow tests (go-fractals, svelte-todo)
@@ -87,9 +101,9 @@ tests/
 ### Two-Layer Task System
 
 - **Beads tracks WHAT** (features/epics, 1-4 hours): `bd create`, `bd close`, `bd dep add`
-- **Native TaskCreate/TaskUpdate tracks HOW** (quality gates, 5-30 min within skills)
+- **Native platform progress tracks HOW** (quality gates, 5-30 min within skills): Claude Code uses `TaskCreate`/`TaskUpdate`, Codex uses `update_plan`
 
-12 skills enforce quality gates via native task dependencies. Skipping phases is visible in TaskList.
+12 skills enforce quality gates via native progress dependencies. In Claude Code, skipped phases are visible in TaskList; in Codex, preserve the same ordering with `update_plan`.
 
 ### Skill Testing Methodology
 
@@ -98,7 +112,7 @@ Skills are tested like code via TDD:
 2. **GREEN**: Write skill addressing specific failures, verify compliance
 3. **REFACTOR**: Close loopholes by adding explicit counters for new rationalizations
 
-Integration tests run headless Claude Code sessions and verify behavior by parsing `.jsonl` session transcripts.
+Claude Code integration tests run headless Claude Code sessions and verify behavior by parsing `.jsonl` session transcripts. Codex tests live under the Codex test suite and should verify Codex-native plugin behavior.
 
 ### Key Workflows
 
@@ -121,7 +135,8 @@ See `skills/writing-skills/SKILL.md` for complete guide.
 
 ## Plugin Configuration
 
-- **Plugin manifest**: `.claude-plugin/plugin.json`
+- **Claude Code plugin manifest**: `.claude-plugin/plugin.json`
+- **Codex plugin manifest**: `.codex-plugin/plugin.json`
 - **Session hooks**: `hooks/hooks.json` (runs `session-start.sh` on startup, `link-plugin-components.sh` on first start, `session-end.sh` on exit)
 - **Quality gates**: `hooks/task-completed.sh` (TaskCompleted hook, interactive mode only)
 - **Audit logging**: `hooks/log-file-modification.sh` (PostToolUse hook via code-reviewer agent frontmatter)

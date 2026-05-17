@@ -18,7 +18,20 @@ This is not negotiable. This is not optional. You cannot rationalize your way ou
 
 **In Codex:** Use native `$skill-name` invocation when installed as a Codex plugin. If using the manual fallback install, run `~/.codex/superpowers-bd/.codex/superpowers-bd-codex use-skill <skill-name>` and follow the returned instructions.
 
-**In other environments:** Use the platform's skill loader, then apply the tool mappings in that platform's Superpowers-BD docs.
+**In other environments:** Use the platform's skill loader, then apply the native execution guidance in that platform's Superpowers-BD docs.
+
+## Platform Boundary
+
+Superpowers-BD skills define shared workflow intent first. Each agent tool executes that intent through its native platform layer, with comparable outcomes implemented in platform-native terms.
+
+| Shared intent | Claude Code implementation | Codex implementation |
+|---------------|----------------------------|----------------------|
+| Track progress | `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` | `update_plan` |
+| Delegate work | `Task` with background execution when appropriate | `spawn_agent`, then `wait_agent` when blocked on results |
+| Ask questions | `AskUserQuestion` | Direct user question, or structured question tool when available |
+| Verify completion | `Skill` plus verification commands and captured evidence | `$skill` plus verification commands and captured evidence |
+
+Command-backed workflows must provide a native path for every supported platform. A Claude Code slash command, Codex `$skill`/plugin entry point, OpenCode command, or fallback CLI may share shell scripts and skill content, but the user-facing invocation and tool orchestration must be native to that platform.
 
 # Using Skills
 
@@ -64,11 +77,11 @@ When multiple skills could apply, use this order:
 
 Instructions say WHAT, not HOW. "Add X" or "Fix Y" doesn't mean skip workflows.
 
-## Native Task Integration
+## Native Progress Integration
 
-Many skills use Claude Code's native task tools (TaskCreate, TaskUpdate, TaskList) to enforce quality gates and track progress.
+Many skills use native progress tools to enforce quality gates and track execution progress. Use the implementation for the platform currently running the skill.
 
-**Pattern:** Skills with multi-phase processes create sequential, blocked tasks:
+**Claude Code pattern:** Skills with multi-phase processes create sequential, blocked tasks:
 
 ```
 TaskCreate: "Phase 1: [Description]"
@@ -82,11 +95,13 @@ TaskCreate: "Phase 2: [Description]"
 
 **Note:** TaskCreate returns a task ID in its response. Capture this ID to use in `addBlockedBy` for dependent tasks. The `[phase-1-id]` placeholders in skill documentation represent where you insert the actual returned ID.
 
-**When invoking skills with tasks:** Tasks are created automatically. Follow the skill's instructions for when to mark tasks complete.
+**Codex pattern:** Use `update_plan` for the same ordered progress gate. Preserve ordering manually: do not mark a later phase complete before the earlier phase has evidence.
 
-## Platform Tool Mappings
+**When invoking skills with progress gates:** Use the platform's native progress mechanism. Follow the skill's instructions for when to mark phases complete.
 
-**Codex:** map TaskCreate/TaskUpdate progress blocks to `update_plan`. Preserve ordering manually: do not mark a later phase complete before the earlier phase has evidence. Map Claude `Task(run_in_background: true)` to `spawn_agent`; use `wait_agent` only when the next step needs the result. When spawning workers, give explicit file ownership and tell them other agents may also be editing the repo.
+## Codex Native Tools
+
+**Codex:** use `update_plan` for progress blocks, `spawn_agent` for delegated workers, and `wait_agent` only when the next step needs the result. When spawning workers, give explicit file ownership and tell them other agents may also be editing the repo.
 
 **Beads-aware repos:** use `bd` for durable work tracking when the repo requires it. Native task/progress tools track execution phases; beads tracks the actual project work.
 

@@ -1,6 +1,8 @@
 # Superpowers-BD for Codex
 
-Superpowers-BD can be used from Codex in two ways:
+Superpowers-BD supports Codex as a first-class plugin layer. Shared skills describe workflow intent; Codex executes that intent through native Codex skills, progress tracking, agent delegation, and verification commands.
+
+Codex can use Superpowers-BD in two ways:
 
 1. **Native Codex plugin** (preferred): Codex reads `.codex-plugin/plugin.json` and bundled skills directly.
 2. **Manual bootstrap fallback**: Codex loads skills through `.codex/superpowers-bd-codex` from `~/.codex/AGENTS.md`.
@@ -66,15 +68,18 @@ Manual bootstrap install:
 ~/.codex/superpowers-bd/.codex/superpowers-bd-codex use-skill superpowers-bd:plan2beads
 ```
 
-## Codex Tool Mapping
+## Codex Native Execution
 
-Skills were originally written for Claude Code and are adapted for Codex with these mappings:
+Shared skills use platform-neutral workflow intent. Codex uses the native Codex surface for that intent:
 
-- `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` -> `update_plan`
-- `Task` with `run_in_background: true` -> `spawn_agent`, then `wait_agent` only when blocked on results
-- `AskUserQuestion` -> direct user question, or structured question tool when available
-- `Skill` tool -> native `$skill-name` invocation, or the manual `superpowers-bd-codex use-skill` command
-- File operations -> native Codex tools
+| Shared intent | Claude Code implementation | Codex implementation |
+|---------------|----------------------------|----------------------|
+| Track progress | `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` | `update_plan` |
+| Delegate work | `Task` with background execution when appropriate | `spawn_agent`, then `wait_agent` when blocked on results |
+| Ask questions | `AskUserQuestion` | Direct user question, or structured question tool when available |
+| Verify completion | `Skill` plus verification commands and captured evidence | `$skill` plus verification commands and captured evidence |
+
+Use native Codex file and shell tools for repository work. When a skill contains a Claude Code-specific task block, treat it as the Claude Code implementation of shared workflow intent and use the Codex implementation in the table.
 
 For durable project tracking in repositories that use beads, keep `bd` as the source of truth for work items and dependencies. Use Codex progress tools for the execution checklist inside a skill.
 

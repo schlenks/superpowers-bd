@@ -2,7 +2,16 @@
 
 > A beads-integrated fork of [Superpowers](https://github.com/obra/superpowers) by [Jesse Vincent](https://github.com/obra)
 
-Superpowers-BD extends the original Superpowers workflow with **[beads](https://github.com/steveyegge/beads)** by [Steve Yegge](https://github.com/steveyegge) - a git-backed issue tracker that enables persistent task management, dependency tracking, and wave-based parallel execution across coding sessions.
+Superpowers-BD is a multi-agent-tool plugin for Claude Code, Codex, and OpenCode. It extends the original Superpowers workflow with **[beads](https://github.com/steveyegge/beads)** by [Steve Yegge](https://github.com/steveyegge) - a git-backed issue tracker that enables persistent task management, dependency tracking, and wave-based parallel execution across coding sessions.
+
+The shared skills define workflow intent: design before coding, plan with dependencies, implement in verified waves, and preserve work across sessions. Each supported agent tool gets a native execution layer for skills, progress tracking, delegation, commands, hooks, and verification.
+
+| Shared intent | Claude Code implementation | Codex implementation |
+|---------------|----------------------------|----------------------|
+| Track progress | `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` | `update_plan` |
+| Delegate work | `Task` with background execution when appropriate | `spawn_agent`, then `wait_agent` when blocked on results |
+| Ask questions | `AskUserQuestion` | Direct user question, or structured question tool when available |
+| Verify completion | `Skill` plus verification commands and captured evidence | `$skill` plus verification commands and captured evidence |
 
 ## What's Different from Upstream
 
@@ -42,15 +51,15 @@ These tools enhance linting and complexity checks but are **not required** — h
 
 ### Two-Layer Task System (v4.0.7)
 
-Beads tracks **WHAT** work to do (features/epics, 1-4 hours). Claude's native tasks track **HOW** progress is made within those items (quality gates, 5-30 min).
+Beads tracks **WHAT** work to do (features/epics, 1-4 hours). Each agent tool's native progress surface tracks **HOW** progress is made within those items (quality gates, 5-30 min).
 
-12 skills enforce quality gates with task dependencies:
+12 skills enforce quality gates with native progress dependencies:
 - `systematic-debugging` - 4 phase tasks enforce "NO FIXES BEFORE ROOT CAUSE"
 - `rule-of-five-code` / `rule-of-five-plans` / `rule-of-five-tests` - 5 sequential pass tasks with dependencies (variant-aware)
 - `test-driven-development` - RED/GREEN/REFACTOR per feature
 - `writing-plans` - 7 tasks (draft + checklist + rule-of-five-plans)
 
-Skipping phases becomes visible in TaskList. Blocked tasks cannot be marked in_progress.
+Skipping phases is visible in the active platform's progress surface. Claude Code uses TaskList; Codex uses `update_plan` ordering.
 
 ### Rule-of-Five Quality Review (v4.0.4, variants v4.2.0)
 
@@ -123,7 +132,7 @@ Once it's teased a spec out of the conversation, it shows it to you in chunks sh
 
 After you've signed off on the design, your agent puts together an implementation plan that's clear enough for an enthusiastic junior engineer with poor taste, no judgement, no project context, and an aversion to testing to follow. It emphasizes true red/green TDD, YAGNI (You Aren't Gonna Need It), and DRY.
 
-Next up, once you say "go", it converts the plan to a **beads epic** with tracked dependencies, then launches *subagent-driven-development* - an orchestrator dispatches implementers in parallel waves, reviews their work with dedicated spec and code reviewers, and continues forward. Work persists across sessions. It's not uncommon for Claude to work autonomously for hours without deviating from the plan.
+Next up, once you say "go", it converts the plan to a **beads epic** with tracked dependencies, then launches *subagent-driven-development* - an orchestrator dispatches implementers in parallel waves, reviews their work with dedicated spec and code reviewers, and continues forward. Work persists across sessions. Agent tools can work autonomously for hours without deviating from the plan.
 
 When implementation completes, a dedicated **epic-verifier** agent runs systematic verification (YAGNI, drift, tests, security, rule-of-five) before the branch is finished.
 
@@ -249,9 +258,9 @@ Fetch and follow instructions from https://raw.githubusercontent.com/schlenks/su
 
 ## Customizing for Your Organization
 
-Superpowers-BD is designed to be forked and customized. The skill system supports a **local > marketplace** priority:
+Superpowers-BD is designed to be forked and customized. Supported platforms use **local > marketplace** priority when their skill loader supports local overrides:
 
-1. **Local skills** in `~/.claude/skills/` take precedence
+1. **Local skills** in the platform-specific local skill directory take precedence
 2. **Marketplace skills** are used as fallbacks
 
 This means you can:
@@ -262,7 +271,7 @@ This means you can:
 
 ### Skill Resolution
 
-When invoking skills, Claude checks for unprefixed local versions first:
+When invoking skills, the active agent tool checks for local versions first when its skill loader supports local priority:
 
 | If you want... | Try first (local) | Fall back to (plugin) |
 |----------------|-------------------|---------------------------|
@@ -292,11 +301,13 @@ See `skills/writing-skills/SKILL.md` for the complete guide.
 
 ## Updating
 
-Skills update automatically when you update the plugin:
+In Claude Code, skills update when you update the plugin:
 
 ```bash
 /plugin update superpowers-bd
 ```
+
+For Codex updates, see [docs/README.codex.md](docs/README.codex.md). For OpenCode updates, see [docs/README.opencode.md](docs/README.opencode.md).
 
 ## License
 
