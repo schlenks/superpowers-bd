@@ -7,8 +7,9 @@ Before dispatching, resolve paths once per wave:
 code_reviewer_path          = Glob("**/requesting-code-review/code-reviewer.md")[0]
 rule_of_five_code_path      = Glob("**/rule-of-five-code/SKILL.md")[0]
 rule_of_five_tests_path     = Glob("**/rule-of-five-tests/SKILL.md")[0]
+rule_of_five_plans_path     = Glob("**/rule-of-five-plans/SKILL.md")[0]
 ```
-Pass absolute paths as `{code_reviewer_path}`, `{rule_of_five_code_path}`, `{rule_of_five_tests_path}` to all dispatches in the wave.
+Pass absolute paths as `{code_reviewer_path}`, `{rule_of_five_code_path}`, `{rule_of_five_tests_path}`, and `{rule_of_five_plans_path}` to all dispatches in the wave.
 
 ## Claude Code Dispatch
 
@@ -97,6 +98,7 @@ In addition to standard code quality concerns, verify:
 For files with >50 lines changed in this diff:
 - If the changes are to application code (not tests): Read {rule_of_five_code_path} and apply the 5-pass code quality review.
 - If the changes are to test files: Read {rule_of_five_tests_path} and apply the 5-pass test quality review.
+- If the changes are to plans, skills, or process documentation: Read {rule_of_five_plans_path} and apply the 5-pass plan quality review.
 
 Apply the skill's review criteria to your findings. Elevated standards for large changes ensure quality at scale.
 ```

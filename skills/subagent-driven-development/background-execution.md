@@ -12,6 +12,7 @@ Use platform-native background dispatch. Claude Code uses `Task(..., run_in_back
 
 ```python
 pending_tasks = {}  # task_id -> {issue_id, complexity, base_sha, ...}
+pending_reviews = {}  # review_id -> {issue_id, phase, base_sha, head_sha, ...}
 task_ids = []
 
 wave_base_sha = run("git rev-parse HEAD")
@@ -29,6 +30,8 @@ for issue in parallelizable:
     pending_tasks[result.task_id] = {
         "issue_id": issue.id,
         "complexity": issue.complexity,
+        "platform": "claude-code",
+        "model": impl_model,
         "base_sha": wave_base_sha
     }
     task_ids.append(result.task_id)
@@ -38,6 +41,7 @@ for issue in parallelizable:
 
 ```python
 pending_tasks = {}  # agent_id -> {issue_id, complexity, base_sha, ...}
+pending_reviews = {}  # review_id -> {issue_id, phase, base_sha, head_sha, ...}
 agent_ids = []
 
 wave_base_sha = run("git rev-parse HEAD")
@@ -54,6 +58,9 @@ for issue in parallelizable:
     pending_tasks[result.agent_id] = {
         "issue_id": issue.id,
         "complexity": issue.complexity,
+        "platform": "codex",
+        "model": "gpt-5.3-codex",
+        "model_reasoning_effort": impl_effort,
         "base_sha": wave_base_sha
     }
     agent_ids.append(result.agent_id)
@@ -67,6 +74,7 @@ Claude Code background agents notify automatically on completion; when notified,
 
 ```python
 on_agent_complete(agent_id, output):
+    issue_id = pending_tasks[agent_id]["issue_id"]
     verdict = parse_verdict(output)
     # DONE/DONE_WITH_CONCERNS: VERDICT, COMMIT, FILES, TESTS, SCOPE, REPORT_PERSISTED, [CONCERNS]
     # BLOCKED/NEEDS_CONTEXT: VERDICT, BLOCKER, REPORT_PERSISTED
@@ -77,6 +85,7 @@ on_agent_complete(agent_id, output):
     on_implementer_complete(agent_id, verdict)
 
 on_review_complete(review_id, output):
+    issue_id = pending_reviews[review_id]["issue_id"]
     verdict = parse_verdict(output)
     if verdict.report_persisted == "NO":
         dispatch_full_report_fallback(review_id, issue_id)
@@ -141,7 +150,7 @@ Task C:       [implement]----[spec-C]----[code-C x 3]--[agg-C]--> close
 
 ```python
 on_implementer_complete(agent_id, result):
-    verdict = parse_verdict(result.output)
+    verdict = result
 
     if verdict.status in ("DONE", "DONE_WITH_CONCERNS"):
         head_sha = verdict.COMMIT
@@ -181,8 +190,15 @@ def dispatch_spec_review(task_id, base_sha, head_sha):
         prompt=spec_reviewer_prompt
     )
     pending_spec_reviews.add(spec_task)
+    pending_reviews[spec_task.task_id] = {
+        "issue_id": pending_tasks[task_id]["issue_id"],
+        "phase": "spec",
+        "base_sha": base_sha,
+        "head_sha": head_sha
+    }
 
 def on_spec_review_pass(task_id, result):
+    issue_id = pending_tasks[task_id]["issue_id"]
     base_sha = pending_tasks[task_id]["base_sha"]
     head_sha = pending_tasks[task_id]["head_sha"]
     n_reviews = tier_n_reviews
@@ -207,6 +223,12 @@ def on_spec_review_pass(task_id, result):
                 "Review independently and do not reference other reviewers."
         )
         reviewer_tasks.append(code_task)
+        pending_reviews[code_task.task_id] = {
+            "issue_id": issue_id,
+            "phase": "code",
+            "base_sha": base_sha,
+            "head_sha": head_sha
+        }
 
     if n_reviews > 1:
         pending_multi_reviews[task_id] = reviewer_tasks
@@ -239,8 +261,15 @@ def dispatch_spec_review(agent_id, base_sha, head_sha):
         prompt=spec_reviewer_prompt
     )
     pending_spec_reviews.add(spec_agent)
+    pending_reviews[spec_agent.agent_id] = {
+        "issue_id": pending_tasks[agent_id]["issue_id"],
+        "phase": "spec",
+        "base_sha": base_sha,
+        "head_sha": head_sha
+    }
 
 def on_spec_review_pass(agent_id, result):
+    issue_id = pending_tasks[agent_id]["issue_id"]
     base_sha = pending_tasks[agent_id]["base_sha"]
     head_sha = pending_tasks[agent_id]["head_sha"]
     n_reviews = tier_n_reviews
@@ -265,6 +294,12 @@ def on_spec_review_pass(agent_id, result):
                 "Review independently and do not reference other reviewers."
         )
         reviewer_agents.append(reviewer)
+        pending_reviews[reviewer.agent_id] = {
+            "issue_id": issue_id,
+            "phase": "code",
+            "base_sha": base_sha,
+            "head_sha": head_sha
+        }
 
     if n_reviews > 1:
         pending_multi_reviews[agent_id] = reviewer_agents

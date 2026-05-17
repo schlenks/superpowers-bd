@@ -74,13 +74,25 @@ checkpoint = {
     "epic_id": epic_id,
     "wave_completed": wave_number,
     "budget_tier": budget_tier,
+    "context_tier": context_tier,
+    "platform": platform,
+    "platform_agent_plan": platform_agent_plan,
+    "wave_cap": wave_cap,
     "wave_receipts": wave_receipts,       # list of 2-line receipt strings
     "closed_issues": closed_issues,       # all issues closed so far
+    "escalated_tasks": escalated_tasks,
     "epic_tokens": epic_tokens,
     "epic_tool_uses": epic_tool_uses,
     "epic_cost": round(epic_cost, 2),
     "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
 }
+
+if platform == "claude-code":
+    checkpoint["codex_enabled"] = codex_enabled
+    if codex_enabled:
+        checkpoint["codex_install_path"] = codex_install_path
+else:
+    checkpoint["codex_enabled"] = False
 
 checkpoint_path = f"temp/sdd-checkpoint-{epic_id}.json"
 json.dump(checkpoint, open(checkpoint_path, "w"), indent=2)

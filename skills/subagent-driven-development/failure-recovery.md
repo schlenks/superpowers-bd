@@ -43,15 +43,29 @@ if blocker indicates missing context ("need to understand", "can't find"):
     redispatch_with_context(task_id, blocker, same_model=True)
 
 elif blocker indicates capacity limit ("architectural decision", "multiple approaches", "uncertain"):
-    # Reasoning capacity — upgrade model
-    current_model = pending_tasks[task_id]["model"]
-    next_model = upgrade(current_model)  # haiku→sonnet→opus, capped by tier
-    if next_model == current_model:
-        # Already at tier ceiling — escalate to human
-        escalated_tasks[task_id] = blocker
-        report_to_human(task_id, blocker)
+    # Reasoning capacity — upgrade native strength, capped by tier
+    if checkpoint.platform == "codex":
+        current_effort = pending_tasks[task_id]["model_reasoning_effort"]
+        next_effort = upgrade_effort(current_effort)  # medium->high->xhigh, capped by Codex tier table
+        if next_effort == current_effort:
+            escalated_tasks[task_id] = blocker
+            report_to_human(task_id, blocker)
+        else:
+            redispatch(
+                task_id,
+                model="gpt-5.3-codex",
+                model_reasoning_effort=next_effort,
+                extra_context=blocker,
+                preserve_file_ownership=True
+            )
     else:
-        redispatch(task_id, next_model, extra_context=blocker)
+        current_model = pending_tasks[task_id]["model"]
+        next_model = upgrade(current_model)  # haiku->sonnet->opus, capped by tier
+        if next_model == current_model:
+            escalated_tasks[task_id] = blocker
+            report_to_human(task_id, blocker)
+        else:
+            redispatch(task_id, next_model, extra_context=blocker)
 
 elif blocker indicates scope problem ("restructuring", "too large", "beyond plan"):
     # Task decomposition needed — escalate to human
@@ -160,14 +174,21 @@ When the orchestrator sees `<sdd-checkpoint-recovery>` in session context, or fi
 2. Verify epic exists: bd show {epic_id}
 3. Restore state:
    - budget_tier (skip re-asking)
+   - context_tier (default to "standard" if absent)
+   - platform (infer current session platform if absent)
+   - platform_agent_plan (rebuild from active dispatch path if absent)
+   - wave_cap (default to 3 if absent)
    - wave_receipts (list of 2-line receipt strings)
    - closed_issues (for tracking)
+   - escalated_tasks (default {} if absent; skip during LOADING)
    - epic_tokens, epic_tool_uses, epic_cost (running metrics)
-4. Check for in_progress tasks: bd show {epic_id}
+4. Restore Claude-only Codex advisory fields only when platform is "claude-code".
+   If current platform is Codex, ignore stale codex_enabled/codex_install_path fields.
+5. Check for in_progress tasks: bd show {epic_id}
    if any tasks are in_progress:
        bd update --status=open {task_id}  # reset interrupted wave
-5. Resume from LOADING at wave {wave_completed + 1}
-6. Print: "Resuming epic {epic_id} from wave {N} after context recovery."
+6. Resume from LOADING at wave {wave_completed + 1}
+7. Print: "Resuming epic {epic_id} from wave {N} after context recovery."
 ```
 
 **Corrupted checkpoint fallback:**
@@ -177,5 +198,8 @@ if checkpoint is unreadable or missing expected fields:
     ignore checkpoint
     use beads as SSOT: bd show {epic_id} to determine completed vs remaining
     re-ask budget tier
+    re-detect platform and context tier
+    rebuild platform_agent_plan from the active dispatch path
+    run smart wave cap recommendation or use the context-tier default
     print: "Checkpoint corrupted — falling back to beads. Which budget tier?"
 ```
