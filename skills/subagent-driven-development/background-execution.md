@@ -234,7 +234,8 @@ def on_spec_review_pass(task_id, result):
         pending_multi_reviews[task_id] = reviewer_tasks
 
     if checkpoint.platform == "claude-code" and checkpoint.codex_enabled and budget_tier != "pro/api":
-        codex_task = Agent(
+        codex_task = Task(
+            subagent_type="general-purpose",
             run_in_background=True,
             description=f"Codex cross-model review: {task_id}",
             prompt=f"""Run a Codex adversarial review of the changes for {issue_id}.

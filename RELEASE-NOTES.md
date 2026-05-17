@@ -14,9 +14,9 @@ Superpowers-BD now ships first-class Codex plugin metadata alongside the Claude 
 
 **Codex plugin manifest:** New `.codex-plugin/plugin.json` exposes `./skills/` directly to Codex and includes plugin UI metadata (`displayName`, `shortDescription`, `longDescription`, category, capabilities, starter prompts, and brand color). New `.agents/plugins/marketplace.json` registers the repo as a local Codex marketplace source.
 
-**Codex skill entry points:** New `$plan2beads` and `$ad-hoc-code-review` skills wrap the existing Claude slash-command procedures so Codex users can invoke the core beads import and `/cr` review workflows without relying on Claude command loading. Key workflow skills now include `agents/openai.yaml` UI metadata for Codex (`using-superpowers`, `plan2beads`, `ad-hoc-code-review`, `subagent-driven-development`).
+**Codex skill entry points:** New `$plan2beads` and `$ad-hoc-code-review` skills give Codex native entry points for the core beads import and `/cr`-style review workflows without relying on Claude command loading. Key workflow skills now include `agents/openai.yaml` UI metadata for Codex (`using-superpowers`, `plan2beads`, `ad-hoc-code-review`, `subagent-driven-development`).
 
-**Tool mapping updates:** The legacy `.codex/superpowers-bootstrap.md` no longer says Codex lacks subagents. Claude `Task(run_in_background: true)` now maps to Codex `spawn_agent` + `wait_agent`, with explicit guidance for disjoint file ownership and parallel work. `using-superpowers`, `dispatching-parallel-agents`, and `subagent-driven-development` document the same mapping in skill prose.
+**Platform-native execution updates:** The legacy `.codex/superpowers-bootstrap.md` no longer says Codex lacks subagents. Shared workflow skills now describe intent while Claude Code and Codex use their own native delegation surfaces: Claude Code uses `Task(..., run_in_background: true)` and Codex uses `spawn_agent` with `wait_agent` when blocked on results, with explicit guidance for disjoint file ownership and parallel work.
 
 **SDD progressive disclosure cleanup:** `subagent-driven-development/SKILL.md` was compressed below the validator hard limit and the detailed budget/wave-cap formulas moved to `budget-and-wave-cap.md`. Behavior is intended to remain the same; the hot path is just easier for Codex and Claude to load.
 
