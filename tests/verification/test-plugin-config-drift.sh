@@ -116,10 +116,10 @@ check "Plugin root settings disables built-in git instructions" \
   node -e 'const fs=require("fs"); const s=JSON.parse(fs.readFileSync("settings.json", "utf8")); process.exit(s.includeGitInstructions === false ? 0 : 1)'
 
 check "OpenCode install docs use global plugins directory" \
-  grep -q "~/.config/opencode/plugins" .opencode/INSTALL.md
+  grep -q "\\~/.config/opencode/plugins" .opencode/INSTALL.md
 
 check "OpenCode README uses global plugins directory" \
-  grep -q "~/.config/opencode/plugins" docs/README.opencode.md
+  grep -q "\\~/.config/opencode/plugins" docs/README.opencode.md
 
 check "OpenCode README includes dependency install step" \
   grep -q "npm install" docs/README.opencode.md
