@@ -7,7 +7,8 @@ This file provides guidance to agent tools when working with code in this reposi
 Superpowers-BD is a multi-agent-tool plugin providing workflow skills for TDD, debugging, and collaboration patterns. It has first-class Claude Code, Codex, and OpenCode support, and integrates with **beads** (git-backed issue tracker) for persistent task management and wave-based parallel execution across sessions.
 
 **Plugin version:** 5.6.5
-**Minimum Claude Code:** 2.1.133 (subagent skill discovery via Skill tool — agents' `skills:` frontmatter now actually loads; `effort.level` in hook input JSON; `effort: xhigh` on review agents from 2.1.111; `claude plugin tag` from 2.1.118; PostToolUse `duration_ms` from 2.1.119)
+
+Codex reads this file as the project instruction source. Keep Claude Code minimum-version and release-tagging details in `CLAUDE.md`; keep Codex-native install, agent, hook, and `$skill` details in `docs/README.codex.md`.
 
 ## Platform Boundary
 
@@ -38,6 +39,9 @@ Command-backed workflows must expose native entry points for each supported plat
 
 # Run with verbose output
 ./tests/claude-code/run-skill-tests.sh --verbose
+
+# Run Codex plugin, agent, hook, and workflow-semantics tests
+./tests/codex/run-tests.sh
 ```
 
 ### Token Usage Analysis
@@ -78,6 +82,12 @@ agents/                     # Claude Code subagent definitions for Task tool
   code-reviewer.md         # Code review subagent
   epic-verifier.md         # Epic verification subagent
 
+.codex/agents/              # Codex native agent definitions
+  code-reviewer.toml        # code_reviewer
+  spec-reviewer.toml        # spec_reviewer
+  review-aggregator.toml    # review_aggregator
+  epic-verifier.toml        # epic_verifier
+
 commands/                   # Claude Code user-invocable slash commands
   brainstorm.md            # /superpowers-bd:brainstorm
   write-plan.md            # /superpowers-bd:write-plan
@@ -89,6 +99,10 @@ hooks/                      # Claude Code session lifecycle hooks
   link-plugin-components.sh  # Copies hooked components to .claude/ (#17688 workaround)
   log-file-modification.sh   # PostToolUse audit logger for Write|Edit
   task-completed.sh        # Quality gate on task completion
+
+.codex/
+  hooks.json                # Codex project-local SessionStart and PostToolUse hooks
+  superpowers-bd-codex      # Manual fallback CLI for non-plugin Codex installs
 
 tests/
   claude-code/             # Headless Claude Code integration tests

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Superpowers-BD is a Claude Code plugin providing workflow skills for TDD, debugging, and collaboration patterns. It integrates with **beads** (git-backed issue tracker) for persistent task management and wave-based parallel execution across sessions.
+Superpowers-BD is a multi-agent-tool plugin providing workflow skills for TDD, debugging, code review, and beads-based collaboration patterns. This file documents the Claude Code platform layer: Claude plugin metadata, slash commands, Claude Code agents, Claude hooks, and Claude-specific version requirements. Codex has its own first-class project instructions in `AGENTS.md` and native Codex plugin docs in `docs/README.codex.md`.
 
 **Plugin version:** 5.6.5
 **Minimum Claude Code:** 2.1.133 (subagent skill discovery via Skill tool — agents' `skills:` frontmatter now actually loads; `effort.level` in hook input JSON; `effort: xhigh` on review agents from 2.1.111; `claude plugin tag` from 2.1.118; PostToolUse `duration_ms` from 2.1.119)
@@ -61,17 +61,17 @@ skills/                     # Core skill definitions (SKILL.md files)
   rule-of-five-tests/           # 5-pass test quality review
   ...
 
-agents/                     # Subagent definitions for Task tool
+agents/                     # Claude Code subagent definitions for Task tool
   code-reviewer.md         # Code review subagent
   epic-verifier.md         # Epic verification subagent
 
-commands/                   # User-invocable slash commands
+commands/                   # Claude Code user-invocable slash commands
   brainstorm.md            # /superpowers-bd:brainstorm
   write-plan.md            # /superpowers-bd:write-plan
   execute-plan.md          # /superpowers-bd:execute-plan
   plan2beads.md            # /superpowers-bd:plan2beads
 
-hooks/                      # Session lifecycle hooks
+hooks/                      # Claude Code session lifecycle hooks
   session-start.sh         # Runs on session start/resume/clear
   session-end.sh           # Commits pending Dolt changes on exit (requires >= 2.1.74)
   link-plugin-components.sh  # Copies hooked components to .claude/ (#17688 workaround)
@@ -88,7 +88,7 @@ tests/
 ### Two-Layer Task System
 
 - **Beads tracks WHAT** (features/epics, 1-4 hours): `bd create`, `bd close`, `bd dep add`
-- **Native TaskCreate/TaskUpdate tracks HOW** (quality gates, 5-30 min within skills)
+- **Claude Code TaskCreate/TaskUpdate tracks HOW** (quality gates, 5-30 min within skills)
 
 12 skills enforce quality gates via native task dependencies. Skipping phases is visible in TaskList.
 
@@ -99,7 +99,7 @@ Skills are tested like code via TDD:
 2. **GREEN**: Write skill addressing specific failures, verify compliance
 3. **REFACTOR**: Close loopholes by adding explicit counters for new rationalizations
 
-Integration tests run headless Claude Code sessions and verify behavior by parsing `.jsonl` session transcripts.
+Claude Code integration tests run headless Claude Code sessions and verify behavior by parsing `.jsonl` session transcripts. Codex has a separate native test suite under `tests/codex/`.
 
 ### Key Workflows
 

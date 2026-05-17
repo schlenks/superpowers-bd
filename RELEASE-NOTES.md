@@ -2,6 +2,12 @@
 
 ## v5.6.5 (2026-05-09; Codex addendum 2026-05-14) - Beads Fork
 
+### Claude Code and Codex parity documentation (2026-05-17 addendum)
+
+Superpowers-BD now documents Claude Code and Codex as first-class native platform layers over shared workflow skills and beads semantics. The architecture is deliberately not a lowest-common-denominator wrapper: Claude Code keeps Claude plugin metadata, slash commands, Claude agents, and Claude hooks; Codex keeps native `$skill` entry points, Codex plugin metadata, Codex TOML agents, project-local Codex hooks, and Codex-specific tests.
+
+`README.md` now includes a platform support matrix covering skills, agents, hooks, review workflow, SDD, tests, fallbacks, and known limitations. `docs/README.codex.md` now states the preferred native plugin install, the maintained fallback CLI scope, native agent roles, hook trust/setup behavior, `$skill` entry points, and current feature maturity boundaries. `CLAUDE.md` remains Claude-specific and keeps the minimum Claude Code version details. `AGENTS.md` remains the Codex/project-agent instruction file and points Codex readers to the native Codex docs instead of duplicating Claude release requirements.
+
 ### Native Codex plugin packaging (2026-05-14 addendum)
 
 Superpowers-BD now ships first-class Codex plugin metadata alongside the Claude Code plugin metadata. This is an additive packaging/docs release under the existing `5.6.5` version: `.codex-plugin/plugin.json` and `.claude-plugin/plugin.json` both declare `5.6.5` and should stay in lockstep for this fork unless we deliberately cut a new release.

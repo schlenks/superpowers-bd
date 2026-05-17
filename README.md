@@ -13,6 +13,20 @@ The shared skills define workflow intent: design before coding, plan with depend
 | Ask questions | `AskUserQuestion` | Direct user question, or structured question tool when available |
 | Verify completion | `Skill` plus verification commands and captured evidence | `$skill` plus verification commands and captured evidence |
 
+## Platform Support Matrix
+
+Superpowers-BD aims for outcome parity, not identical implementation. Shared skills and beads semantics stay common; each platform uses its own native plugin, agent, hook, and progress surfaces.
+
+| Capability | Claude Code | Codex | Current limitation |
+|------------|-------------|-------|--------------------|
+| Skills | Bundled through `.claude-plugin/plugin.json`; invoked with the `Skill` tool and namespaced slash-command handoffs where applicable | Bundled through `.codex-plugin/plugin.json`; invoked as native `$skill` entries such as `$brainstorming`, `$plan2beads`, and `$subagent-driven-development` | Codex UI metadata currently exists for the high-traffic workflow skills; other skills still load from `SKILL.md` without per-skill UI polish |
+| Agents | `agents/code-reviewer.md` and `agents/epic-verifier.md` use Claude Code agent frontmatter and Claude-specific effort settings | `.codex/agents/*.toml` defines `code_reviewer`, `spec_reviewer`, `review_aggregator`, and `epic_verifier` for Codex-native review and verification routing | Codex implementation workers still use the default worker; specialist Codex agents cover review, aggregation, and verification |
+| Hooks | `hooks/hooks.json` wires SessionStart, SessionEnd, TaskCompleted, and PostToolUse behavior for Claude Code | `.codex/hooks.json` wires project-local SessionStart and PostToolUse wrappers for Codex session context and edit feedback | Claude Code keeps the `link-plugin-components.sh` workaround until plugin-loaded frontmatter hooks are proven reliable. Codex plugin-bundled hooks are not declared in the plugin manifest until Codex plugin hook behavior is proven reliable for installed plugins |
+| Review workflow | `/superpowers-bd:cr` and review skills dispatch Claude Code reviewers, with optional cross-model Codex advisory review when available | `$ad-hoc-code-review` uses Codex-native reviewer agents and the shared review standards | In a native Codex session, Codex is the orchestrator; it does not run a separate Codex advisory review of itself |
+| SDD | `subagent-driven-development` dispatches Claude Code background `Task` workers and reviewers in dependency-aware waves | `$subagent-driven-development` uses `spawn_agent`, `wait_agent`, Codex checkpoint fields, and Codex reviewer/verifier agents | Both paths rely on cooperative file ownership prompts and beads state; hook-based hard file locking is not the primary conflict-control layer |
+| Tests | `tests/claude-code/` validates Claude Code sessions and skill behavior | `tests/codex/run-tests.sh` validates Codex manifests, native agents, hooks, workflow semantics, fallback CLI, and wrapper integrity | End-to-end interactive behavior still depends on the active agent tool and its installed feature set |
+| Fallbacks | Claude Code uses the plugin marketplace path | Codex can use `.codex/superpowers-bd-codex` as a manual bootstrap fallback when native plugin install is unavailable | The fallback CLI is maintained for skill discovery/loading only; native Codex plugin install is the preferred path |
+
 ## What's Different from Upstream
 
 | Feature | Superpowers | Superpowers-BD |

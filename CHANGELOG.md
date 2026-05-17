@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Claude Code and Codex parity docs**:
+  - README platform support matrix now describes skills, agents, hooks, review workflow, SDD, tests, fallbacks, and current limitations by native platform layer
+  - Codex docs now cover native plugin install, `$skill` entry points, `.codex/agents/*.toml`, hook trust/setup, fallback CLI scope, and feature maturity notes
+  - `CLAUDE.md` remains Claude-specific and keeps minimum Claude Code version details; `AGENTS.md` remains Codex/project-agent-specific and points to Codex-native docs instead of cloning Claude release requirements
+
 - **OpenCode plugin packaging**:
   - OpenCode install docs now clone `schlenks/superpowers-bd` into `~/.config/opencode/superpowers-bd`
   - OpenCode plugin file moved to `.opencode/plugins/superpowers-bd.js`, with `.opencode/plugin/superpowers-bd.js` kept as a compatibility wrapper

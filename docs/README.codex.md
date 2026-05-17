@@ -7,6 +7,8 @@ Codex can use Superpowers-BD in two ways:
 1. **Native Codex plugin** (preferred): Codex reads `.codex-plugin/plugin.json` and bundled skills directly.
 2. **Manual bootstrap fallback**: Codex loads skills through `.codex/superpowers-bd-codex` from `~/.codex/AGENTS.md`.
 
+Native plugin installation is the supported path for normal use. The fallback CLI remains for environments that cannot install Codex plugins yet; it is not the primary integration layer.
+
 ## Native Plugin Install
 
 Register this repository as a Codex marketplace:
@@ -24,6 +26,8 @@ codex plugin marketplace add ~/.codex/plugins/superpowers-bd
 ```
 
 Then install or enable `superpowers-bd` from Codex's plugin UI/flow. Restart Codex after enabling the plugin so bundled skills are discovered.
+
+The plugin manifest exposes `./skills/` directly and provides Codex UI metadata for core entry points. It deliberately does not declare bundled hooks yet; see [Project-Local Hooks](#project-local-hooks).
 
 ## Manual Bootstrap Install
 
@@ -51,6 +55,8 @@ Verify:
 ~/.codex/superpowers-bd/.codex/superpowers-bd-codex find-skills
 ```
 
+The fallback CLI supports `bootstrap`, `find-skills`, and `use-skill`. It uses the `superpowers-bd:` namespace for bundled skills and still honors personal skills in `~/.codex/skills`.
+
 ## Skill Usage
 
 Native plugin install:
@@ -67,6 +73,8 @@ Manual bootstrap install:
 ~/.codex/superpowers-bd/.codex/superpowers-bd-codex use-skill superpowers-bd:brainstorming
 ~/.codex/superpowers-bd/.codex/superpowers-bd-codex use-skill superpowers-bd:plan2beads
 ```
+
+Prefer native `$skill` entry points when the plugin is installed. Use fallback CLI commands only from a manual bootstrap install.
 
 ## Codex Native Execution
 
@@ -93,11 +101,39 @@ For durable project tracking in repositories that use beads, keep `bd` as the so
 - `$ad-hoc-code-review` - `/cr`-style local or PR review from Codex
 - `$verification-before-completion` - evidence before completion claims
 
+These are Codex-native entry points. Do not route Codex users through Claude Code slash commands unless a user explicitly asks to inspect the Claude command implementation.
+
+## Native Agents
+
+This repository includes project-scoped Codex agents in `.codex/agents/` and conservative execution limits in `.codex/config.toml`.
+
+| Agent | Purpose |
+|-------|---------|
+| `code_reviewer` | Findings-first code review using the shared Superpowers-BD review standard |
+| `spec_reviewer` | Spec-compliance review after SDD implementation tasks |
+| `review_aggregator` | Provenance-preserving synthesis when multiple reviewer reports exist |
+| `epic_verifier` | Final epic verification with PASS/FAIL evidence and no implementation edits |
+
+Codex SDD uses these agents for review, aggregation, and verification stages. Implementation work currently uses the default Codex worker with explicit file ownership and scope instructions.
+
 ## Project-Local Hooks
 
 This repository includes project-local Codex hooks in `.codex/hooks.json`. They add session context from `hooks/codex-session-start.sh` and PostToolUse audit/linter feedback from `hooks/codex-post-tool-use.sh`.
 
-Review hook commands before trusting a checkout. In Codex, use the hooks review or trust flow for the project, and keep `[features].plugin_hooks` separate from this local development path. The plugin manifest deliberately does not declare bundled hook entries until plugin-bundled hook behavior is proven reliable for Codex installs.
+Review hook commands before trusting a checkout. In Codex, use the hooks review or trust flow for the project. If your Codex build gates plugin hooks behind `[features].plugin_hooks`, treat that as separate from this project-local development path. The plugin manifest deliberately does not declare bundled hook entries until plugin-bundled hook behavior is proven reliable for installed Codex plugins.
+
+Current hook behavior is intentionally narrower than the Claude Code hook layer:
+
+- SessionStart injects `superpowers-bd:using-superpowers` context and checkpoint reminders.
+- PostToolUse records an audit log and returns linter feedback for edited files.
+- There is no Codex Stop or TaskCompleted equivalent declared by this plugin.
+
+## Feature Maturity Notes
+
+- Native plugin install, `$skill` loading, Codex agent TOML, project-local hooks, and fallback CLI behavior are covered by `tests/codex/run-tests.sh`.
+- Codex plugin-bundled hooks are not claimed yet. The local `.codex/hooks.json` path is the tested hook setup.
+- Codex native agents are project-scoped in this repository. Plugin-wide distribution of `.codex/agents/*.toml` is not treated as proven by these docs.
+- Codex review and SDD paths use native Codex agents. Cross-model Codex advisory review is only relevant when Claude Code is orchestrating and detects the separate OpenAI Codex plugin.
 
 ## Updating
 
