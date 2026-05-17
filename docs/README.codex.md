@@ -130,7 +130,7 @@ Current hook behavior is intentionally narrower than the Claude Code hook layer:
 
 ## Feature Maturity Notes
 
-- Native plugin install, `$skill` loading, Codex agent TOML, project-local hooks, and fallback CLI behavior are covered by `tests/codex/run-tests.sh`.
+- Codex plugin manifest and wrapper shape, core `$skill` metadata, Codex agent TOML, project-local hooks, and fallback CLI behavior are covered by `tests/codex/run-tests.sh`.
 - Codex plugin-bundled hooks are not claimed yet. The local `.codex/hooks.json` path is the tested hook setup.
 - Codex native agents are project-scoped in this repository. Plugin-wide distribution of `.codex/agents/*.toml` is not treated as proven by these docs.
 - Codex review and SDD paths use native Codex agents. Cross-model Codex advisory review is only relevant when Claude Code is orchestrating and detects the separate OpenAI Codex plugin.

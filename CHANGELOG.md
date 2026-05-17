@@ -576,7 +576,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Personal superpowers overlay system — replaced with git branch workflow
 - `setup-personal-superpowers` hook — replaced by `initialize-skills.sh`
 
-[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.6.4...HEAD
+[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.6.5...HEAD
+[5.6.5]: https://github.com/schlenks/superpowers-bd/compare/v5.6.4...v5.6.5
 [5.6.4]: https://github.com/schlenks/superpowers-bd/compare/v5.6.3...v5.6.4
 [5.6.3]: https://github.com/schlenks/superpowers-bd/compare/v5.6.2...v5.6.3
 [5.6.2]: https://github.com/schlenks/superpowers-bd/compare/v5.6.0...v5.6.2

@@ -96,6 +96,7 @@ commands/                   # Claude Code user-invocable slash commands
 
 hooks/                      # Claude Code session lifecycle hooks
   session-start.sh         # Runs on session start/resume/clear
+  session-end.sh           # Commits pending Dolt changes on exit
   link-plugin-components.sh  # Copies hooked components to .claude/ (#17688 workaround)
   log-file-modification.sh   # PostToolUse audit logger for Write|Edit
   task-completed.sh        # Quality gate on task completion
