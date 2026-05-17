@@ -75,6 +75,15 @@ check "OpenCode docs no longer document singular plugin directory" \
 check "Runtime tests no longer request legacy superpowers namespace" \
   bash -c "! grep -R \"superpowers:subagent-driven-development\" tests/claude-code tests/subagent-driven-dev"
 
+check "Codex project-local hooks config is documented in manifest" \
+  grep -q "Project-local Codex hooks" .codex-plugin/plugin.json
+
+check "Codex hook wrappers do not depend on Claude hook environment" \
+  bash -c "! grep -E 'CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR' hooks/codex-session-start.sh hooks/codex-post-tool-use.sh"
+
+check "Codex hooks are project-local, not plugin-bundled manifest hooks" \
+  node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync(".codex-plugin/plugin.json","utf8")); process.exit(Object.prototype.hasOwnProperty.call(p,"hooks") ? 1 : 0)'
+
 echo ""
 echo "=== Results: $pass passed, $fail failed ==="
 

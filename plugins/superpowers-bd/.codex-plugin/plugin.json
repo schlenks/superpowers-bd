@@ -24,7 +24,7 @@
   "interface": {
     "displayName": "Superpowers BD",
     "shortDescription": "TDD, reviews, and beads-based workflows",
-    "longDescription": "Superpowers-BD adds disciplined development workflows to Codex: brainstorming before implementation, TDD, systematic debugging, multi-pass review, beads issue tracking, and wave-based parallel execution.",
+    "longDescription": "Superpowers-BD adds disciplined development workflows to Codex: brainstorming before implementation, TDD, systematic debugging, multi-pass review, beads issue tracking, wave-based parallel execution, and Project-local Codex hooks for session context and edit feedback.",
     "developerName": "Doug Schlenker",
     "category": "Productivity",
     "capabilities": [
