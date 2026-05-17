@@ -30,7 +30,7 @@ Read the plan file, create the epic and child issues with `bd create`, verify de
 
 ## Output Contract
 
-End with the epic ID, created child task IDs, ready/blocked summary, and the exact next execution action. The default next action is `subagent-driven-development` after successful conversion unless the user explicitly asks to stop.
+End with the epic ID, created child task IDs, ready/blocked summary, and the exact next execution action. Proceed into `subagent-driven-development` after successful conversion unless the user explicitly asks for conversion-only.
 
 ## Reference Files
 

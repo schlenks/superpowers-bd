@@ -29,7 +29,7 @@ assert_contains() {
   local file="$1"
   local pattern="$2"
   local message="$3"
-  if grep -Eq "$pattern" "$file"; then
+  if grep -Eq -- "$pattern" "$file"; then
     pass "$message"
   else
     fail "$message"
@@ -40,7 +40,7 @@ assert_not_contains() {
   local file="$1"
   local pattern="$2"
   local message="$3"
-  if grep -Eq "$pattern" "$file"; then
+  if grep -Eq -- "$pattern" "$file"; then
     fail "$message"
   else
     pass "$message"
@@ -95,17 +95,33 @@ assert_contains "skills/writing-plans/SKILL.md" "codex-plan-verification.md" "wr
 assert_contains "skills/executing-plans/SKILL.md" "codex-execution-checkpoints.md" "executing-plans links Codex checkpoint reference"
 assert_contains "skills/plan2beads/SKILL.md" "codex-plan2beads-flow.md" "plan2beads links Codex flow reference"
 assert_contains "skills/ad-hoc-code-review/SKILL.md" "codex-review-flow.md" "ad-hoc-code-review links Codex review reference"
+assert_not_contains "skills/writing-plans/SKILL.md" "For Claude:" "writing-plans header is platform-neutral"
+assert_not_contains "skills/writing-plans/references/codex-plan-verification.md" "For Claude|/superpowers-bd:" "Codex plan guidance avoids Claude-only handoff text"
 
 assert_not_contains "skills/plan2beads/SKILL.md" "Codex: invoke this skill.*read ../../commands" "plan2beads does not route Codex through Claude command docs"
 assert_not_contains "skills/ad-hoc-code-review/SKILL.md" "Codex: invoke this skill.*read ../../commands" "ad-hoc-code-review does not route Codex through Claude command docs"
 assert_not_contains "skills/plan2beads/SKILL.md" "AskUserQuestion|Task:|TaskCreate|ExitPlanMode|subagent_type|Claude .* maps" "plan2beads skill avoids Claude translation mappings"
 assert_not_contains "skills/ad-hoc-code-review/SKILL.md" "AskUserQuestion|Task:|TaskCreate|ExitPlanMode|subagent_type|Claude .* maps" "ad-hoc-code-review skill avoids Claude translation mappings"
+assert_contains "skills/plan2beads/SKILL.md" "unless the user explicitly asks for conversion-only" "plan2beads preserves mandatory execution handoff"
+assert_contains "skills/plan2beads/references/codex-plan2beads-flow.md" "SC-1234" "Codex plan2beads supports Shortcut-style IDs"
+assert_contains "skills/plan2beads/references/codex-plan2beads-flow.md" "short story <numeric-id> -f=markdown" "Codex plan2beads documents Shortcut fetch command"
+assert_contains "skills/plan2beads/references/codex-plan2beads-flow.md" "--external-ref \"sc-<id>\"" "Codex plan2beads preserves Shortcut external ref"
+assert_contains "skills/plan2beads/references/codex-plan2beads-flow.md" "completion:commit-only" "Codex plan2beads documents completion labels"
+assert_contains "skills/plan2beads/references/codex-plan2beads-flow.md" "bd ready is global" "Codex plan2beads documents global bd ready scoping"
+assert_contains "skills/plan2beads/references/codex-plan2beads-flow.md" "child IDs" "Codex plan2beads filters ready/blocked by epic child IDs"
+assert_contains "skills/plan2beads/references/codex-plan2beads-flow.md" "unless the user explicitly asked for conversion-only" "Codex plan2beads proceeds to execution by default"
+assert_contains "skills/executing-plans/references/codex-execution-checkpoints.md" "bd ready is global" "Codex executing-plans documents global bd ready scoping"
+assert_contains "skills/executing-plans/references/codex-execution-checkpoints.md" "child IDs" "Codex executing-plans filters ready/blocked by epic child IDs"
+assert_contains "skills/executing-plans/references/codex-execution-checkpoints.md" "wait for user feedback" "Codex executing-plans preserves feedback checkpoint"
+assert_not_contains "skills/executing-plans/references/codex-execution-checkpoints.md" "autonomous execution" "Codex executing-plans does not bypass feedback checkpoints"
 
 assert_contains "skills/ad-hoc-code-review/SKILL.md" "../requesting-code-review/code-reviewer.md" "ad-hoc review keeps shared review standard"
 assert_contains "skills/ad-hoc-code-review/references/codex-review-flow.md" "../../requesting-code-review/code-reviewer.md" "Codex ad-hoc reference points to shared review standard"
 assert_contains "skills/ad-hoc-code-review/references/codex-review-flow.md" "../../multi-review-aggregation/aggregator-prompt.md" "Codex ad-hoc reference points to shared aggregation standard"
 assert_reference_path_resolves "skills/ad-hoc-code-review/references/codex-review-flow.md" "../../requesting-code-review/code-reviewer.md" "Codex ad-hoc review standard path resolves"
 assert_reference_path_resolves "skills/ad-hoc-code-review/references/codex-review-flow.md" "../../multi-review-aggregation/aggregator-prompt.md" "Codex ad-hoc aggregation path resolves"
+assert_contains "skills/ad-hoc-code-review/references/codex-review-flow.md" "follow .*code-reviewer\\.md.*exactly" "Codex ad-hoc fallback follows shared report structure"
+assert_contains "skills/ad-hoc-code-review/references/codex-review-flow.md" "final human presentation" "Codex ad-hoc findings-first applies only to final presentation"
 assert_contains "commands/cr.md" "Claude Code command implementation" "cr command declares Claude command ownership"
 assert_contains "commands/cr.md" "Codex.*ad-hoc-code-review" "cr command points Codex users to native skill flow"
 

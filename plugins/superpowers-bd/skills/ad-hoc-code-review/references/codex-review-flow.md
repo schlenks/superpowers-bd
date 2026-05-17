@@ -33,7 +33,7 @@ For PR reviews:
 
 ## Reviewer Standard
 
-Use Codex native agent `code_reviewer` when available. If it is unavailable, perform the review directly using `../../requesting-code-review/code-reviewer.md` as the shared review standard.
+Use Codex native agent `code_reviewer` when available. If it is unavailable, perform the review directly and follow `../../requesting-code-review/code-reviewer.md` exactly as the shared review standard.
 
 Each reviewer must produce a structured report with changed files, rules consulted, requirement mapping, uncovered paths, not checked items, findings by severity, and readiness assessment.
 
@@ -41,7 +41,7 @@ For two or more successful reviewer reports, use Codex native agent `review_aggr
 
 ## Output Rules
 
-- Findings come first, ordered by severity.
+- Reviewer reports must follow the shared `code-reviewer.md` structure exactly. Use findings-first ordering only for the final human presentation after review reports are collected or aggregated.
 - Every finding needs file and line evidence.
 - Critical and Important findings need actionable fix guidance.
 - Uncertainty belongs in Not Checked, not in speculative findings.
