@@ -8,14 +8,38 @@ rule_of_five_plans_path = Glob("**/rule-of-five-plans/SKILL.md")[0]
 ```
 Pass absolute paths as placeholders to all dispatches in the wave.
 
+## Claude Code Dispatch
+
 ```
-Task tool:
+Task:
   subagent_type: "general-purpose"
-  model: "opus"                    # complexity-adjusted: see SKILL.md Budget Tier Selection
-  run_in_background: true          # for parallelism
+  model: "<complexity-adjusted Claude model from budget-and-wave-cap.md>"
+  run_in_background: true
   description: "Implement Issue: [issue-id] [issue title]"
   prompt: |
+    [Use the shared implementer prompt below.]
+```
+
+## Codex Dispatch
+
+```
+spawn_agent:
+  model: "gpt-5.3-codex"
+  model_reasoning_effort: "<medium|high|xhigh from budget-and-wave-cap.md>"
+  description: "Implement Issue: [issue-id] [issue title]"
+  prompt: |
+    [Use the shared implementer prompt below.]
+```
+
+Codex currently uses the default worker for implementation because this repository's native Codex agents are specialist reviewers/verifiers. Route reviewer stages to `spec_reviewer`, `code_reviewer`, `review_aggregator`, and `epic_verifier`.
+
+## Shared Implementer Prompt
+
+```
     You are implementing beads issue: {issue_id}
+
+    You are not alone in the codebase. Other agents may be working in parallel.
+    Modify only your owned files and do not overwrite changes you did not make.
 
     ## Load Your Context
 

@@ -1,6 +1,10 @@
 # Budget and Wave Cap
 
-## Implementer Models
+## Claude Code Model Policy
+
+Claude Code routes work by Opus/Sonnet/Haiku model families. Complexity selects the desired model and the budget tier caps it.
+
+### Implementer Models
 
 | Tier | simple | standard | complex |
 |------|--------|----------|---------|
@@ -8,7 +12,7 @@
 | max-5x | haiku | sonnet | opus |
 | pro/api | haiku | sonnet | sonnet |
 
-## Spec Reviewer Models
+### Spec Reviewer Models
 
 | Tier | simple | standard | complex |
 |------|--------|----------|---------|
@@ -16,13 +20,44 @@
 | max-5x | haiku | haiku | sonnet |
 | pro/api | haiku | haiku | haiku |
 
-## Other Roles
+### Other Roles
 
-| Tier | Code Reviewer | N Reviews | Codex Review | Verifier | Simplify |
+| Tier | Code Reviewer | N Reviews | Claude-only Codex advisory review | Verifier | Simplify |
 |------|---------------|-----------|--------------|----------|----------|
 | max-20x | sonnet | 3 | If available | opus | Yes |
 | max-5x | sonnet | 3 | If available | opus | Yes |
 | pro/api | haiku | 1 | Skip | sonnet | Skip |
+
+`codex_enabled` applies only to this Claude Code advisory path. It does not apply to native Codex orchestration.
+
+## Codex Project Model Policy
+
+Codex native agents in this repository use `gpt-5.3-codex`. Route strength by `model_reasoning_effort`, not by Claude Opus/Sonnet/Haiku names. This table documents project policy from the current `.codex/agents/*.toml` layer; it is not an external guarantee that every environment exposes these model names.
+
+### Implementer Reasoning Effort
+
+| Tier | simple | standard | complex |
+|------|--------|----------|---------|
+| max-20x | medium | high | xhigh |
+| max-5x | medium | high | xhigh |
+| pro/api | medium | medium | high |
+
+Implementers may use the default Codex worker with the requested effort because there is no dedicated implementer agent in the current project policy.
+
+### Native Reviewer and Verifier Agents
+
+| Role | Codex agent | Model | Reasoning effort | Use |
+|------|-------------|-------|------------------|-----|
+| Spec compliance | `spec_reviewer` | `gpt-5.3-codex` | high | After implementer reports `DONE` or `DONE_WITH_CONCERNS` |
+| Code quality | `code_reviewer` | `gpt-5.3-codex` | high | N independent reviews by budget tier |
+| Review aggregation | `review_aggregator` | `gpt-5.3-codex` | medium | Required when N > 1 |
+| Epic verification | `epic_verifier` | `gpt-5.3-codex` | xhigh | After all implementation tasks close |
+
+| Tier | N Code Reviews | Aggregator | Simplify |
+|------|----------------|------------|----------|
+| max-20x | 3 | yes | yes |
+| max-5x | 3 | yes | yes |
+| pro/api | 1 | no | no |
 
 Default issue complexity is `standard`.
 
@@ -32,7 +67,7 @@ Default issue complexity is `standard`.
 - Standard context: no `[1m]` suffix or unknown; default wave cap 3; budget per wave 9.
 - Codex: use visible context info if available; otherwise standard.
 
-Store `context_tier` in the checkpoint.
+Store `context_tier`, `platform`, and `platform_agent_plan` in the checkpoint. In Claude Code only, also store `codex_enabled` and `codex_install_path` when a separate Codex advisory integration is detected.
 
 ## Setting Priority
 
@@ -85,4 +120,7 @@ Ask the user to confirm unless the recommendation is at or below the context def
 - Recommended <= default: skip question and use recommended.
 - `max_parallel = 1`: wave cap is 1.
 - Old checkpoint without `context_tier`: default to standard.
+- Old checkpoint without `platform`: infer current platform and store it at the next checkpoint write.
+- Old checkpoint without `platform_agent_plan`: rebuild it from the active platform dispatch path.
+- Old checkpoint with `codex_enabled` in a Codex session: ignore it; native Codex sessions are the orchestrator, not a cross-model advisory review.
 - Out-of-range explicit cap: warn, clamp to 1-10, and store clamped value.

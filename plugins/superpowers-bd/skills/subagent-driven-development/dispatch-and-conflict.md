@@ -33,7 +33,23 @@ def get_prompt_for_task(task):
         return ("implementer", implementer_prompt_template)
 ```
 
-**Dispatch example:**
+## Platform Dispatch Examples
+
+Resolve once per wave and store the result in `platform_agent_plan`:
+
+```python
+platform_agent_plan = {
+    "platform": platform,
+    "implementer": "Task background worker" if platform == "claude-code" else "spawn_agent default worker",
+    "spec_review": "Task general-purpose" if platform == "claude-code" else "spawn_agent agent=spec_reviewer",
+    "code_review": "Task general-purpose" if platform == "claude-code" else "spawn_agent agent=code_reviewer",
+    "review_aggregation": "multi-review-aggregation" if platform == "claude-code" else "spawn_agent agent=review_aggregator",
+    "epic_verification": "Task epic verifier" if platform == "claude-code" else "spawn_agent agent=epic_verifier",
+}
+```
+
+### Claude Code Dispatch Example
+
 ```python
 # Resolve once per wave (reused across all code reviewer dispatches)
 code_reviewer_path = Glob("**/requesting-code-review/code-reviewer.md")[0]
@@ -81,14 +97,61 @@ Task(
 )
 ```
 
-**Verification prompt:** Use template at `skills/epic-verifier/verifier-prompt.md`. Model selection follows Budget Tier Selection matrix (tier default, never adjusted by complexity).
+### Codex Dispatch Example
 
-## File Conflict Detection (Task-Tracked)
+```python
+# Resolve once per wave (reused across all code reviewer dispatches)
+code_reviewer_path = "skills/requesting-code-review/code-reviewer.md"
 
-**Before dispatching each wave, create a conflict check task:**
+prompt_type, prompt_template = get_prompt_for_task(task)
+
+# Read complexity from beads label (set at plan time)
+task_labels = parse_labels(bd_show_output)
+task_complexity = extract_label(task_labels, "complexity") or "standard"
+
+CODEX_IMPL_EFFORT = {
+    "max-20x": {"simple": "medium", "standard": "high", "complex": "xhigh"},
+    "max-5x": {"simple": "medium", "standard": "high", "complex": "xhigh"},
+    "pro/api": {"simple": "medium", "standard": "medium", "complex": "high"},
+}
+
+impl_effort = CODEX_IMPL_EFFORT[budget_tier][task_complexity]
+
+if prompt_type == "verifier":
+    spawn_agent(
+        agent="epic_verifier",
+        description=f"Verify epic task: {task.id}",
+        prompt=verifier_prompt_template.format(
+            issue_id=task.id,
+            epic_id=epic_id,
+            wave_number=wave_n
+        )
+    )
+else:
+    spawn_agent(
+        model="gpt-5.3-codex",
+        model_reasoning_effort=impl_effort,
+        description=f"Implement: {task.id}",
+        prompt=prompt_template.format(
+            issue_id=task.id,
+            epic_id=epic_id,
+            file_ownership_list=task.files,
+            wave_file_map=wave_file_map,
+            dependency_ids=task.deps,
+            wave_number=wave_n,
+            code_reviewer_path=code_reviewer_path
+        )
+    )
+```
+
+**Verification prompt:** Use template at `skills/epic-verifier/verifier-prompt.md`. Claude Code model selection follows the Claude verifier row in `budget-and-wave-cap.md`; Codex uses `spawn_agent(agent="epic_verifier")`.
+
+## File Conflict Detection (Native-Progress-Tracked)
+
+**Before dispatching each wave, create a conflict check progress item:**
 
 ```
-TaskCreate: "Check file conflicts for wave N"
+Progress item: "Check file conflicts for wave N"
   description: "Parse ## Files from each ready issue. Build file→issue map. Identify conflicts. Report parallelizable set."
   activeForm: "Checking file conflicts"
 ```
@@ -133,12 +196,12 @@ Issue hub-abc.3 files: [auth.service.ts, models/index.ts]  ← CONFLICT with .1!
 
 **Why defer instead of block?** Deferred issues aren't blocked by dependencies—they're just waiting to avoid merge conflicts. Once the current wave completes, re-check `bd ready` and they'll be dispatchable.
 
-## Parallel Dispatch (Task-Tracked)
+## Parallel Dispatch (Native-Progress-Tracked)
 
-**Create wave tracking task before dispatch:**
+**Create wave tracking progress item before dispatch:**
 
 ```
-TaskCreate: "Wave N: Dispatch [list issues]"
+Progress item: "Wave N: Dispatch [list issues]"
   description: "Dispatching: hub-abc.1, hub-abc.2. Files verified non-conflicting."
   activeForm: "Dispatching wave N"
   addBlockedBy: [conflict-verify-task-id]
@@ -154,16 +217,16 @@ SEQUENTIAL (old):
     review()
 
 PARALLEL (new):
-  TaskCreate "Check file conflicts for wave N"
+  create native progress item "Check file conflicts for wave N"
   parallelizable = filter_file_conflicts(ready)
   parallelizable = parallelizable[:wave_cap]  # Smart recommendation or context-tier default (5 for 1M, 3 for 200k), max 10
-  TaskUpdate conflict-task status=completed  # with conflict report
+  mark conflict progress item completed  # with conflict report
   wave_file_map = build_wave_file_map(parallelizable)  # markdown table for {wave_file_map} slot
 
   # Capture pre-implementation SHA BEFORE any implementer starts
   wave_base_sha = run("git rev-parse HEAD")  # snapshot for all tasks in this wave
 
-  TaskCreate "Wave N: Dispatch [list issues]"
+  create native progress item "Wave N: Dispatch [list issues]"
   for issue in parallelizable:
     bd update <id> --status=in_progress
     pending_tasks[issue.id]["base_sha"] = wave_base_sha  # store per-task for review dispatch
@@ -174,23 +237,43 @@ PARALLEL (new):
     review(completed)
     if passes: bd close completed
 
-  TaskUpdate wave-task status=completed  # when all in wave done
+  mark wave progress item completed  # when all in wave done
 ```
 
-**ENFORCEMENT:** Wave dispatch task is blocked until file conflict check completes. This makes the step visible and non-skippable.
+**ENFORCEMENT:** Wave dispatch progress is blocked until file conflict check completes. This makes the step visible and non-skippable.
 
 ## Post-Wave Simplification
 
 **After all tasks in a wave close and pass review, if the wave had 2+ tasks:**
 
 1. Collect all files modified across the wave's tasks
-2. Dispatch `code-simplifier:code-simplifier` via Task tool focusing on cross-file consistency:
+2. Dispatch the platform-native simplifier focusing on cross-file consistency:
+
+**Claude Code:**
 
 ```python
 if wave_task_count >= 2 and budget_tier != "pro/api":
     wave_files = collect_modified_files_across_wave(wave_tasks)
     Task(
         subagent_type="code-simplifier:code-simplifier",
+        description=f"Simplify: post-wave {wave_number}",
+        prompt=f"Focus on these files modified in wave {wave_number}: "
+               f"{wave_files}. "
+               "Check cross-file consistency: naming patterns, "
+               "duplication between tasks, redundant abstractions. "
+               "Preserve all behavior and keep tests green."
+    )
+    task_metrics[f"wave{wave_number}.simplify"] = {...}
+```
+
+**Codex:**
+
+```python
+if wave_task_count >= 2 and budget_tier != "pro/api":
+    wave_files = collect_modified_files_across_wave(wave_tasks)
+    spawn_agent(
+        model="gpt-5.3-codex",
+        model_reasoning_effort="high",
         description=f"Simplify: post-wave {wave_number}",
         prompt=f"Focus on these files modified in wave {wave_number}: "
                f"{wave_files}. "

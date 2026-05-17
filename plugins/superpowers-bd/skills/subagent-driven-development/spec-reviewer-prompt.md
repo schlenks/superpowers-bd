@@ -1,11 +1,29 @@
 # Spec Compliance Reviewer Prompt Template
 
+## Claude Code Dispatch
+
 ```
-Task tool:
+Task:
   subagent_type: "general-purpose"
-  model: "sonnet"                  # complexity-adjusted: see SKILL.md Budget Tier Selection
+  model: "<complexity-adjusted Claude model from budget-and-wave-cap.md>"
   description: "Spec review: {issue_id}"
   prompt: |
+    [Use the shared spec reviewer prompt below.]
+```
+
+## Codex Dispatch
+
+```
+spawn_agent:
+  agent: "spec_reviewer"
+  description: "Spec review: {issue_id}"
+  prompt: |
+    [Use the shared spec reviewer prompt below.]
+```
+
+## Shared Spec Reviewer Prompt
+
+```
     You are reviewing whether an implementation matches its specification.
 
     ## Load Your Context
@@ -40,7 +58,7 @@ Task tool:
 
     **Each step below MUST be a separate tool call. Never combine into one Bash command.**
 
-    1. Use the **Write** tool to create `temp/{issue_id}-spec.md` with content:
+    1. Create `temp/{issue_id}-spec.md` with content:
        ```
        [SPEC-REVIEW] {issue_id} wave-{wave_number}
 
@@ -52,8 +70,8 @@ Task tool:
        [Spec compliant / Issues found: list]
        ```
 
-    2. Bash: `bd comments add {issue_id} -f temp/{issue_id}-spec.md`
-    3. Bash: `bd comments {issue_id} --json`
+    2. Run: `bd comments add {issue_id} -f temp/{issue_id}-spec.md`
+    3. Run: `bd comments {issue_id} --json`
     4. If `bd comments add` fails, retry up to 3 times with `sleep 2` between attempts.
 
     ## Verdict (Final Message)

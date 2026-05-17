@@ -10,15 +10,35 @@ rule_of_five_tests_path     = Glob("**/rule-of-five-tests/SKILL.md")[0]
 ```
 Pass absolute paths as `{code_reviewer_path}`, `{rule_of_five_code_path}`, `{rule_of_five_tests_path}` to all dispatches in the wave.
 
+## Claude Code Dispatch
+
 ```
-Task tool:
+Task:
   subagent_type: "general-purpose"
-  model: "sonnet"                  # tier-based: sonnet for max-20x, haiku for others
+  model: "<tier-based Claude model from budget-and-wave-cap.md>"
   description: "Code review: {issue_id}"
   prompt: |
+    [Use the shared code reviewer prompt below.]
+```
+
+## Codex Dispatch
+
+```
+spawn_agent:
+  agent: "code_reviewer"
+  description: "Code review: {issue_id}"
+  prompt: |
+    [Use the shared code reviewer prompt below.]
+```
+
+For N > 1 Codex reviews, dispatch independent `code_reviewer` agents and then dispatch `review_aggregator` after all reviewer reports are persisted.
+
+## Shared Code Reviewer Prompt
+
+```
     ## Load Review Methodology
 
-    Read the code review methodology file using the Read tool:
+    Read the code review methodology file:
     {code_reviewer_path}
 
     Follow every step in that file exactly.
@@ -41,7 +61,7 @@ After completing your review, persist your full report.
 
 **Each step below MUST be a separate tool call. Never combine into one Bash command.**
 
-1. Use the **Write** tool to create `temp/{issue_id}-code-{reviewer_number}.md` with content:
+1. Create `temp/{issue_id}-code-{reviewer_number}.md` with content:
    ```
    [CODE-REVIEW-{reviewer_number}/{n_reviews}] {issue_id} wave-{wave_number}
 
@@ -49,8 +69,8 @@ After completing your review, persist your full report.
    Uncovered Paths, Not Checked, Findings, Assessment]
    ```
 
-2. Bash: `bd comments add {issue_id} -f temp/{issue_id}-code-{reviewer_number}.md`
-3. Bash: `bd comments {issue_id} --json`
+2. Run: `bd comments add {issue_id} -f temp/{issue_id}-code-{reviewer_number}.md`
+3. Run: `bd comments {issue_id} --json`
 4. If `bd comments add` fails, retry up to 3 times with `sleep 2` between attempts.
 
 ## Verdict (Final Message)
@@ -81,6 +101,6 @@ For files with >50 lines changed in this diff:
 Apply the skill's review criteria to your findings. Elevated standards for large changes ensure quality at scale.
 ```
 
-**Multi-review mode (N>1):** Each reviewer dispatched independently with reviewer number suffix. Each persists own report. Reviews aggregated afterward via `superpowers-bd:multi-review-aggregation`.
+**Multi-review mode (N>1):** Each reviewer dispatched independently with reviewer number suffix. Each persists own report. Claude Code aggregates afterward via `superpowers-bd:multi-review-aggregation`; Codex aggregates afterward via `spawn_agent` with `agent: "review_aggregator"`.
 
 <!-- compressed: 2026-02-11, original: 460 words, compressed: 327 words -->
