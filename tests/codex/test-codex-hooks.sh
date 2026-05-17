@@ -157,10 +157,13 @@ check_node "Codex plugin manifest does not overclaim bundled hook support" '
 check_node "Codex plugin manifest stays consistent with project-local hook packaging" '
   const fs = require("fs");
   const manifest = JSON.parse(fs.readFileSync(".codex-plugin/plugin.json", "utf8"));
+  const prompts = manifest.interface?.defaultPrompt;
+  const nativeSkillPattern = /\$[A-Za-z0-9:_-]+/;
   if (manifest.name !== "superpowers-bd") process.exit(1);
   if (manifest.skills !== "./skills/") process.exit(1);
-  if (!manifest.interface?.defaultPrompt?.every((line) => line.includes("$"))) process.exit(1);
-  if (manifest.interface.defaultPrompt.some((line) => line.includes("/superpowers-bd:"))) process.exit(1);
+  if (!Array.isArray(prompts) || prompts.length === 0) process.exit(1);
+  if (!prompts.every((line) => typeof line === "string" && nativeSkillPattern.test(line))) process.exit(1);
+  if (prompts.some((line) => line.includes("/superpowers-bd:"))) process.exit(1);
   if (!fs.existsSync(".codex/hooks.json")) process.exit(1);
 '
 

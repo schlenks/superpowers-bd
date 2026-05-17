@@ -7,6 +7,8 @@ cd "$REPO_ROOT"
 
 echo "=== Test: Codex Native Agents ==="
 
+EXPECTED_CODEX_AGENT_MODEL="gpt-5.3-codex"
+
 fail() {
   echo "  [FAIL] $1"
   exit 1
@@ -54,20 +56,32 @@ import sys
 import tomllib
 
 required = {
-    "code_reviewer": "code-reviewer.toml",
-    "epic_verifier": "epic-verifier.toml",
-    "spec_reviewer": "spec-reviewer.toml",
-    "review_aggregator": "review-aggregator.toml",
+    "code-reviewer.toml": "code_reviewer",
+    "epic-verifier.toml": "epic_verifier",
+    "spec-reviewer.toml": "spec_reviewer",
+    "review-aggregator.toml": "review_aggregator",
 }
 
 agent_dir = pathlib.Path(".codex/agents")
-found = {}
-for path in agent_dir.glob("*.toml"):
+names_by_file = {}
+files_by_name = {}
+for path in sorted(agent_dir.glob("*.toml")):
     data = tomllib.loads(path.read_text())
-    found[data.get("name")] = path.name
+    name = data.get("name")
+    names_by_file[path.name] = name
+    files_by_name.setdefault(name, []).append(path.name)
 
-if found != required:
-    print(f"expected Codex agent roles {required}, found {found}", file=sys.stderr)
+duplicates = {
+    name: files
+    for name, files in files_by_name.items()
+    if name is not None and len(files) > 1
+}
+if duplicates:
+    print(f"duplicate Codex agent role names: {duplicates}", file=sys.stderr)
+    sys.exit(1)
+
+if names_by_file != required:
+    print(f"expected Codex agent files {required}, found {names_by_file}", file=sys.stderr)
     sys.exit(1)
 PY
   pass "Codex native agent roles are explicit and complete"
@@ -86,7 +100,8 @@ PY
 }
 
 assert_agent_required_fields() {
-  python3 - <<'PY'
+  EXPECTED_CODEX_AGENT_MODEL="$EXPECTED_CODEX_AGENT_MODEL" python3 - <<'PY'
+import os
 import pathlib
 import sys
 import tomllib
@@ -105,6 +120,7 @@ expected_effort = {
     "spec_reviewer": "high",
     "review_aggregator": "medium",
 }
+expected_model = os.environ["EXPECTED_CODEX_AGENT_MODEL"]
 
 for path in pathlib.Path(".codex/agents").glob("*.toml"):
     data = tomllib.loads(path.read_text())
@@ -113,10 +129,13 @@ for path in pathlib.Path(".codex/agents").glob("*.toml"):
         print(f"{path}: missing fields {missing}", file=sys.stderr)
         sys.exit(1)
     name = data["name"]
-    if data["model"] != "gpt-5.3-codex":
-        print(f"{path}: unexpected model {data['model']!r}", file=sys.stderr)
+    if name not in expected_effort:
+        print(f"{path}: unexpected agent role {name!r}", file=sys.stderr)
         sys.exit(1)
-    if data["model_reasoning_effort"] != expected_effort.get(name):
+    if data["model"] != expected_model:
+        print(f"{path}: unexpected model {data['model']!r}, expected {expected_model!r}", file=sys.stderr)
+        sys.exit(1)
+    if data["model_reasoning_effort"] != expected_effort[name]:
         print(f"{path}: unexpected reasoning effort", file=sys.stderr)
         sys.exit(1)
     if data["sandbox_mode"] != "workspace-write":

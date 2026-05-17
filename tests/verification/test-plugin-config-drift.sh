@@ -20,6 +20,58 @@ check() {
   fi
 }
 
+check_codex_manifest_native_skill_prompts() {
+  node -e '
+    const fs = require("fs");
+    const p = JSON.parse(fs.readFileSync(".codex-plugin/plugin.json", "utf8"));
+    const prompts = p.interface?.defaultPrompt;
+    const nativeSkillPattern = /\$[A-Za-z0-9:_-]+/;
+    process.exit(
+      p.skills === "./skills/" &&
+      Array.isArray(prompts) &&
+      prompts.length > 0 &&
+      prompts.every((line) => typeof line === "string" && nativeSkillPattern.test(line)) &&
+      prompts.every((line) => !line.includes("/superpowers-bd:"))
+        ? 0
+        : 1
+    );
+  '
+}
+
+check_codex_sdd_specialist_roles() {
+  python3 - <<'PY'
+import pathlib
+import sys
+import tomllib
+
+roles = {
+    "spec_reviewer": "spec-reviewer.toml",
+    "code_reviewer": "code-reviewer.toml",
+    "review_aggregator": "review-aggregator.toml",
+    "epic_verifier": "epic-verifier.toml",
+}
+
+config = tomllib.loads(pathlib.Path(".codex/config.toml").read_text())
+if "agents" not in config:
+    print(".codex/config.toml does not enable agents", file=sys.stderr)
+    sys.exit(1)
+
+sdd = pathlib.Path("skills/subagent-driven-development/SKILL.md").read_text()
+for role, filename in roles.items():
+    path = pathlib.Path(".codex/agents") / filename
+    if not path.exists():
+        print(f"missing {path}", file=sys.stderr)
+        sys.exit(1)
+    data = tomllib.loads(path.read_text())
+    if data.get("name") != role:
+        print(f"{path}: expected name {role!r}, found {data.get('name')!r}", file=sys.stderr)
+        sys.exit(1)
+    if role not in sdd:
+        print(f"SDD skill does not reference {role}", file=sys.stderr)
+        sys.exit(1)
+PY
+}
+
 json_value() {
   node -e "const fs=require('fs'); const o=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log($2)" "$1"
 }
@@ -85,7 +137,7 @@ check "Codex aggregate test runner includes hook parity tests" \
   grep -q "test-codex-hooks.sh" tests/codex/run-tests.sh
 
 check "Codex manifest uses native skill prompts, not Claude slash commands" \
-  node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync(".codex-plugin/plugin.json","utf8")); const prompts=p.interface && p.interface.defaultPrompt || []; process.exit(p.skills === "./skills/" && prompts.length > 0 && prompts.every((line) => line.includes("$")) && prompts.every((line) => !line.includes("/superpowers-bd:")) ? 0 : 1)'
+  check_codex_manifest_native_skill_prompts
 
 check "Codex hook wrappers do not depend on Claude hook environment" \
   bash -c "! grep -E 'CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR' hooks/codex-session-start.sh hooks/codex-post-tool-use.sh"
@@ -100,7 +152,7 @@ check "Codex and Claude have comparable review and verification roles" \
   bash -c "test -f agents/code-reviewer.md && test -f agents/epic-verifier.md && test -f .codex/agents/code-reviewer.toml && test -f .codex/agents/epic-verifier.toml"
 
 check "Codex SDD specialist roles are backed by native agents" \
-  node -e 'const fs=require("fs"); const sdd=fs.readFileSync("skills/subagent-driven-development/SKILL.md","utf8"); const roles=["spec_reviewer","code_reviewer","review_aggregator","epic_verifier"]; for (const role of roles) { const path=".codex/agents/"+role.replaceAll("_","-")+".toml"; if (!fs.existsSync(path) || !sdd.includes(role)) process.exit(1); }'
+  check_codex_sdd_specialist_roles
 
 check "Codex native reference docs are mirrored into plugin wrapper" \
   node -e 'const fs=require("fs"); const refs=["skills/writing-plans/references/codex-plan-verification.md","skills/executing-plans/references/codex-execution-checkpoints.md","skills/plan2beads/references/codex-plan2beads-flow.md","skills/ad-hoc-code-review/references/codex-review-flow.md"]; for (const ref of refs) { const wrapped="plugins/superpowers-bd/"+ref; if (!fs.existsSync(ref) || !fs.existsSync(wrapped) || fs.readFileSync(ref,"utf8") !== fs.readFileSync(wrapped,"utf8")) process.exit(1); }'

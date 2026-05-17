@@ -47,6 +47,17 @@ assert_not_contains() {
   fi
 }
 
+assert_not_contains_i() {
+  local file="$1"
+  local pattern="$2"
+  local message="$3"
+  if grep -Eiq -- "$pattern" "$file"; then
+    fail "$message"
+  else
+    pass "$message"
+  fi
+}
+
 assert_same_file() {
   local left="$1"
   local right="$2"
@@ -81,7 +92,8 @@ assert_codex_reference_clean() {
   local file="$1"
   assert_file "$file"
   assert_contains "$file" "Codex" "$file is explicitly Codex-native"
-  assert_not_contains "$file" "AskUserQuestion|Task:|TaskCreate|ExitPlanMode|subagent_type|Claude .* maps|tool mapping|translation table" "$file avoids Claude-only tool translation"
+  assert_not_contains "$file" "AskUserQuestion|Task:|TaskCreate|ExitPlanMode|subagent_type" "$file avoids Claude-only tool names"
+  assert_not_contains_i "$file" "Claude .* maps|tool mapping|translation table" "$file avoids Claude-only tool translation framing"
 }
 
 codex_refs=(
