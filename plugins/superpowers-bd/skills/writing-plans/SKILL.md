@@ -10,8 +10,13 @@ Write comprehensive implementation plans assuming zero codebase context. Documen
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 **Context:** Run in a dedicated worktree (created by brainstorming skill).
-**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md` using the Write tool. NEVER write to `~/.claude/plans/` — ignore the plan mode default path.
-**REQUIRED:** Before ExitPlanMode, run Plan Verification Checklist, then rule-of-five-plans. Verify *what* before polishing *how* -- scope errors caught early save wasted polish on deleted tasks.
+**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`. NEVER write to `~/.claude/plans/` -- ignore the plan mode default path.
+**REQUIRED:** Run Plan Verification Checklist, then rule-of-five-plans before presenting the plan as ready. Verify *what* before polishing *how* -- scope errors caught early save wasted polish on deleted tasks.
+
+## Platform Routing
+
+- **Claude Code:** Use the mandatory task sequence below. Do not call ExitPlanMode until verification is complete. Claude Code command/tool wording in this file is intentional for the Claude platform.
+- **Codex:** Follow `references/codex-plan-verification.md` for the native Codex planning and verification flow. Use `update_plan` for phase tracking, write the plan with normal file edits, and do not enter Claude plan mode or translate Claude-only tools.
 
 ## Mandatory Tasks (Enforcement)
 
@@ -138,6 +143,7 @@ Before rule-of-five-plans, verify scope and accuracy:
 ## Reference Files
 
 - `references/task-enforcement-examples.md`: Full TaskCreate blocks with blocked-by relationships
+- `references/codex-plan-verification.md`: Codex-native plan drafting, verification, and rule-of-five flow
 - `references/dependency-analysis.md`: Identifying and expressing task dependencies
 - `references/file-lists.md`: File list format, parallel execution rules, and complexity estimation
 - `references/announcements-protocol.md`: Required announcement templates for verification phases

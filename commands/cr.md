@@ -8,6 +8,7 @@ effort: xhigh
 Ad-hoc code review using the code-reviewer agent. Works outside SDD for any changes.
 
 **Usage:** `/cr` (single) or `/cr N` (N independent reviewers, aggregated, max 10)
+**Platform ownership:** This is the Claude Code command implementation. Codex users should invoke the `ad-hoc-code-review` skill and follow `skills/ad-hoc-code-review/references/codex-review-flow.md`.
 
 <!-- disable-model-invocation intentionally omitted — this command requires model invocation to parse arguments, ask interactive questions, and dispatch subagents. Same pattern as plan2beads.md. -->
 

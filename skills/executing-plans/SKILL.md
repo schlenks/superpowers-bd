@@ -12,6 +12,11 @@ Load beads epic, review critically, execute tasks in dependency-aware batches, r
 **REQUIRED BACKGROUND:** Read `superpowers-bd:beads` SKILL.md first (bd CLI usage, permission avoidance, dependency management).
 **Prerequisites:** Beads epic exists (via plan2beads), dependencies set (`bd blocked` shows expected blockers).
 
+## Platform Routing
+
+- **Claude Code:** Use the task-tracked checkpoint procedure in this file and the Claude-oriented references below.
+- **Codex:** Follow `references/codex-execution-checkpoints.md` for native progress tracking, batch checkpoints, user feedback, and verification evidence. Use `update_plan` for execution phases and beads for durable issue state.
+
 ## The Process
 
 ### Step 1: Load and Review Epic
@@ -80,6 +85,7 @@ STOP when: blocker mid-batch, no ready issues but open issues remain, unclear in
 ## Reference Files
 
 - `references/batch-execution-detail.md`: Full Step 2 procedure with file conflict handling and rule-of-five-code trigger
+- `references/codex-execution-checkpoints.md`: Codex-native batch execution, checkpoint, and feedback flow
 - `references/report-and-feedback.md`: Steps 3+4 TaskCreate blocks and feedback enforcement flow
 - `references/batching-example.md`: Dependency-aware batching walkthrough with bd ready/blocked at each stage
 - `references/epic-scoping-and-deadlock.md`: Epic scoping, deadlock detection, bd failures, when to revisit

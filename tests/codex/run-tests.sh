@@ -9,6 +9,7 @@ tests=(
   "test-plugin-manifest.sh"
   "test-codex-cli-fallback.sh"
   "test-codex-agents.sh"
+  "test-codex-workflow-semantics.sh"
 )
 
 passed=0

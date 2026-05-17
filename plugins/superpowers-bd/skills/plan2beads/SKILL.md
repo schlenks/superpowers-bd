@@ -14,18 +14,24 @@ Load `superpowers-bd:beads` first. You need the bd CLI workflow, dependency sema
 
 ## Quick Start
 
-Read the plan file, read `../../commands/plan2beads.md`, create the epic and child issues with `bd create`, verify dependencies with `bd ready`/`bd blocked`, then execute the new epic.
+Read the plan file, create the epic and child issues with `bd create`, verify dependencies with `bd ready`/`bd blocked`, then report the new epic and next execution action.
 
-## Canonical Method
+## Platform Routing
 
-The full procedure lives at `../../commands/plan2beads.md`. Read it and follow it exactly, with these platform mappings:
+- **Claude Code:** `/superpowers-bd:plan2beads <plan-path | SC-1234 | 1234>` loads the Claude command implementation at `../../commands/plan2beads.md`.
+- **Codex:** Follow `references/codex-plan2beads-flow.md`. Treat this skill and that reference as the native workflow; do not route Codex through the Claude slash command.
 
-- Claude Code: `/superpowers-bd:plan2beads <plan-path | SC-1234 | 1234>` loads the command directly.
-- Codex: invoke this skill as `$plan2beads`, then read `../../commands/plan2beads.md`.
-- `TaskCreate` / `TaskUpdate` blocks map to your native progress tracker. Preserve the sequence and do not mark a later phase complete before earlier evidence exists.
-- `AskUserQuestion` maps to a concise direct user question when no structured question tool is available.
-- File edits for multiline issue bodies should use `temp/*.md` body files as described in the command.
+## Shared Rules
+
+- Use `temp/*.md` body files for multiline issue descriptions and comments.
+- Keep each child issue dependency-aware with clear `Depends on:`, `Complexity:`, and `Files:` sections from the source plan.
+- Verify the dependency shape with `bd ready`, `bd blocked`, and `bd show <epic-id>` before handing off.
+- If the plan is incomplete or ambiguous, ask a concise question before creating issues.
 
 ## Output Contract
 
-End with the epic ID, created child task IDs, ready/blocked summary, and the exact next execution action. The command requires proceeding into `subagent-driven-development` after successful conversion unless the user explicitly asks to stop.
+End with the epic ID, created child task IDs, ready/blocked summary, and the exact next execution action. The default next action is `subagent-driven-development` after successful conversion unless the user explicitly asks to stop.
+
+## Reference Files
+
+- `references/codex-plan2beads-flow.md`: Codex-native plan-to-beads conversion flow
