@@ -8,6 +8,7 @@ cd "$SCRIPT_DIR"
 tests=(
   "test-plugin-manifest.sh"
   "test-codex-cli-fallback.sh"
+  "test-codex-agents.sh"
 )
 
 passed=0

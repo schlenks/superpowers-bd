@@ -31,6 +31,7 @@ Execute a beads epic by dispatching independent implementation issues in paralle
 
 - **Claude Code:** use `Task` with `run_in_background: true` as shown in prompt templates.
 - **Codex:** use `spawn_agent` for implementers/reviewers and `wait_agent` only when the controller is blocked. Assign explicit file ownership, tell workers they are not alone in the codebase, and keep write scopes disjoint within each wave.
+- **Codex native agents:** when available, route specialist review and verification through `.codex/agents/` definitions: `spec_reviewer` for spec compliance, `code_reviewer` for independent code reviews, `review_aggregator` for N>1 review synthesis, and `epic_verifier` for final epic verification. Use a generic worker only when no matching native agent exists.
 - **Progress tracking:** map `TaskCreate`/`TaskUpdate` blocks to the native progress tracker. Beads remains the durable source of truth for issue state.
 - **Questions:** use `AskUserQuestion` only where available; otherwise ask concise direct questions.
 
@@ -71,6 +72,8 @@ LOADING [no open implementation tasks] -> EPIC_VERIFIER -> COMPLETE
 Spec review happens before code quality review. The spec reviewer is skeptical: they must verify against code and requirements, not trust the implementer's report.
 
 Code review count follows the budget tier. For 2+ Claude reviewers, aggregate with `multi-review-aggregation`. Codex review is advisory only and must not replace Claude reviewer verdicts.
+
+In Codex sessions, prefer Codex native agents for the same stages: `spec_reviewer` before code quality review, independent `code_reviewer` agents for N review passes, `review_aggregator` when N is greater than 1, and `epic_verifier` when all implementation tasks are closed. Claude-only Codex cross-model advisory language applies only when Claude Code detects a separate Codex integration.
 
 If reviewers find issues, loop: implementer fixes, reviewers re-check, and closure happens only after evidence passes. More than 3 failed review attempts -> pause for human.
 

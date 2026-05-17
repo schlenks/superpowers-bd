@@ -20,7 +20,9 @@ The full procedure lives at `../../commands/cr.md`. Read it and follow it exactl
 - Codex: invoke this skill as `$ad-hoc-code-review`, then read `../../commands/cr.md`.
 - Claude `Task(run_in_background: true)` maps to Codex `spawn_agent` plus `wait_agent`; dispatch independent reviewers in parallel when possible.
 - Claude `AskUserQuestion` maps to a concise direct user question when no structured question tool is available.
-- Named Claude agent `superpowers-bd:code-reviewer` maps to the reviewer prompt at `../requesting-code-review/code-reviewer.md` when no named agent exists.
+- Codex native agent `code_reviewer` should handle independent review passes when available; use the reviewer prompt at `../requesting-code-review/code-reviewer.md` as the fallback review standard.
+- Codex native agent `review_aggregator` should synthesize N>1 independent reviews when available; use `../multi-review-aggregation/aggregator-prompt.md` as the fallback aggregation standard.
+- Named Claude agent `superpowers-bd:code-reviewer` remains the Claude Code specialist reviewer.
 
 ## Rules
 
