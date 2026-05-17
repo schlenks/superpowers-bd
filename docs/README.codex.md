@@ -93,6 +93,12 @@ For durable project tracking in repositories that use beads, keep `bd` as the so
 - `$ad-hoc-code-review` - `/cr`-style local or PR review from Codex
 - `$verification-before-completion` - evidence before completion claims
 
+## Project-Local Hooks
+
+This repository includes project-local Codex hooks in `.codex/hooks.json`. They add session context from `hooks/codex-session-start.sh` and PostToolUse audit/linter feedback from `hooks/codex-post-tool-use.sh`.
+
+Review hook commands before trusting a checkout. In Codex, use the hooks review or trust flow for the project, and keep `[features].plugin_hooks` separate from this local development path. The plugin manifest deliberately does not declare bundled hook entries until plugin-bundled hook behavior is proven reliable for Codex installs.
+
 ## Updating
 
 Native plugin install:
