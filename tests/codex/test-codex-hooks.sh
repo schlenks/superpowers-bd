@@ -41,6 +41,7 @@ echo ""
 check "project-local Codex hooks config exists" \
   test -f .codex/hooks.json
 
+# shellcheck disable=SC2016
 check_node "Codex hooks config has SessionStart and PostToolUse command hooks" '
   const fs = require("fs");
   const config = JSON.parse(fs.readFileSync(".codex/hooks.json", "utf8"));
@@ -50,10 +51,10 @@ check_node "Codex hooks config has SessionStart and PostToolUse command hooks" '
   if (hooks.Stop) process.exit(1);
   if (hooks.SessionStart?.[0]?.matcher !== "startup|resume|clear") process.exit(1);
   if (session?.type !== "command") process.exit(1);
-  if (session?.command !== "bash hooks/codex-session-start.sh") process.exit(1);
+  if (session?.command !== "bash \"$(git rev-parse --show-toplevel)/hooks/codex-session-start.sh\"") process.exit(1);
   if (hooks.PostToolUse?.[0]?.matcher !== "apply_patch|Edit|Write") process.exit(1);
   if (post?.type !== "command") process.exit(1);
-  if (post?.command !== "bash hooks/codex-post-tool-use.sh") process.exit(1);
+  if (post?.command !== "bash \"$(git rev-parse --show-toplevel)/hooks/codex-post-tool-use.sh\"") process.exit(1);
 '
 
 check "Codex session wrapper exists and is executable" \
@@ -64,6 +65,17 @@ check "Codex PostToolUse wrapper exists and is executable" \
 
 check "Codex wrappers do not depend on Claude hook environment" \
   bash -c "! grep -E 'CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR' hooks/codex-session-start.sh hooks/codex-post-tool-use.sh"
+
+mkdir -p "$TEST_DIR/subdir"
+subdir_session_stdout="$TEST_DIR/subdir-session-stdout.json"
+printf '{"hook_event_name":"SessionStart","source":"startup","cwd":"%s"}\n' "$TEST_DIR" \
+  | bash "$(cd "$TEST_DIR/subdir" && git -C "$REPO_ROOT" rev-parse --show-toplevel)/hooks/codex-session-start.sh" > "$subdir_session_stdout"
+
+check_node "Configured SessionStart command resolves from a subdirectory" "
+  const fs = require('fs');
+  const payload = JSON.parse(fs.readFileSync('$subdir_session_stdout', 'utf8'));
+  if (payload.hookSpecificOutput?.hookEventName !== 'SessionStart') process.exit(1);
+"
 
 mkdir -p "$TEST_DIR/temp"
 printf '{}\n' > "$TEST_DIR/temp/sdd-checkpoint-demo.json"

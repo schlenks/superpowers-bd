@@ -47,6 +47,18 @@ assert_not_contains() {
   fi
 }
 
+assert_toml_parses() {
+  python3 - <<'PY'
+import pathlib
+import tomllib
+
+for path in pathlib.Path(".codex/agents").glob("*.toml"):
+    tomllib.loads(path.read_text())
+tomllib.loads(pathlib.Path(".codex/config.toml").read_text())
+PY
+  pass "Codex agent TOML and config parse"
+}
+
 assert_agent() {
   local file="$1"
   local name="$2"
@@ -65,10 +77,24 @@ assert_agent ".codex/agents/code-reviewer.toml" "code_reviewer"
 assert_agent ".codex/agents/epic-verifier.toml" "epic_verifier"
 assert_agent ".codex/agents/spec-reviewer.toml" "spec_reviewer"
 assert_agent ".codex/agents/review-aggregator.toml" "review_aggregator"
+assert_toml_parses
 
 assert_file ".codex/config.toml"
 assert_contains ".codex/config.toml" '^\[agents\]$' ".codex/config.toml has agents section"
-assert_contains ".codex/config.toml" '^max_parallel_agents = [1-4]$' ".codex/config.toml sets conservative parallel cap"
+assert_contains ".codex/config.toml" '^max_threads = [1-4]$' ".codex/config.toml sets conservative thread cap"
+assert_contains ".codex/config.toml" '^max_depth = 1$' ".codex/config.toml limits agent depth"
+
+assert_contains ".codex/agents/code-reviewer.toml" 'Precision Gate' "code reviewer preserves precision gate"
+assert_contains ".codex/agents/code-reviewer.toml" 'Changed Files Manifest' "code reviewer requires changed files manifest"
+assert_contains ".codex/agents/code-reviewer.toml" 'Requirement Mapping' "code reviewer requires requirement mapping"
+assert_contains ".codex/agents/code-reviewer.toml" 'Uncovered Paths' "code reviewer requires uncovered paths"
+assert_contains ".codex/agents/code-reviewer.toml" 'Not Checked' "code reviewer requires not checked section"
+assert_contains ".codex/agents/code-reviewer.toml" 'stale references' "code reviewer checks stale references"
+assert_contains ".codex/agents/code-reviewer.toml" 'Rules Consulted' "code reviewer records repo policy rules"
+assert_contains ".codex/agents/epic-verifier.toml" 'rule-of-five' "epic verifier requires rule-of-five"
+assert_contains ".codex/agents/epic-verifier.toml" 'PASS or FAIL' "epic verifier uses pass fail verdict"
+assert_contains ".codex/agents/review-aggregator.toml" 'provenance' "review aggregator preserves provenance"
+assert_contains ".codex/agents/review-aggregator.toml" 'Do not invent findings' "review aggregator does not invent findings"
 
 assert_contains "skills/subagent-driven-development/SKILL.md" 'Codex native agents' "SDD mentions Codex native agents"
 assert_contains "skills/subagent-driven-development/SKILL.md" 'spec_reviewer' "SDD references Codex spec reviewer"
