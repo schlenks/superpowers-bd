@@ -4,7 +4,7 @@
 
 Superpowers-BD is a multi-agent-tool plugin for Claude Code, Codex, and OpenCode. It extends the original Superpowers workflow with **[beads](https://github.com/steveyegge/beads)** by [Steve Yegge](https://github.com/steveyegge) - a git-backed issue tracker that enables persistent task management, dependency tracking, and wave-based parallel execution across coding sessions.
 
-The shared skills define workflow intent: design before coding, plan with dependencies, implement in verified waves, and preserve work across sessions. Each supported agent tool gets a native execution layer for skills, progress tracking, delegation, commands, hooks, and verification.
+The shared skills define workflow intent: design before coding, plan with dependencies, implement in verified waves, and preserve work across sessions. Each supported agent tool gets a native execution layer for skills, progress tracking, delegation, command entry points, verification, and hooks where that platform supports them.
 
 | Shared intent | Claude Code implementation | Codex implementation |
 |---------------|----------------------------|----------------------|
