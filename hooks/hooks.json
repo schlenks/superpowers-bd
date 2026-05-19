@@ -6,7 +6,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" session-start.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd",
+            "args": [
+              "session-start.sh"
+            ]
           }
         ]
       },
@@ -15,7 +18,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" link-plugin-components.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd",
+            "args": [
+              "link-plugin-components.sh"
+            ],
             "timeout": 15
           }
         ]
@@ -27,7 +33,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" run-linter.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd",
+            "args": [
+              "run-linter.sh"
+            ],
+            "continueOnBlock": true,
             "timeout": 5
           }
         ]
@@ -38,7 +48,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" task-completed.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd",
+            "args": [
+              "task-completed.sh"
+            ],
             "timeout": 10
           }
         ]
@@ -49,7 +62,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" verdict-audit.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd",
+            "args": [
+              "verdict-audit.sh"
+            ],
             "timeout": 5
           }
         ]
@@ -60,7 +76,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" session-end.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd",
+            "args": [
+              "session-end.sh"
+            ],
             "timeout": 10
           }
         ]
@@ -71,7 +90,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" pre-compact.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd",
+            "args": [
+              "pre-compact.sh"
+            ],
             "timeout": 5
           }
         ]

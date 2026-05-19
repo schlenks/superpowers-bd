@@ -7,7 +7,8 @@ cd "$REPO_ROOT"
 
 echo "=== Test: Codex Native Agents ==="
 
-EXPECTED_CODEX_AGENT_MODEL="gpt-5.3-codex"
+DEFAULT_CODEX_AGENT_MODEL="gpt-5.3-codex"
+PREMIUM_CODEX_AGENT_MODEL="gpt-5.5"
 
 fail() {
   echo "  [FAIL] $1"
@@ -100,7 +101,7 @@ PY
 }
 
 assert_agent_required_fields() {
-  EXPECTED_CODEX_AGENT_MODEL="$EXPECTED_CODEX_AGENT_MODEL" python3 - <<'PY'
+  DEFAULT_CODEX_AGENT_MODEL="$DEFAULT_CODEX_AGENT_MODEL" python3 - <<'PY'
 import os
 import pathlib
 import sys
@@ -120,7 +121,7 @@ expected_effort = {
     "spec_reviewer": "high",
     "review_aggregator": "medium",
 }
-expected_model = os.environ["EXPECTED_CODEX_AGENT_MODEL"]
+expected_model = os.environ["DEFAULT_CODEX_AGENT_MODEL"]
 
 for path in pathlib.Path(".codex/agents").glob("*.toml"):
     data = tomllib.loads(path.read_text())
@@ -143,6 +144,58 @@ for path in pathlib.Path(".codex/agents").glob("*.toml"):
         sys.exit(1)
 PY
   pass "Codex agents carry required TOML fields and role-specific effort"
+}
+
+assert_model_profile_config() {
+  DEFAULT_CODEX_AGENT_MODEL="$DEFAULT_CODEX_AGENT_MODEL" \
+  PREMIUM_CODEX_AGENT_MODEL="$PREMIUM_CODEX_AGENT_MODEL" \
+  python3 - <<'PY'
+import os
+import pathlib
+import sys
+import tomllib
+
+config = tomllib.loads(pathlib.Path(".codex/config.toml").read_text())
+superpowers = config.get("superpowers_bd")
+if not isinstance(superpowers, dict):
+    print(".codex/config.toml missing [superpowers_bd]", file=sys.stderr)
+    sys.exit(1)
+if superpowers.get("codex_model_profile") != "standard":
+    print(".codex/config.toml must default codex_model_profile to standard", file=sys.stderr)
+    sys.exit(1)
+
+profiles_path = pathlib.Path(".codex/model-profiles.toml")
+if not profiles_path.exists():
+    print("missing .codex/model-profiles.toml", file=sys.stderr)
+    sys.exit(1)
+profiles = tomllib.loads(profiles_path.read_text()).get("profiles", {})
+
+expected = {
+    "standard": os.environ["DEFAULT_CODEX_AGENT_MODEL"],
+    "premium": os.environ["PREMIUM_CODEX_AGENT_MODEL"],
+}
+for profile, model in expected.items():
+    data = profiles.get(profile)
+    if not isinstance(data, dict):
+        print(f"missing profile {profile}", file=sys.stderr)
+        sys.exit(1)
+    for key in ("implementer_model", "specialist_agent_model"):
+        if data.get(key) != model:
+            print(f"{profile}.{key}: expected {model!r}, found {data.get(key)!r}", file=sys.stderr)
+            sys.exit(1)
+
+docs = pathlib.Path("docs/README.codex.md").read_text()
+sdd = pathlib.Path("skills/subagent-driven-development/SKILL.md").read_text()
+budget = pathlib.Path("skills/subagent-driven-development/budget-and-wave-cap.md").read_text()
+for text, label in ((docs, "docs/README.codex.md"), (sdd, "SDD skill"), (budget, "budget-and-wave-cap.md")):
+    if "codex_model_profile" not in text:
+        print(f"{label} does not document codex_model_profile", file=sys.stderr)
+        sys.exit(1)
+    if os.environ["PREMIUM_CODEX_AGENT_MODEL"] not in text:
+        print(f"{label} does not document premium Codex model", file=sys.stderr)
+        sys.exit(1)
+PY
+  pass "Codex model profile config supports standard and premium plans"
 }
 
 assert_no_claude_tool_names() {
@@ -173,12 +226,15 @@ assert_agent ".codex/agents/review-aggregator.toml" "review_aggregator"
 assert_toml_parses
 assert_agent_roles
 assert_agent_required_fields
+assert_model_profile_config
 assert_no_claude_tool_names
 
 assert_file ".codex/config.toml"
 assert_contains ".codex/config.toml" '^\[agents\]$' ".codex/config.toml has agents section"
 assert_contains ".codex/config.toml" '^max_threads = [1-4]$' ".codex/config.toml sets conservative thread cap"
 assert_contains ".codex/config.toml" '^max_depth = 1$' ".codex/config.toml limits agent depth"
+assert_contains ".codex/config.toml" '^\[superpowers_bd\]$' ".codex/config.toml has Superpowers-BD section"
+assert_contains ".codex/config.toml" '^codex_model_profile = "standard"$' ".codex/config.toml defaults to standard Codex model profile"
 
 assert_contains ".codex/agents/code-reviewer.toml" 'Precision Gate' "code reviewer preserves precision gate"
 assert_contains ".codex/agents/code-reviewer.toml" 'Changed Files Manifest' "code reviewer requires changed files manifest"

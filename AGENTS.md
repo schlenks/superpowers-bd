@@ -103,7 +103,13 @@ hooks/                      # Claude Code session lifecycle hooks
 
 .codex/
   hooks.json                # Codex project-local SessionStart and PostToolUse hooks
+  model-profiles.toml       # Standard/premium Codex model routing profiles
   superpowers-bd-codex      # Manual fallback CLI for non-plugin Codex installs
+
+plugins/superpowers-bd/     # Codex local marketplace wrapper
+  agents/                   # Plugin-level Codex Markdown agents
+  hooks.json                # Plugin-level Codex hook config
+  hooks/                    # Plugin-bundled Codex hook scripts
 
 tests/
   claude-code/             # Headless Claude Code integration tests

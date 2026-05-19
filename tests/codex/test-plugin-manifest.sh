@@ -59,6 +59,8 @@ assert(entry.source.path === './plugins/superpowers-bd', 'marketplace source pat
 const pluginRoot = path.resolve(path.dirname(marketplacePath), '..', '..', entry.source.path);
 assert(fs.existsSync(path.join(pluginRoot, '.codex-plugin', 'plugin.json')), 'marketplace source path resolves to plugin manifest');
 assert(fs.existsSync(path.join(pluginRoot, 'skills', 'using-superpowers', 'SKILL.md')), 'marketplace source path resolves to plugin skills');
+assert(fs.existsSync(path.join(pluginRoot, 'agents', 'code-reviewer.md')), 'marketplace source path resolves to plugin Codex agents');
+assert(fs.existsSync(path.join(pluginRoot, 'hooks.json')), 'marketplace source path resolves to plugin Codex hooks');
 assert(!fs.lstatSync(path.join(pluginRoot, '.codex-plugin')).isSymbolicLink(), 'plugin manifest directory is not a symlink');
 assert(!fs.lstatSync(path.join(pluginRoot, 'skills')).isSymbolicLink(), 'plugin skills directory is not a symlink');
 assertSameFile(manifestPath, path.join(pluginRoot, '.codex-plugin', 'plugin.json'), 'plugin wrapper manifest mirrors root manifest');
@@ -69,6 +71,27 @@ for (const entry of fs.readdirSync(path.join(root, 'skills'), { withFileTypes: t
   const wrapperSkill = path.join(pluginRoot, 'skills', entry.name, 'SKILL.md');
   assert(fs.existsSync(wrapperSkill), `plugin wrapper bundles ${entry.name}`);
   assertSameFile(sourceSkill, wrapperSkill, `plugin wrapper ${entry.name} SKILL.md mirrors root skill`);
+}
+
+for (const [file, name] of Object.entries({
+  'code-reviewer.md': 'code_reviewer',
+  'spec-reviewer.md': 'spec_reviewer',
+  'review-aggregator.md': 'review_aggregator',
+  'epic-verifier.md': 'epic_verifier',
+})) {
+  const agentPath = path.join(pluginRoot, 'agents', file);
+  const text = fs.readFileSync(agentPath, 'utf8');
+  assert(new RegExp(`^name: ${name}$`, 'm').test(text), `plugin wrapper agent ${name} declares native Codex name`);
+  assert(!/^model:/m.test(text) && !/gpt-5\./.test(text), `plugin wrapper agent ${name} inherits active Codex model`);
+}
+
+const pluginHooks = readJson(path.join(pluginRoot, 'hooks.json'));
+assert(pluginHooks.hooks?.SessionStart?.[0]?.hooks?.[0]?.command === './hooks/codex-session-start.sh', 'plugin wrapper bundles SessionStart hook command');
+assert(pluginHooks.hooks?.PostToolUse?.[0]?.hooks?.[0]?.command === './hooks/codex-post-tool-use.sh', 'plugin wrapper bundles PostToolUse hook command');
+for (const hookName of ['codex-session-start.sh', 'codex-post-tool-use.sh']) {
+  const hookPath = path.join(pluginRoot, 'hooks', hookName);
+  assert(fs.existsSync(hookPath), `plugin wrapper bundles ${hookName}`);
+  assert((fs.statSync(hookPath).mode & 0o111) !== 0, `plugin wrapper ${hookName} is executable`);
 }
 NODE
 

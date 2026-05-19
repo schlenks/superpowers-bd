@@ -18,16 +18,17 @@ Execute a beads epic by dispatching independent implementation issues in paralle
 2. Detect platform: `claude-code`, `codex`, or another supported native layer. Store it as `platform` in the checkpoint.
 3. If `temp/sdd-checkpoint-{epic_id}.json` exists, restore it and resume from the next wave. Do not re-ask budget tier, platform, or wave cap.
 4. Choose budget tier once (`max-20x`, `max-5x`, or `pro/api`) and store it in the checkpoint.
-5. Detect context tier. Claude Code: `[1m]` model suffix means extended; otherwise standard. Codex: use visible model/context info; if unknown, default to standard.
-6. Build `platform_agent_plan` once per session and store it in the checkpoint. It must name the native dispatch path for implementers, spec reviewers, code reviewers, aggregators, and epic verifier.
-7. Claude Code only: detect Codex cross-model advisory review by looking for `<codex-integration>`. Store `codex_enabled` and `codex_install_path` in the checkpoint. In Codex sessions, omit `codex_install_path` and set `codex_enabled: false` or leave it absent because Codex is the orchestrator.
-8. Run `bd ready`, filter to this epic's children, and exclude blocked/cross-epic/file-conflicting issues.
-9. Select wave cap. Use explicit invocation first; otherwise use the budget/context heuristic in `budget-and-wave-cap.md`.
-10. Dispatch implementers in parallel for non-conflicting ready issues. Mark each issue `in_progress` before dispatch.
-11. Route implementer status: `DONE`/`DONE_WITH_CONCERNS` -> review; `NEEDS_CONTEXT`/`BLOCKED` -> re-dispatch or escalate.
-12. Run review pipeline: spec review, code review(s), platform-native aggregation when needed, and gap closure up to 3 attempts.
-13. Close passing issues immediately with evidence, post `[WAVE-SUMMARY]`, update checkpoint, and loop back to `bd ready`.
-14. When all implementation tasks are closed, dispatch the platform-native epic verifier; after PASS, run `finishing-a-development-branch`.
+5. Codex only: resolve `codex_model_profile` from `.codex/config.toml` `[superpowers_bd]`, defaulting to `standard`. Use the Codex profile table in `budget-and-wave-cap.md`; this repository also mirrors those values in `.codex/model-profiles.toml`.
+6. Detect context tier. Claude Code: `[1m]` model suffix means extended; otherwise standard. Codex: use visible model/context info; if unknown, default to standard.
+7. Build `platform_agent_plan` once per session and store it in the checkpoint. It must name the native dispatch path for implementers, spec reviewers, code reviewers, aggregators, and epic verifier.
+8. Claude Code only: detect Codex cross-model advisory review by looking for `<codex-integration>`. Store `codex_enabled` and `codex_install_path` in the checkpoint. In Codex sessions, omit `codex_install_path` and set `codex_enabled: false` or leave it absent because Codex is the orchestrator.
+9. Run `bd ready`, filter to this epic's children, and exclude blocked/cross-epic/file-conflicting issues.
+10. Select wave cap. Use explicit invocation first; otherwise use the budget/context heuristic in `budget-and-wave-cap.md`.
+11. Dispatch implementers in parallel for non-conflicting ready issues. Mark each issue `in_progress` before dispatch.
+12. Route implementer status: `DONE`/`DONE_WITH_CONCERNS` -> review; `NEEDS_CONTEXT`/`BLOCKED` -> re-dispatch or escalate.
+13. Run review pipeline: spec review, code review(s), platform-native aggregation when needed, and gap closure up to 3 attempts.
+14. Close passing issues immediately with evidence, post `[WAVE-SUMMARY]`, update checkpoint, and loop back to `bd ready`.
+15. When all implementation tasks are closed, dispatch the platform-native epic verifier; after PASS, run `finishing-a-development-branch`.
 
 ## Claude Code Dispatch Path
 
@@ -40,7 +41,7 @@ Execute a beads epic by dispatching independent implementation issues in paralle
 
 1. Use `spawn_agent` for implementers and reviewers; use `wait_agent` only when the orchestrator is blocked on a result.
 2. Route specialist work through Codex native agents when available: `spec_reviewer`, `code_reviewer`, `review_aggregator`, and `epic_verifier`.
-3. Route Codex model strength by `model_reasoning_effort` per project policy in `budget-and-wave-cap.md`; do not describe Codex work using Claude Opus/Sonnet/Haiku tiers.
+3. Route Codex model strength by `codex_model_profile` plus `model_reasoning_effort` per project policy in `budget-and-wave-cap.md`; do not describe Codex work using Claude Opus/Sonnet/Haiku tiers.
 4. Assign explicit file ownership in every implementer prompt, tell workers they are not alone in the codebase, and keep write scopes disjoint within each wave.
 
 ## Checkpoint Platform Fields
@@ -50,6 +51,8 @@ The checkpoint schema includes these platform fields in addition to wave, budget
 ```json
 {
   "platform": "codex",
+  "codex_model_profile": "standard",
+  "codex_model": "gpt-5.3-codex",
   "platform_agent_plan": {
     "implementer": "spawn_agent default worker with issue-owned files",
     "spec_review": "spawn_agent agent=spec_reviewer",
@@ -69,8 +72,9 @@ If you are updating an older checkpoint or prompt, map old behavior as follows:
 
 1. Missing `platform` -> infer from the current session and write it at the next checkpoint.
 2. Missing `platform_agent_plan` -> rebuild from the active dispatch path.
-3. Missing `codex_enabled` in Claude Code -> detect `<codex-integration>` and store the result.
-4. Missing `codex_enabled` in Codex -> treat as false; native Codex sessions do not run a separate Codex cross-model advisory review.
+3. Missing `codex_model_profile` in Codex -> read `.codex/config.toml` `[superpowers_bd] codex_model_profile` or default to `standard`.
+4. Missing `codex_enabled` in Claude Code -> detect `<codex-integration>` and store the result.
+5. Missing `codex_enabled` in Codex -> treat as false; native Codex sessions do not run a separate Codex cross-model advisory review.
 
 ## Platform Mapping
 
@@ -95,9 +99,9 @@ Budget tier selects implementer/reviewer strength and review count. Exact model 
 
 | Tier | Implementer effort | Spec reviewer | Code reviews | Aggregator | Verifier | Simplify |
 |------|--------------------|---------------|--------------|------------|----------|----------|
-| max-20x | `gpt-5.3-codex` with `model_reasoning_effort=high` or `xhigh` for complex | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
-| max-5x | `gpt-5.3-codex` with `model_reasoning_effort=high` or `xhigh` for complex | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
-| pro/api | `gpt-5.3-codex` with `model_reasoning_effort=medium` or `high` for complex | `spec_reviewer` (`high`) | 1 x `code_reviewer` (`high`) | skip | `epic_verifier` (`xhigh`) | no |
+| max-20x | active profile model (`gpt-5.3-codex` standard, `gpt-5.5` premium) with `model_reasoning_effort=high` or `xhigh` for complex | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
+| max-5x | active profile model (`gpt-5.3-codex` standard, `gpt-5.5` premium) with `model_reasoning_effort=high` or `xhigh` for complex | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
+| pro/api | active profile model (`gpt-5.3-codex` standard, `gpt-5.5` premium) with `model_reasoning_effort=medium` or `high` for complex | `spec_reviewer` (`high`) | 1 x `code_reviewer` (`high`) | skip | `epic_verifier` (`xhigh`) | no |
 
 The Codex table is this repository's project policy from the current Codex agent layer, not an external guarantee about model availability.
 

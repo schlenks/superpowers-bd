@@ -24,7 +24,7 @@ Task:
 
 ```
 spawn_agent:
-  model: "gpt-5.3-codex"
+  model: "<active codex_model_profile model from budget-and-wave-cap.md>"
   model_reasoning_effort: "<medium|high|xhigh from budget-and-wave-cap.md>"
   description: "Implement Issue: [issue-id] [issue title]"
   prompt: |

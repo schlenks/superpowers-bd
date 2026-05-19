@@ -1,3 +1,6 @@
 [agents]
 max_threads = 3
 max_depth = 1
+
+[superpowers_bd]
+codex_model_profile = "standard"

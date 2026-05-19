@@ -115,6 +115,20 @@ check_node "SessionStart wrapper emits Codex hook context JSON" "
   if (!context.includes('sdd-checkpoint-demo.json')) process.exit(1);
 "
 
+plugin_session_stdout="$TEST_DIR/plugin-session-stdout.json"
+printf '{"hook_event_name":"SessionStart","source":"startup","cwd":"%s"}\n' "$TEST_DIR" \
+  | bash plugins/superpowers-bd/hooks/codex-session-start.sh > "$plugin_session_stdout"
+
+check_node "Plugin-bundled SessionStart wrapper emits Codex hook context JSON" "
+  const fs = require('fs');
+  const payload = JSON.parse(fs.readFileSync('$plugin_session_stdout', 'utf8'));
+  const out = payload.hookSpecificOutput;
+  if (out?.hookEventName !== 'SessionStart') process.exit(1);
+  const context = out.additionalContext || '';
+  if (!context.includes('superpowers-bd:using-superpowers')) process.exit(1);
+  if (!context.includes('sdd-checkpoint-demo.json')) process.exit(1);
+"
+
 mkdir -p "$TEST_DIR/src"
 printf '{"broken": true\n' > "$TEST_DIR/src/broken.json"
 
@@ -147,17 +161,29 @@ check_node "PostToolUse wrapper returns linter feedback for edited files" "
 check "PostToolUse wrapper records Codex audit log in cwd temp directory" \
   grep -q "$TEST_DIR/src/broken.json" "$TEST_DIR/temp/file-modifications.log"
 
-check_node "Codex plugin manifest does not overclaim bundled hook support" '
+plugin_post_stdout="$TEST_DIR/plugin-post-stdout.json"
+bash plugins/superpowers-bd/hooks/codex-post-tool-use.sh < "$post_input" > "$plugin_post_stdout"
+
+check_node "Plugin-bundled PostToolUse wrapper returns linter feedback for edited files" "
+  const fs = require('fs');
+  const text = fs.readFileSync('$plugin_post_stdout', 'utf8').trim();
+  const payload = JSON.parse(text);
+  if (payload.decision !== 'block') process.exit(1);
+  if (!/JSON syntax error/.test(payload.reason || '')) process.exit(1);
+"
+
+check_node "Codex plugin manifest describes hooks without manifest-level hook declarations" '
   const fs = require("fs");
   const manifest = JSON.parse(fs.readFileSync(".codex-plugin/plugin.json", "utf8"));
   if (Object.prototype.hasOwnProperty.call(manifest, "hooks")) process.exit(1);
-  if (!manifest.interface?.longDescription?.includes("Project-local Codex hooks")) process.exit(1);
+  if (!manifest.interface?.longDescription?.includes("Codex hooks")) process.exit(1);
 '
 
-check_node "Codex plugin manifest stays consistent with project-local hook packaging" '
+check_node "Codex plugin wrapper bundles hook packaging" '
   const fs = require("fs");
   const manifest = JSON.parse(fs.readFileSync(".codex-plugin/plugin.json", "utf8"));
   const prompts = manifest.interface?.defaultPrompt;
+  const wrapperHooks = JSON.parse(fs.readFileSync("plugins/superpowers-bd/hooks.json", "utf8"));
   const nativeSkillPattern = /\$[A-Za-z0-9:_-]+/;
   if (manifest.name !== "superpowers-bd") process.exit(1);
   if (manifest.skills !== "./skills/") process.exit(1);
@@ -165,6 +191,8 @@ check_node "Codex plugin manifest stays consistent with project-local hook packa
   if (!prompts.every((line) => typeof line === "string" && nativeSkillPattern.test(line))) process.exit(1);
   if (prompts.some((line) => line.includes("/superpowers-bd:"))) process.exit(1);
   if (!fs.existsSync(".codex/hooks.json")) process.exit(1);
+  if (wrapperHooks.hooks?.SessionStart?.[0]?.hooks?.[0]?.command !== "./hooks/codex-session-start.sh") process.exit(1);
+  if (wrapperHooks.hooks?.PostToolUse?.[0]?.hooks?.[0]?.command !== "./hooks/codex-post-tool-use.sh") process.exit(1);
 '
 
 echo ""
