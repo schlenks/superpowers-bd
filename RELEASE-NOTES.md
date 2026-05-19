@@ -1,5 +1,23 @@
 # Superpowers Release Notes
 
+## v5.6.7 (2026-05-19) - Claude Hook Startup Fix
+
+Superpowers-BD 5.6.7 fixes a Claude Code startup regression introduced in 5.6.6.
+
+### Claude Code hook launcher fix
+
+`hooks/hooks.json` now runs the cross-platform `run-hook.cmd` wrapper in shell form again. Claude Code's hook `args` field switches command hooks into exec form, which spawns the command directly with no shell. That is correct for real executables, but not for this polyglot `.cmd` wrapper: on macOS/Linux it has no shebang, so direct spawn fails with `ENOEXEC`.
+
+The PostToolUse linter still keeps `continueOnBlock: true`; only the launcher form changed.
+
+### Validation
+
+- `tests/verification/test-plugin-config-drift.sh` now guards against using `args` with the `.cmd` wrapper.
+- The shell-form hook command was manually exercised with `session-start.sh` on macOS.
+- `tests/codex/run-tests.sh`
+- `claude plugin validate .`
+- `git diff --check`
+
 ## v5.6.6 (2026-05-19) - Claude Hook and Codex Plugin Surface Release
 
 Superpowers-BD 5.6.6 ships the post-parity follow-ups that make the Claude Code and Codex plugin layers match current platform capabilities more closely.

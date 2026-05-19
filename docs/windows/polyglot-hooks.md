@@ -4,9 +4,11 @@ Claude Code plugins need hooks that work on Windows, macOS, and Linux. This docu
 
 ## The Problem
 
-Claude Code runs hook commands through the system's default shell:
-- **Windows**: CMD.exe
-- **macOS/Linux**: bash or sh
+Claude Code supports two command-hook forms:
+- **Shell form**: `command` only. Claude runs the string through a shell.
+- **Exec form**: `command` plus `args`. Claude spawns `command` directly with no shell.
+
+Use shell form for the polyglot `.cmd` wrapper. In exec form, macOS/Linux try to spawn the `.cmd` file directly; because the wrapper is shell-interpreted and does not start with a Unix shebang, startup fails with `ENOEXEC`.
 
 This creates several challenges:
 
@@ -59,6 +61,8 @@ hooks/
 ```
 
 ### hooks.json
+
+Do not add an `args` array to these hooks. The `.cmd` wrapper must be shell form.
 
 ```json
 {

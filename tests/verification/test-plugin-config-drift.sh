@@ -72,12 +72,12 @@ for role, filename in roles.items():
 PY
 }
 
-check_claude_hooks_use_exec_args() {
+check_claude_hooks_use_shell_form_for_cmd_wrapper() {
   node <<'NODE'
 const fs = require("fs");
 
 const config = JSON.parse(fs.readFileSync("hooks/hooks.json", "utf8"));
-const expectedCommand = "${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd";
+const wrapper = "${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd";
 const errors = [];
 
 for (const [eventName, entries] of Object.entries(config.hooks || {})) {
@@ -86,16 +86,17 @@ for (const [eventName, entries] of Object.entries(config.hooks || {})) {
       if (hook.type !== "command") continue;
 
       const label = `${eventName}[${entryIndex}].hooks[${hookIndex}]`;
-      if (hook.command !== expectedCommand) {
-        errors.push(`${label}: command must be ${expectedCommand}`);
+      if (Array.isArray(hook.args)) {
+        errors.push(`${label}: command must not use args with run-hook.cmd; args triggers exec form and Unix cannot spawn .cmd`);
       }
-      if (!Array.isArray(hook.args) || hook.args.length === 0 || typeof hook.args[0] !== "string") {
-        errors.push(`${label}: command hook must pass script name through args`);
-      } else if (!hook.args[0].endsWith(".sh")) {
-        errors.push(`${label}: first arg must be a hook shell script`);
+
+      const command = hook.command;
+      const scriptName = command?.match(/run-hook\.cmd"\s+([^"'\s]+\.sh)$/)?.[1];
+      if (typeof command !== "string" || command !== `"${wrapper}" ${scriptName || ""}`) {
+        errors.push(`${label}: command must be shell form: "${wrapper}" <script>.sh`);
       }
-      if (typeof hook.command === "string" && /["']|\.sh(?:\s|$)/.test(hook.command)) {
-        errors.push(`${label}: command must not embed shell quoting or script arguments`);
+      if (!scriptName) {
+        errors.push(`${label}: command must pass a .sh script name after the quoted wrapper`);
       }
       if (eventName === "PostToolUse" && entry.matcher === "Write|Edit" && hook.continueOnBlock !== true) {
         errors.push(`${label}: PostToolUse linter must set continueOnBlock true`);
@@ -194,8 +195,8 @@ check "Claude and Codex plugin manifests use the same version" \
 check "Claude and Codex plugin manifests identify the same plugin" \
   node -e 'const fs=require("fs"); const c=JSON.parse(fs.readFileSync(".claude-plugin/plugin.json","utf8")); const x=JSON.parse(fs.readFileSync(".codex-plugin/plugin.json","utf8")); process.exit(c.name === x.name && c.homepage === x.homepage && c.repository === x.repository && c.license === x.license ? 0 : 1)'
 
-check "Claude hooks use args exec form and PostToolUse continueOnBlock" \
-  check_claude_hooks_use_exec_args
+check "Claude hooks use shell form for polyglot cmd wrapper and PostToolUse continueOnBlock" \
+  check_claude_hooks_use_shell_form_for_cmd_wrapper
 
 check "CLAUDE.md documents current plugin version" \
   grep -q "\\*\\*Plugin version:\\*\\* $claude_version" CLAUDE.md
