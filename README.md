@@ -198,6 +198,15 @@ codex plugin marketplace add schlenks/superpowers-bd@main
 
 Then install or enable `superpowers-bd` from Codex and restart Codex so bundled skills load.
 
+Codex model routing defaults to the broadly available profile:
+
+```toml
+[superpowers_bd]
+codex_model_profile = "standard"
+```
+
+Use `standard` for `gpt-5.3-codex`. If your Codex plan has access to `gpt-5.5`, set `codex_model_profile = "premium"` in your project `.codex/config.toml` and set Codex itself to `gpt-5.5`. Plugin-bundled Codex agents do not pin a model, so they inherit the active Codex model.
+
 **Detailed docs:** [docs/README.codex.md](docs/README.codex.md)
 
 ### OpenCode
