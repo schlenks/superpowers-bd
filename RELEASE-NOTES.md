@@ -1,5 +1,42 @@
 # Superpowers Release Notes
 
+## v5.6.6 (2026-05-19) - Claude Hook and Codex Plugin Surface Release
+
+Superpowers-BD 5.6.6 ships the post-parity follow-ups that make the Claude Code and Codex plugin layers match current platform capabilities more closely.
+
+### Claude Code hook modernization
+
+`hooks/hooks.json` now uses Claude Code's hook `command` plus `args` exec form instead of shell-quoted command strings. The PostToolUse linter hook now sets `continueOnBlock: true`, so linter feedback can block the current edit path without disabling later hooks in the event chain. The documented minimum Claude Code version is now 2.1.139.
+
+### Codex model profiles
+
+Codex routing now has an explicit profile policy instead of hard-coding one model everywhere:
+
+- `standard` uses `gpt-5.3-codex` for broadly available Codex installs and ChatGPT Plus users.
+- `premium` uses `gpt-5.5` for users whose Codex plan exposes that model.
+
+The default project config stays on `standard` in `.codex/config.toml`, and `.codex/model-profiles.toml` mirrors the profile table for tests. README and `docs/README.codex.md` now explain how users opt into `premium`.
+
+### Codex installed-plugin agents and hooks
+
+The Codex marketplace wrapper now bundles native plugin-level agents and hooks:
+
+- `plugins/superpowers-bd/agents/*.md` defines `code_reviewer`, `spec_reviewer`, `review_aggregator`, and `epic_verifier` as Codex Markdown agents.
+- `plugins/superpowers-bd/hooks.json` and `plugins/superpowers-bd/hooks/*.sh` provide installed-plugin SessionStart and PostToolUse behavior.
+- Plugin-bundled Codex agents intentionally omit model pins so they inherit the user's active Codex model.
+
+Project-local `.codex/agents/*.toml` and `.codex/hooks.json` remain the repository development path. The plugin wrapper is now the installed-plugin path.
+
+### Validation
+
+Tests now cover Claude hook exec-args drift, Codex model profile docs/config, plugin-wrapper agents/hooks, and plugin-bundled hook execution. Verification for this release included:
+
+- `./tests/codex/run-tests.sh`
+- `./tests/verification/test-plugin-config-drift.sh`
+- `claude plugin validate .`
+- `git diff --check`
+- `npx -y claude-skills-cli validate skills/subagent-driven-development --loose`
+
 ## v5.6.5 (2026-05-09; Codex addendum 2026-05-14) - Beads Fork
 
 ### Claude Code and Codex parity documentation (2026-05-17 addendum)
