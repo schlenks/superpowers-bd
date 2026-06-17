@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Superpowers-BD is a multi-agent-tool plugin providing workflow skills for TDD, debugging, code review, and beads-based collaboration patterns. This file documents the Claude Code platform layer: Claude plugin metadata, slash commands, Claude Code agents, Claude hooks, and Claude-specific version requirements. Codex has its own first-class project instructions in `AGENTS.md` and native Codex plugin docs in `docs/README.codex.md`.
 
-**Plugin version:** 5.6.7
+**Plugin version:** 5.6.8
 **Minimum Claude Code:** 2.1.139 (subagent skill discovery via Skill tool; `effort.level` in hook input JSON; `effort: xhigh` on review agents from 2.1.111; `claude plugin tag` from 2.1.118; PostToolUse `duration_ms` from 2.1.119; PostToolUse `continueOnBlock` from 2.1.139)
 
 ## Development Commands
@@ -72,11 +72,14 @@ commands/                   # Claude Code user-invocable slash commands
   plan2beads.md            # /superpowers-bd:plan2beads
 
 hooks/                      # Claude Code session lifecycle hooks
-  session-start.sh         # Runs on session start/resume/clear
+  session-start.sh         # Runs on session start/resume/clear; injects skills + live SDD checkpoint
   session-end.sh           # Commits pending Dolt changes on exit (requires >= 2.1.74)
   link-plugin-components.sh  # Copies hooked components to .claude/ (#17688 workaround)
   log-file-modification.sh   # PostToolUse audit logger for Write|Edit
   task-completed.sh        # Quality gate on task completion
+  work-state-anchor.sh     # UserPromptSubmit: terse work-state anchor when work is live
+  verdict-audit.sh         # SubagentStop: audits + gates NO_VERDICT during active SDD waves
+  stop-gate.sh             # Stop: re-asserts verification-before-completion on unevidenced claims
 
 tests/
   claude-code/             # Headless Claude Code integration tests
@@ -124,8 +127,9 @@ See `skills/writing-skills/SKILL.md` for complete guide.
 
 - **Plugin manifest**: `.claude-plugin/plugin.json`
 - **Session hooks**: `hooks/hooks.json` (runs `session-start.sh` on startup, `link-plugin-components.sh` on first start, `session-end.sh` on exit)
-- **Quality gates**: `hooks/task-completed.sh` (TaskCompleted hook, interactive mode only)
-- **Audit logging**: `hooks/log-file-modification.sh` (PostToolUse hook via code-reviewer agent frontmatter)
+- **Dynamic-context injection**: `hooks/work-state-anchor.sh` (UserPromptSubmit — injects a one-line work-state anchor only when an SDD wave flag exists or beads has in_progress work; silent when idle)
+- **Quality gates**: `hooks/task-completed.sh` (TaskCompleted hook, interactive mode only); `hooks/stop-gate.sh` (Stop hook — re-asserts verification-before-completion when a completion claim lacks evidence and work is live; guarded by `stop_hook_active`, a per-session counter, and `SDD_ALLOW_STOP=1`); `hooks/verdict-audit.sh` (SubagentStop — blocks `NO_VERDICT` during an active wave, gated by the wave flag with a 2-retry cap and `SDD_ALLOW_NO_VERDICT=1`)
+- **Audit logging**: `hooks/log-file-modification.sh` (PostToolUse hook via code-reviewer agent frontmatter); `hooks/verdict-audit.sh` also appends every subagent verdict to `temp/verdict-audit.log`
 - **Beads config**: `.beads/metadata.json`
 - **Note**: Plugin frontmatter hook behavior has changed across Claude Code releases. Keep `link-plugin-components.sh` until this repo's integration test proves plugin-installed agent and skill hooks fire natively.
 

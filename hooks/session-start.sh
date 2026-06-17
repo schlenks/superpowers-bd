@@ -70,7 +70,23 @@ if [ -n "$checkpoint_dir" ] && [ -d "$checkpoint_dir" ]; then
         checkpoint_basename="${latest_checkpoint##*/}"
         checkpoint_epic_id="${checkpoint_basename#sdd-checkpoint-}"
         checkpoint_epic_id="${checkpoint_epic_id%.json}"
-        checkpoint_message="\n\n<sdd-checkpoint-recovery>SDD checkpoint found for epic ${checkpoint_epic_id}. Read temp/sdd-checkpoint-${checkpoint_epic_id}.json to resume orchestration. Do NOT re-ask budget tier. See checkpoint-recovery.md for recovery logic.</sdd-checkpoint-recovery>"
+
+        # Liveness guard: a checkpoint whose epic has no open/in_progress work
+        # left is stale — the COMPLETE-phase cleanup (rm of the checkpoint) was
+        # skipped, so the file lingers and we would tell the next session to
+        # "resume" finished work. Suppress the banner and remove the dead file.
+        # Fail safe: only suppress on an affirmative zero, so a bd outage right
+        # after a crash still surfaces the recovery banner.
+        epic_open_children=""
+        if command -v bd >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+            epic_open_children=$(bd list --parent "$checkpoint_epic_id" --status open,in_progress --json 2>/dev/null | jq 'length' 2>/dev/null || echo "")
+        fi
+
+        if [ "$epic_open_children" = "0" ]; then
+            rm -f "$latest_checkpoint" 2>/dev/null || true
+        else
+            checkpoint_message="\n\n<sdd-checkpoint-recovery>SDD checkpoint found for epic ${checkpoint_epic_id}. Read temp/sdd-checkpoint-${checkpoint_epic_id}.json to resume orchestration. Do NOT re-ask budget tier. See checkpoint-recovery.md for recovery logic.</sdd-checkpoint-recovery>"
+        fi
     fi
 fi
 

@@ -129,6 +129,10 @@ assert_contains "skills/subagent-driven-development/SKILL.md" '"code_review": "s
 assert_contains "skills/subagent-driven-development/SKILL.md" '"review_aggregation": "spawn_agent agent=review_aggregator when N > 1"' "SDD checkpoint names Codex aggregation dispatch"
 assert_contains "skills/subagent-driven-development/SKILL.md" '"epic_verification": "spawn_agent agent=epic_verifier"' "SDD checkpoint names Codex verifier dispatch"
 assert_contains "skills/subagent-driven-development/SKILL.md" 'native Codex sessions do not run a separate Codex cross-model advisory review' "SDD separates native Codex from Claude advisory review"
+assert_section "skills/subagent-driven-development/background-execution.md" "Codex Verdict Validation"
+assert_contains "skills/subagent-driven-development/background-execution.md" "missing or malformed .*VERDICT" "SDD documents missing/malformed Codex verdict handling"
+assert_contains "skills/subagent-driven-development/background-execution.md" "re-dispatch.*same prompt" "SDD documents Codex verdict retry path"
+assert_same_file "skills/subagent-driven-development/background-execution.md" "plugins/superpowers-bd/skills/subagent-driven-development/background-execution.md" "plugin wrapper mirrors SDD background execution reference"
 
 assert_not_contains "skills/plan2beads/SKILL.md" "Codex: invoke this skill.*read ../../commands" "plan2beads does not route Codex through Claude command docs"
 assert_not_contains "skills/ad-hoc-code-review/SKILL.md" "Codex: invoke this skill.*read ../../commands" "ad-hoc-code-review does not route Codex through Claude command docs"

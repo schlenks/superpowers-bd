@@ -1,5 +1,30 @@
 # Superpowers Release Notes
 
+## v5.6.8 (2026-06-17) - SDD Hook Guardrails
+
+Superpowers-BD 5.6.8 hardens subagent-driven development recovery and completion checks across Claude Code and Codex.
+
+### Claude Code lifecycle gates
+
+Claude Code now gets additional SDD-aware hook guardrails:
+
+- `UserPromptSubmit` injects a terse work-state anchor only while an SDD wave or beads work is in flight.
+- `Stop` blocks completion claims without fresh verification evidence when live work is active, with loop guards and an override.
+- `SubagentStop` now blocks missing `VERDICT:` lines during active SDD waves, while failing open when hook payload parsing is unavailable.
+- `SessionStart` suppresses and removes stale SDD checkpoints when the epic has no open or in-progress children.
+
+### Codex parity hardening
+
+Codex SessionStart wrappers now use the same stale-checkpoint liveness check before injecting recovery context. The SDD background execution reference also documents Codex-native `wait_agent` verdict validation because Codex does not have this plugin's Claude `SubagentStop` enforcement surface.
+
+### Validation
+
+- `./tests/codex/run-tests.sh`
+- `./tests/verification/test-plugin-config-drift.sh`
+- `claude plugin validate .`
+- `git diff --check`
+- `shellcheck hooks/codex-session-start.sh plugins/superpowers-bd/hooks/codex-session-start.sh tests/codex/test-codex-hooks.sh tests/codex/test-codex-workflow-semantics.sh`
+
 ## v5.6.7 (2026-05-19) - Claude Hook Startup Fix
 
 Superpowers-BD 5.6.7 fixes a Claude Code startup regression introduced in 5.6.6.

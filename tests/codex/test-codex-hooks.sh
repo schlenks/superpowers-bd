@@ -11,6 +11,22 @@ trap 'rm -rf "$TEST_DIR"' EXIT
 pass=0
 fail=0
 
+mkdir -p "$TEST_DIR/bin"
+cat > "$TEST_DIR/bin/bd" <<'EOF'
+#!/usr/bin/env bash
+if [ "${1:-}" = "list" ]; then
+  if [ "${BD_TEST_CHILDREN:-nonempty}" = "empty" ]; then
+    printf '[]\n'
+  else
+    printf '[{"id":"child"}]\n'
+  fi
+  exit 0
+fi
+exit 1
+EOF
+chmod +x "$TEST_DIR/bin/bd"
+export PATH="$TEST_DIR/bin:$PATH"
+
 check() {
   local desc="$1"
   shift
@@ -127,6 +143,34 @@ check_node "Plugin-bundled SessionStart wrapper emits Codex hook context JSON" "
   const context = out.additionalContext || '';
   if (!context.includes('superpowers-bd:using-superpowers')) process.exit(1);
   if (!context.includes('sdd-checkpoint-demo.json')) process.exit(1);
+"
+
+mkdir -p "$TEST_DIR/stale/temp"
+printf '{}\n' > "$TEST_DIR/stale/temp/sdd-checkpoint-finished.json"
+
+stale_session_stdout="$TEST_DIR/stale-session-stdout.json"
+printf '{"hook_event_name":"SessionStart","source":"startup","cwd":"%s"}\n' "$TEST_DIR/stale" \
+  | BD_TEST_CHILDREN=empty bash hooks/codex-session-start.sh > "$stale_session_stdout"
+
+check_node "SessionStart wrapper removes stale checkpoint when epic has no open work" "
+  const fs = require('fs');
+  const payload = JSON.parse(fs.readFileSync('$stale_session_stdout', 'utf8'));
+  const context = payload.hookSpecificOutput?.additionalContext || '';
+  if (context.includes('sdd-checkpoint-finished')) process.exit(1);
+  if (fs.existsSync('$TEST_DIR/stale/temp/sdd-checkpoint-finished.json')) process.exit(1);
+"
+
+printf '{}\n' > "$TEST_DIR/stale/temp/sdd-checkpoint-finished.json"
+plugin_stale_session_stdout="$TEST_DIR/plugin-stale-session-stdout.json"
+printf '{"hook_event_name":"SessionStart","source":"startup","cwd":"%s"}\n' "$TEST_DIR/stale" \
+  | BD_TEST_CHILDREN=empty bash plugins/superpowers-bd/hooks/codex-session-start.sh > "$plugin_stale_session_stdout"
+
+check_node "Plugin-bundled SessionStart wrapper removes stale checkpoint when epic has no open work" "
+  const fs = require('fs');
+  const payload = JSON.parse(fs.readFileSync('$plugin_stale_session_stdout', 'utf8'));
+  const context = payload.hookSpecificOutput?.additionalContext || '';
+  if (context.includes('sdd-checkpoint-finished')) process.exit(1);
+  if (fs.existsSync('$TEST_DIR/stale/temp/sdd-checkpoint-finished.json')) process.exit(1);
 "
 
 mkdir -p "$TEST_DIR/src"

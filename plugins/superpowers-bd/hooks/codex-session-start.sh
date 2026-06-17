@@ -44,9 +44,21 @@ if [ -d "$checkpoint_dir" ]; then
 
   if [ -n "$latest_checkpoint" ]; then
     checkpoint_name="${latest_checkpoint##*/}"
-    checkpoint_message="
+    checkpoint_epic_id="${checkpoint_name#sdd-checkpoint-}"
+    checkpoint_epic_id="${checkpoint_epic_id%.json}"
+
+    epic_open_children=""
+    if command -v bd >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+      epic_open_children=$(bd list --parent "$checkpoint_epic_id" --status open,in_progress --json 2>/dev/null | jq 'length' 2>/dev/null || echo "")
+    fi
+
+    if [ "$epic_open_children" = "0" ]; then
+      rm -f "$latest_checkpoint" 2>/dev/null || true
+    else
+      checkpoint_message="
 
 <sdd-checkpoint-recovery>SDD checkpoint found: ${checkpoint_name}. Restore the matching temp checkpoint before dispatching more work.</sdd-checkpoint-recovery>"
+    fi
   fi
 fi
 

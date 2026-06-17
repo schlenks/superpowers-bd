@@ -94,6 +94,26 @@ on_review_complete(review_id, output):
         process_review(review_id, verdict)
 ```
 
+## Codex Verdict Validation
+
+Codex has no SubagentStop hook in this plugin, so the orchestrator must validate
+each `wait_agent` result before routing it.
+
+After `wait_agent`, parse the final output:
+
+- Accept only a top-level line beginning `VERDICT:` with an allowed status for
+  that stage.
+- If the output has a missing or malformed `VERDICT`, do not infer success from
+  narrative text or persisted report files.
+- On the first malformed result, re-dispatch with the same prompt plus a terse
+  correction: the final response must contain only the structured verdict.
+- On the second malformed result, treat it as an agent failure and follow the
+  implementer or reviewer failure recovery path.
+
+Persisted beads reports support audit and fallback retrieval, but they do not
+replace the final verdict. Route work only after valid verdict fields are
+present.
+
 ## REPORT_PERSISTED Fallback
 
 If a sub-agent returns `REPORT_PERSISTED: NO`, the full report was not saved to beads. The orchestrator re-dispatches a lightweight agent to retrieve it.
