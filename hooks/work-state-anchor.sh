@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1003
 # UserPromptSubmit hook: inject a terse work-state anchor so the model never
 # operates on a stale picture of in-flight work between SessionStart re-injections.
 #
@@ -55,17 +54,9 @@ for p in "${parts[@]}"; do
 done
 
 # Escape for JSON (quotes/backslashes only — single-line anchor, no newlines).
-escaped=""
-i=0
-while [ $i -lt ${#joined} ]; do
-    char="${joined:$i:1}"
-    case "$char" in
-        '\') escaped+='\\' ;;
-        '"') escaped+='\"' ;;
-        *) escaped+="$char" ;;
-    esac
-    i=$((i + 1))
-done
+# Backslashes first so the quote-escaping below is not double-escaped.
+escaped="${joined//\\/\\\\}"
+escaped="${escaped//\"/\\\"}"
 
 printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"<work-state>%s</work-state>"}}\n' "$escaped"
 exit 0
