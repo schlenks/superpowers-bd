@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.7.0] - 2026-06-18
+
+### Added
+
+- **Per-skill Codex UI metadata**: every skill now ships an `agents/openai.yaml` (display name, short description, brand color, default `$skill` prompt, implicit-invocation policy) in both the source tree and the bundled marketplace wrapper
+- **Expanded Codex hook lifecycle**: `.codex/hooks.json` and `plugins/superpowers-bd/hooks.json` now carry `UserPromptSubmit`, `SubagentStop`, `Stop`, `PreCompact`, and `PostCompact` on top of `SessionStart`/`PostToolUse`, backed by new `codex-work-state-anchor.sh`, `codex-verdict-audit.sh`, `codex-stop-gate.sh`, and `codex-pre-compact.sh` wrappers (project-local resolves from the git root; the plugin uses plugin-relative paths)
+
+### Changed
+
+- Codex agents now inherit the user's active Codex model instead of pinning one, matching the plugin-bundled agents that already omitted model pins
+
+### Removed
+
+- `gpt-5.3-codex` model pins from `.codex/agents/*.toml`, the `.codex/model-profiles.toml` profile file, and the `[superpowers_bd] codex_model_profile` project config — README, Codex docs, and SDD model policy updated to document inheritance
+
+## [5.6.8] - 2026-06-17
+
+### Added
+
+- **Claude Code SDD lifecycle gates**: `UserPromptSubmit` injects a terse work-state anchor only while an SDD wave or beads work is in flight; `Stop` blocks completion claims without fresh verification evidence during live work (with loop guards and override); `SubagentStop` blocks missing `VERDICT:` lines during active SDD waves, failing open when hook payload parsing is unavailable
+
+### Changed
+
+- `SessionStart` suppresses and removes stale SDD checkpoints when the epic has no open or in-progress children
+- Codex `SessionStart` wrappers use the same stale-checkpoint liveness check; the SDD background-execution reference documents Codex-native `wait_agent` verdict validation, since Codex lacks the Claude `SubagentStop` enforcement surface
+
+## [5.6.7] - 2026-05-19
+
+### Fixed
+
+- `hooks/hooks.json` runs the cross-platform `run-hook.cmd` wrapper in shell form again, fixing a 5.6.6 startup regression. Claude Code's hook `args` field switches command hooks into exec form, which spawned the polyglot `.cmd` wrapper directly with no shell — on macOS/Linux it has no shebang, so direct spawn failed with `ENOEXEC`. The PostToolUse linter keeps `continueOnBlock: true`; only the launcher form changed.
+
 ## [5.6.6] - 2026-05-19
 
 ### Added
@@ -596,7 +628,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Personal superpowers overlay system — replaced with git branch workflow
 - `setup-personal-superpowers` hook — replaced by `initialize-skills.sh`
 
-[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.6.6...HEAD
+[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.7.0...HEAD
+[5.7.0]: https://github.com/schlenks/superpowers-bd/compare/v5.6.8...v5.7.0
+[5.6.8]: https://github.com/schlenks/superpowers-bd/compare/v5.6.7...v5.6.8
+[5.6.7]: https://github.com/schlenks/superpowers-bd/compare/v5.6.6...v5.6.7
 [5.6.6]: https://github.com/schlenks/superpowers-bd/compare/v5.6.5...v5.6.6
 [5.6.5]: https://github.com/schlenks/superpowers-bd/compare/v5.6.4...v5.6.5
 [5.6.4]: https://github.com/schlenks/superpowers-bd/compare/v5.6.3...v5.6.4
