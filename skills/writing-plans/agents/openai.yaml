@@ -1,0 +1,7 @@
+interface:
+  display_name: "Writing Plans"
+  short_description: "Create dependency-aware plans"
+  brand_color: "#2563EB"
+  default_prompt: "Use $writing-plans to turn this design into an implementation plan."
+policy:
+  allow_implicit_invocation: true

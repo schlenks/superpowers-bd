@@ -1,0 +1,7 @@
+interface:
+  display_name: "Git Worktrees"
+  short_description: "Create isolated implementation worktrees"
+  brand_color: "#2563EB"
+  default_prompt: "Use $using-git-worktrees before starting isolated implementation work."
+policy:
+  allow_implicit_invocation: true

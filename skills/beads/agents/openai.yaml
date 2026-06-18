@@ -1,0 +1,7 @@
+interface:
+  display_name: "Beads Workflow"
+  short_description: "Use git-backed issue tracking"
+  brand_color: "#2563EB"
+  default_prompt: "Use $beads to inspect and update this repository's beads work."
+policy:
+  allow_implicit_invocation: true

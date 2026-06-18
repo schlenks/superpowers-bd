@@ -1,0 +1,7 @@
+interface:
+  display_name: "Review Aggregation"
+  short_description: "Merge multiple code review reports"
+  brand_color: "#2563EB"
+  default_prompt: "Use $multi-review-aggregation to aggregate these review reports."
+policy:
+  allow_implicit_invocation: true

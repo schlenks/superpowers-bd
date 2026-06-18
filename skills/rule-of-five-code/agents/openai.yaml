@@ -1,0 +1,7 @@
+interface:
+  display_name: "Rule of Five Code"
+  short_description: "Run five focused code passes"
+  brand_color: "#2563EB"
+  default_prompt: "Use $rule-of-five-code to review this code change."
+policy:
+  allow_implicit_invocation: true

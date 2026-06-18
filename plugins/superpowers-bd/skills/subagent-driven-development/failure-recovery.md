@@ -53,7 +53,6 @@ elif blocker indicates capacity limit ("architectural decision", "multiple appro
         else:
             redispatch(
                 task_id,
-                model=resolve_codex_model(codex_model_profile),
                 model_reasoning_effort=next_effort,
                 extra_context=blocker,
                 preserve_file_ownership=True

@@ -45,13 +45,11 @@ pending_reviews = {}  # review_id -> {issue_id, phase, base_sha, head_sha, ...}
 agent_ids = []
 
 wave_base_sha = run("git rev-parse HEAD")
-codex_model = resolve_codex_model(codex_model_profile)
 
 for issue in parallelizable:
     bd update <issue.id> --status=in_progress
     impl_effort = resolve_codex_impl_effort(issue.complexity, budget_tier)
     result = spawn_agent(
-        model=codex_model,
         model_reasoning_effort=impl_effort,
         description=f"Implement: {issue.id} {issue.title}",
         prompt=implementer_prompt
@@ -60,7 +58,7 @@ for issue in parallelizable:
         "issue_id": issue.id,
         "complexity": issue.complexity,
         "platform": "codex",
-        "model": codex_model,
+        "model_policy": "inherit_active_model",
         "model_reasoning_effort": impl_effort,
         "base_sha": wave_base_sha
     }
@@ -96,8 +94,9 @@ on_review_complete(review_id, output):
 
 ## Codex Verdict Validation
 
-Codex has no SubagentStop hook in this plugin, so the orchestrator must validate
-each `wait_agent` result before routing it.
+The Codex SubagentStop hook blocks missing verdicts during active SDD waves,
+but the orchestrator must still validate each `wait_agent` result before routing
+it. Hooks are guardrails, not the source of truth for workflow state.
 
 After `wait_agent`, parse the final output:
 
@@ -137,7 +136,6 @@ def dispatch_full_report_fallback(task_id, issue_id):
 ```python
 def dispatch_full_report_fallback(agent_id, issue_id):
     fallback = spawn_agent(
-        model=codex_model,
         model_reasoning_effort="low",
         description=f"Retrieve report: {issue_id}",
         prompt=f"The previous agent for {issue_id} failed to persist its report. "

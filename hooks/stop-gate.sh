@@ -49,7 +49,7 @@ fi
 
 # Completion claim with no evidence?
 claim_re='is (now )?complete|is (now )?fixed|is (now )?done|implementation (is )?complete|successfully (implemented|completed|fixed)|ready to merge|ready for review|all tests pass|everything works|work is done|task is done'
-evidence_re='exit code|[0-9]+ (tests? )?(passed|passing)|0 failures|output:|evidence:|✓|✅|all .*pass|ran |executed|result:|passed|no .*fail'
+evidence_re='exit code[ :]*[0-9]+|[0-9]+ (tests? )?(passed|passing)|0 failures|output:|evidence:|✓|✅|all .*pass|ran (npm|pnpm|yarn|pytest|go test|cargo|make|bash|sh|node|python|python3|\./[^[:space:]]+)|executed (npm|pnpm|yarn|pytest|go test|cargo|make|bash|sh|node|python|python3|\./[^[:space:]]+)|result:|passed|no .*fail'
 
 printf '%s' "$last_message" | grep -qiE "$claim_re" || exit 0
 printf '%s' "$last_message" | grep -qiE "$evidence_re" && exit 0

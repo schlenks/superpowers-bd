@@ -1,0 +1,7 @@
+interface:
+  display_name: "Writing Skills"
+  short_description: "Create or update agent skills"
+  brand_color: "#2563EB"
+  default_prompt: "Use $writing-skills to create or update this skill."
+policy:
+  allow_implicit_invocation: true

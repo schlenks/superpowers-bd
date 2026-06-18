@@ -1,0 +1,7 @@
+interface:
+  display_name: "Execute Plans"
+  short_description: "Run written plans in verified batches"
+  brand_color: "#2563EB"
+  default_prompt: "Use $executing-plans to execute this implementation plan."
+policy:
+  allow_implicit_invocation: true

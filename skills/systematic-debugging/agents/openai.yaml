@@ -1,0 +1,7 @@
+interface:
+  display_name: "Systematic Debugging"
+  short_description: "Trace root cause before fixing"
+  brand_color: "#2563EB"
+  default_prompt: "Use $systematic-debugging to investigate this bug."
+policy:
+  allow_implicit_invocation: true

@@ -10,7 +10,7 @@ The shared skills define workflow intent: design before coding, plan with depend
 |---------------|----------------------------|----------------------|
 | Track progress | `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` | `update_plan` |
 | Delegate work | `Task` with background execution when appropriate | `spawn_agent`, then `wait_agent` when blocked on results |
-| Ask questions | `AskUserQuestion` | Direct user question, or structured question tool when available |
+| Ask questions | `AskUserQuestion` | `request_user_input` when available for structured choices, otherwise direct user question |
 | Verify completion | `Skill` plus verification commands and captured evidence | `$skill` plus verification commands and captured evidence |
 
 ## Platform Support Matrix
@@ -19,9 +19,9 @@ Superpowers-BD aims for outcome parity, not identical implementation. Shared ski
 
 | Capability | Claude Code | Codex | Current limitation |
 |------------|-------------|-------|--------------------|
-| Skills | Bundled through `.claude-plugin/plugin.json`; invoked with the `Skill` tool and namespaced slash-command handoffs where applicable | Bundled through `.codex-plugin/plugin.json`; invoked as native `$skill` entries such as `$brainstorming`, `$plan2beads`, and `$subagent-driven-development` | Codex UI metadata currently exists for the high-traffic workflow skills; other skills still load from `SKILL.md` without per-skill UI polish |
-| Agents | `agents/code-reviewer.md` and `agents/epic-verifier.md` use Claude Code agent frontmatter and Claude-specific effort settings | `.codex/agents/*.toml` defines project-local agents; `plugins/superpowers-bd/agents/*.md` bundles installed-plugin Codex agents that inherit the active Codex model | Codex implementation workers still use the default worker; specialist Codex agents cover review, aggregation, and verification |
-| Hooks | `hooks/hooks.json` wires SessionStart, SessionEnd, TaskCompleted, and PostToolUse behavior for Claude Code | `.codex/hooks.json` wires project-local hooks; `plugins/superpowers-bd/hooks.json` bundles installed-plugin SessionStart and PostToolUse hooks | Claude Code keeps the `link-plugin-components.sh` workaround until plugin-loaded frontmatter hooks are proven reliable. Codex plugin hooks are bundled in the local marketplace wrapper rather than declared as a root manifest field |
+| Skills | Bundled through `.claude-plugin/plugin.json`; invoked with the `Skill` tool and namespaced slash-command handoffs where applicable | Bundled through `.codex-plugin/plugin.json`; invoked as native `$skill` entries such as `$brainstorming`, `$plan2beads`, and `$subagent-driven-development` | Codex UI metadata exists for every shipped skill so the picker and default prompts are consistent |
+| Agents | `agents/code-reviewer.md` and `agents/epic-verifier.md` use Claude Code agent frontmatter and Claude-specific effort settings | `plugins/superpowers-bd/agents/*.md` bundles installed-plugin Codex agents that inherit the active Codex model; `.codex/agents/*.toml` remains a project-local development fallback | Codex implementation workers still use the default worker; specialist Codex agents cover review, aggregation, and verification |
+| Hooks | `hooks/hooks.json` wires SessionStart, SessionEnd, TaskCompleted, and PostToolUse behavior for Claude Code | `plugins/superpowers-bd/hooks.json` and `plugins/superpowers-bd/hooks/hooks.json` bundle installed-plugin SessionStart, UserPromptSubmit, PostToolUse, SubagentStop, Stop, PreCompact, and PostCompact hooks | Claude Code keeps the `link-plugin-components.sh` workaround until plugin-loaded frontmatter hooks are proven reliable. Codex plugin hooks are bundled in the local marketplace wrapper rather than declared as a root manifest field |
 | Review workflow | `/superpowers-bd:cr` and review skills dispatch Claude Code reviewers, with optional cross-model Codex advisory review when available | `$ad-hoc-code-review` uses Codex-native reviewer agents and the shared review standards | In a native Codex session, Codex is the orchestrator; it does not run a separate Codex advisory review of itself |
 | SDD | `subagent-driven-development` dispatches Claude Code background `Task` workers and reviewers in dependency-aware waves | `$subagent-driven-development` uses `spawn_agent`, `wait_agent`, Codex checkpoint fields, and Codex reviewer/verifier agents | Both paths rely on cooperative file ownership prompts and beads state; hook-based hard file locking is not the primary conflict-control layer |
 | Tests | `tests/claude-code/` validates Claude Code sessions and skill behavior | `tests/codex/run-tests.sh` validates Codex manifests, native agents, hooks, workflow semantics, fallback CLI, and wrapper integrity | End-to-end interactive behavior still depends on the active agent tool and its installed feature set |
@@ -198,14 +198,7 @@ codex plugin marketplace add schlenks/superpowers-bd@main
 
 Then install or enable `superpowers-bd` from Codex and restart Codex so bundled skills load.
 
-Codex model routing defaults to the broadly available profile:
-
-```toml
-[superpowers_bd]
-codex_model_profile = "standard"
-```
-
-Use `standard` for `gpt-5.3-codex`. If your Codex plan has access to `gpt-5.5`, set `codex_model_profile = "premium"` in your project `.codex/config.toml` and set Codex itself to `gpt-5.5`. Plugin-bundled Codex agents do not pin a model, so they inherit the active Codex model.
+Codex model routing uses active model inheritance. Plugin-bundled Codex agents do not pin `model`, so they inherit whatever model the user selected in Codex. Superpowers-BD adjusts role strength with `model_reasoning_effort` instead of guessing plan tier from plugin metadata.
 
 **Detailed docs:** [docs/README.codex.md](docs/README.codex.md)
 

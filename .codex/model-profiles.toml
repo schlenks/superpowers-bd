@@ -1,9 +1,0 @@
-[profiles.standard]
-description = "Default profile for ChatGPT Plus and other environments where gpt-5.3-codex is the safest shared Codex agent model."
-implementer_model = "gpt-5.3-codex"
-specialist_agent_model = "gpt-5.3-codex"
-
-[profiles.premium]
-description = "Opt-in profile for Codex users with access to gpt-5.5 through higher paid plans."
-implementer_model = "gpt-5.5"
-specialist_agent_model = "gpt-5.5"

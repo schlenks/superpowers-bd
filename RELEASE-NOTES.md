@@ -1,5 +1,29 @@
 # Superpowers Release Notes
 
+## v5.7.0 (2026-06-18) - Codex Native Surface Expansion
+
+Superpowers-BD 5.7.0 expands the Codex-native experience with per-skill UI metadata, a full lifecycle hook surface, and a simpler model policy.
+
+### Per-skill Codex UI metadata
+
+Every skill now ships an `agents/openai.yaml` describing its native Codex presentation — display name, short description, brand color, default `$skill` prompt, and implicit-invocation policy — in both the source tree and the bundled marketplace wrapper. Codex users get consistent, discoverable skill entries instead of bare names.
+
+### Expanded Codex hook surface
+
+The project-local `.codex/hooks.json` and the plugin's `plugins/superpowers-bd/hooks.json` now carry the full lifecycle: `SessionStart`, `UserPromptSubmit`, `PostToolUse`, `SubagentStop`, `Stop`, `PreCompact`, and `PostCompact`, backed by new wrapper scripts (`codex-work-state-anchor.sh`, `codex-verdict-audit.sh`, `codex-stop-gate.sh`, `codex-pre-compact.sh`). The project-local fallback resolves scripts from the git root; the plugin uses plugin-relative paths so installed-plugin users get the same guardrails without Claude environment assumptions.
+
+### Inherited Codex model policy
+
+Codex agents now inherit the user's active Codex model instead of pinning one. The `gpt-5.3-codex` pins were removed from `.codex/agents/*.toml`, the `.codex/model-profiles.toml` profile file and the `[superpowers_bd] codex_model_profile` config were deleted, and README / Codex docs / SDD model policy were updated to document inheritance. This matches the plugin-bundled agents, which already omitted model pins.
+
+### Validation
+
+- `./tests/codex/run-tests.sh`
+- `./tests/verification/test-plugin-config-drift.sh`
+- `claude plugin validate .`
+- `git diff --check`
+- `shellcheck hooks/codex-*.sh plugins/superpowers-bd/hooks/codex-*.sh`
+
 ## v5.6.8 (2026-06-17) - SDD Hook Guardrails
 
 Superpowers-BD 5.6.8 hardens subagent-driven development recovery and completion checks across Claude Code and Codex.

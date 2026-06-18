@@ -6,7 +6,7 @@ This file provides guidance to agent tools when working with code in this reposi
 
 Superpowers-BD is a multi-agent-tool plugin providing workflow skills for TDD, debugging, and collaboration patterns. It has first-class Claude Code, Codex, and OpenCode support, and integrates with **beads** (git-backed issue tracker) for persistent task management and wave-based parallel execution across sessions.
 
-**Plugin version:** 5.6.8
+**Plugin version:** 5.7.0
 
 Codex reads this file as the project instruction source. Keep Claude Code minimum-version and release-tagging details in `CLAUDE.md`; keep Codex-native install, agent, hook, and `$skill` details in `docs/README.codex.md`.
 
@@ -102,8 +102,7 @@ hooks/                      # Claude Code session lifecycle hooks
   task-completed.sh        # Quality gate on task completion
 
 .codex/
-  hooks.json                # Codex project-local SessionStart and PostToolUse hooks
-  model-profiles.toml       # Standard/premium Codex model routing profiles
+  hooks.json                # Codex project-local lifecycle hooks
   superpowers-bd-codex      # Manual fallback CLI for non-plugin Codex installs
 
 plugins/superpowers-bd/     # Codex local marketplace wrapper

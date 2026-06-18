@@ -1,0 +1,7 @@
+interface:
+  display_name: "Parallel Dispatch"
+  short_description: "Coordinate independent agent tasks"
+  brand_color: "#2563EB"
+  default_prompt: "Use $dispatching-parallel-agents to split this into independent agent work."
+policy:
+  allow_implicit_invocation: true

@@ -116,7 +116,6 @@ CODEX_IMPL_EFFORT = {
 }
 
 impl_effort = CODEX_IMPL_EFFORT[budget_tier][task_complexity]
-codex_model = resolve_codex_model(codex_model_profile)
 
 if prompt_type == "verifier":
     spawn_agent(
@@ -130,7 +129,6 @@ if prompt_type == "verifier":
     )
 else:
     spawn_agent(
-        model=codex_model,
         model_reasoning_effort=impl_effort,
         description=f"Implement: {task.id}",
         prompt=prompt_template.format(
@@ -272,9 +270,7 @@ if wave_task_count >= 2 and budget_tier != "pro/api":
 ```python
 if wave_task_count >= 2 and budget_tier != "pro/api":
     wave_files = collect_modified_files_across_wave(wave_tasks)
-    codex_model = resolve_codex_model(codex_model_profile)
     spawn_agent(
-        model=codex_model,
         model_reasoning_effort="high",
         description=f"Simplify: post-wave {wave_number}",
         prompt=f"Focus on these files modified in wave {wave_number}: "

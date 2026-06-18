@@ -1,6 +1,5 @@
 name = "epic_verifier"
 description = "Verifies an implemented beads epic against requirements, tests, documentation, and risk checks."
-model = "gpt-5.3-codex"
 model_reasoning_effort = "xhigh"
 sandbox_mode = "workspace-write"
 developer_instructions = """

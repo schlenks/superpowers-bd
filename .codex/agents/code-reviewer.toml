@@ -1,6 +1,5 @@
 name = "code_reviewer"
 description = "Reviews code changes for defects, missing requirements, and test gaps."
-model = "gpt-5.3-codex"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """

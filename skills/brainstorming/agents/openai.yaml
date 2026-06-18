@@ -1,0 +1,7 @@
+interface:
+  display_name: "Brainstorming"
+  short_description: "Shape ideas before implementation"
+  brand_color: "#2563EB"
+  default_prompt: "Use $brainstorming to refine this idea before coding."
+policy:
+  allow_implicit_invocation: true

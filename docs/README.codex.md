@@ -84,7 +84,7 @@ Shared skills use platform-neutral workflow intent. Codex uses the native Codex 
 |---------------|----------------------------|----------------------|
 | Track progress | `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` | `update_plan` |
 | Delegate work | `Task` with background execution when appropriate | `spawn_agent`, then `wait_agent` when blocked on results |
-| Ask questions | `AskUserQuestion` | Direct user question, or structured question tool when available |
+| Ask questions | `AskUserQuestion` | `request_user_input` when available for structured choices, otherwise direct user question |
 | Verify completion | `Skill` plus verification commands and captured evidence | `$skill` plus verification commands and captured evidence |
 
 Use native Codex file and shell tools for repository work. When a skill contains a Claude Code-specific task block, treat it as the Claude Code implementation of shared workflow intent and use the Codex implementation in the table.
@@ -105,7 +105,7 @@ These are Codex-native entry points. Do not route Codex users through Claude Cod
 
 ## Native Agents
 
-This repository includes project-scoped Codex agents in `.codex/agents/` and conservative execution limits in `.codex/config.toml`. The plugin wrapper also bundles Markdown Codex agents under `plugins/superpowers-bd/agents/` so installed-plugin users can get native agent roles outside this repository.
+The plugin wrapper bundles Markdown Codex agents under `plugins/superpowers-bd/agents/` so installed-plugin users get native agent roles outside this repository. Those agents omit `model` and inherit the active Codex model. This repository also keeps project-local `.codex/agents/` files as a development fallback.
 
 | Agent | Purpose |
 |-------|---------|
@@ -116,40 +116,33 @@ This repository includes project-scoped Codex agents in `.codex/agents/` and con
 
 Codex SDD uses these agents for review, aggregation, and verification stages. Implementation work currently uses the default Codex worker with explicit file ownership and scope instructions.
 
-## Codex Model Profile
+## Codex Model Inheritance
 
-Superpowers-BD does not use `.zshrc` or shell environment variables for Codex model routing. Use `.codex/config.toml`:
+Superpowers-BD does not use `.zshrc`, shell environment variables, or plugin metadata to guess a user's Codex plan tier. The installed-plugin Codex agents omit `model`, so Codex inherits the active model selected by the user.
 
-```toml
-[superpowers_bd]
-codex_model_profile = "standard"
-```
+The portable policy is documented in `skills/subagent-driven-development/budget-and-wave-cap.md`: inherit the active Codex model and route strength with `model_reasoning_effort`. If Codex later exposes a reliable authenticated plan-tier signal, this policy can add automatic paid-tier defaults. Until then, explicit inheritance is safer than stale model pins.
 
-The portable profile policy is documented in `skills/subagent-driven-development/budget-and-wave-cap.md`. This repository also mirrors the same values in `.codex/model-profiles.toml` for project-local checks:
+## Plugin Hooks
 
-| Profile | Use when | Model |
-|---------|----------|-------|
-| `standard` | ChatGPT Plus / broadly available Codex installs | `gpt-5.3-codex` |
-| `premium` | Your Codex plan has access to higher paid plan models | `gpt-5.5` |
+The installable plugin wrapper bundles Codex lifecycle hooks in both `plugins/superpowers-bd/hooks.json` and `plugins/superpowers-bd/hooks/hooks.json`. The second path is the current default plugin lifecycle location from Codex docs; the root wrapper file stays for compatibility with older local marketplace setups.
 
-Project-local `.codex/agents/*.toml` stay on the standard model so the repository loads for Plus users. Plugin-bundled Markdown agents intentionally omit a model field, so installed-plugin agents inherit the active Codex model. Premium users should set Codex itself to `gpt-5.5` and set `codex_model_profile = "premium"` in projects where they want SDD implementers and reviewer routing to use that profile.
+Review hook commands before trusting a checkout. In Codex, use `/hooks` to inspect hook sources, review new or changed hooks, trust hooks, or disable individual hooks.
 
-## Project-Local Hooks
-
-This repository includes project-local Codex hooks in `.codex/hooks.json`. The plugin wrapper also bundles `plugins/superpowers-bd/hooks.json` with the same SessionStart and PostToolUse behavior for installed-plugin use. Both paths add session context from `hooks/codex-session-start.sh` and PostToolUse audit/linter feedback from `hooks/codex-post-tool-use.sh`.
-
-Review hook commands before trusting a checkout. In Codex, use the hooks review or trust flow for the project. If your Codex build gates plugin hooks behind `[features].plugin_hooks`, enable that feature only after reviewing `plugins/superpowers-bd/hooks.json`. The root plugin manifest still avoids manifest-level hook declarations; hooks live in the tested plugin wrapper.
-
-Current hook behavior is intentionally narrower than the Claude Code hook layer:
+Current installed-plugin hook behavior:
 
 - SessionStart injects `superpowers-bd:using-superpowers` context and checkpoint reminders.
+- UserPromptSubmit injects a terse active-work anchor only while SDD waves or beads work are in progress.
 - PostToolUse records an audit log and returns linter feedback for edited files.
-- There is no Codex Stop or TaskCompleted equivalent declared by this plugin.
+- SubagentStop blocks missing `VERDICT:` lines during active SDD waves.
+- Stop blocks completion claims without verification evidence while live work is in progress.
+- PreCompact blocks compaction during active SDD waves; PostCompact restores Superpowers-BD context after compaction.
+
+The root plugin manifest still avoids a manifest-level `hooks` field; hooks live in the tested plugin wrapper lifecycle files.
 
 ## Feature Maturity Notes
 
-- Codex plugin manifest and wrapper shape, core `$skill` metadata, Codex agent TOML, plugin-level agents/hooks, project-local hooks, and fallback CLI behavior are covered by `tests/codex/run-tests.sh`.
-- Codex plugin-bundled hooks are claimed through the local marketplace wrapper, not through a root `hooks` field in `.codex-plugin/plugin.json`.
+- Codex plugin manifest and wrapper shape, all `$skill` metadata, plugin-level agents/hooks, workflow semantics, and fallback CLI behavior are covered by `tests/codex/run-tests.sh`.
+- Codex plugin-bundled hooks are claimed through the local marketplace wrapper lifecycle files, not through a root `hooks` field in `.codex-plugin/plugin.json`.
 - Codex native agents are available as project-local TOML agents for repository development and plugin-level Markdown agents for installed-plugin use.
 - Codex review and SDD paths use native Codex agents. Cross-model Codex advisory review is only relevant when Claude Code is orchestrating and detects the separate OpenAI Codex plugin.
 

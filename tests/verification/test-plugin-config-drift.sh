@@ -142,30 +142,56 @@ for (const [file, name] of Object.entries(agents)) {
 }
 
 const hooksPath = path.join(pluginRoot, "hooks.json");
+const lifecycleHooksPath = path.join(pluginRoot, "hooks", "hooks.json");
 if (!fs.existsSync(hooksPath)) {
   errors.push(`missing ${hooksPath}`);
-} else {
+}
+if (!fs.existsSync(lifecycleHooksPath)) {
+  errors.push(`missing ${lifecycleHooksPath}`);
+}
+if (fs.existsSync(hooksPath) && fs.existsSync(lifecycleHooksPath)) {
+  const hooksText = fs.readFileSync(hooksPath, "utf8");
+  const lifecycleHooksText = fs.readFileSync(lifecycleHooksPath, "utf8");
+  if (hooksText !== lifecycleHooksText) {
+    errors.push(`${lifecycleHooksPath}: must mirror ${hooksPath}`);
+  }
+}
+if (fs.existsSync(hooksPath)) {
   const hooksConfig = JSON.parse(fs.readFileSync(hooksPath, "utf8"));
-  const session = hooksConfig.hooks?.SessionStart?.[0]?.hooks?.[0];
-  const post = hooksConfig.hooks?.PostToolUse?.[0]?.hooks?.[0];
-  if (hooksConfig.hooks?.SessionStart?.[0]?.matcher !== "startup|resume|clear") {
-    errors.push(`${hooksPath}: unexpected SessionStart matcher`);
-  }
-  if (session?.command !== "./hooks/codex-session-start.sh") {
-    errors.push(`${hooksPath}: unexpected SessionStart command`);
-  }
-  if (hooksConfig.hooks?.PostToolUse?.[0]?.matcher !== "apply_patch|Edit|Write") {
-    errors.push(`${hooksPath}: unexpected PostToolUse matcher`);
-  }
-  if (post?.command !== "./hooks/codex-post-tool-use.sh") {
-    errors.push(`${hooksPath}: unexpected PostToolUse command`);
+  const expectedHooks = {
+    SessionStart: { matcher: "startup|resume|clear|compact", command: "./hooks/codex-session-start.sh" },
+    UserPromptSubmit: { command: "./hooks/codex-work-state-anchor.sh" },
+    PostToolUse: { matcher: "apply_patch|Edit|Write", command: "./hooks/codex-post-tool-use.sh" },
+    SubagentStop: { command: "./hooks/codex-verdict-audit.sh" },
+    Stop: { command: "./hooks/codex-stop-gate.sh" },
+    PreCompact: { matcher: "manual|auto", command: "./hooks/codex-pre-compact.sh" },
+    PostCompact: { matcher: "manual|auto", command: "./hooks/codex-session-start.sh" },
+  };
+  for (const [event, expectation] of Object.entries(expectedHooks)) {
+    const entry = hooksConfig.hooks?.[event]?.[0];
+    const hook = entry?.hooks?.[0];
+    if (!entry || hook?.command !== expectation.command) {
+      errors.push(`${hooksPath}: unexpected ${event} command`);
+    }
+    if (expectation.matcher && entry?.matcher !== expectation.matcher) {
+      errors.push(`${hooksPath}: unexpected ${event} matcher`);
+    }
   }
   if (/CLAUDE_|git rev-parse/.test(JSON.stringify(hooksConfig))) {
     errors.push(`${hooksPath}: plugin-bundled Codex hooks must not rely on Claude env or project git root`);
   }
+} else {
+  errors.push(`missing ${hooksPath}`);
 }
 
-for (const hookScript of ["codex-session-start.sh", "codex-post-tool-use.sh"]) {
+for (const hookScript of [
+  "codex-session-start.sh",
+  "codex-post-tool-use.sh",
+  "codex-work-state-anchor.sh",
+  "codex-pre-compact.sh",
+  "codex-stop-gate.sh",
+  "codex-verdict-audit.sh",
+]) {
   const scriptPath = path.join(pluginRoot, "hooks", hookScript);
   if (!fs.existsSync(scriptPath)) {
     errors.push(`missing ${scriptPath}`);
@@ -250,7 +276,7 @@ check "Codex manifest uses native skill prompts, not Claude slash commands" \
   check_codex_manifest_native_skill_prompts
 
 check "Codex hook wrappers do not depend on Claude hook environment" \
-  bash -c "! grep -E 'CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR' hooks/codex-session-start.sh hooks/codex-post-tool-use.sh"
+  bash -c "! grep -E 'CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR' hooks/codex-*.sh"
 
 check "Codex manifest avoids unproven manifest-level hook declarations" \
   node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync(".codex-plugin/plugin.json","utf8")); process.exit(Object.prototype.hasOwnProperty.call(p,"hooks") ? 1 : 0)'

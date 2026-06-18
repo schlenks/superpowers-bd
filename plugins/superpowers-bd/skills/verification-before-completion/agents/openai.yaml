@@ -1,0 +1,7 @@
+interface:
+  display_name: "Verify Before Completion"
+  short_description: "Require evidence before done claims"
+  brand_color: "#2563EB"
+  default_prompt: "Use $verification-before-completion before claiming this is done."
+policy:
+  allow_implicit_invocation: true

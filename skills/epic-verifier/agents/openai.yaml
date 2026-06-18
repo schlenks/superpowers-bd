@@ -1,0 +1,7 @@
+interface:
+  display_name: "Epic Verifier"
+  short_description: "Verify completed beads epics"
+  brand_color: "#2563EB"
+  default_prompt: "Use $epic-verifier to verify this completed epic."
+policy:
+  allow_implicit_invocation: true

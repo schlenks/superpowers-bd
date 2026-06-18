@@ -28,7 +28,7 @@ Superpowers-BD skills define shared workflow intent first. Each agent tool execu
 |---------------|----------------------------|----------------------|
 | Track progress | `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` | `update_plan` |
 | Delegate work | `Task` with background execution when appropriate | `spawn_agent`, then `wait_agent` when blocked on results |
-| Ask questions | `AskUserQuestion` | Direct user question, or structured question tool when available |
+| Ask questions | `AskUserQuestion` | `request_user_input` when available for structured choices, otherwise direct user question |
 | Verify completion | `Skill` plus verification commands and captured evidence | `$skill` plus verification commands and captured evidence |
 
 Command-backed workflows must provide a native path for every supported platform. A Claude Code slash command, Codex `$skill`/plugin entry point, OpenCode command, or fallback CLI may share shell scripts and skill content, but the user-facing invocation and tool orchestration must be native to that platform.

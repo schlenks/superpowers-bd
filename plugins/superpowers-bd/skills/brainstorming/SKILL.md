@@ -18,6 +18,7 @@ Start by understanding the current project context, then ask questions one at a 
 - Check out the current project state first (files, docs, recent commits)
 - Ask questions one at a time to refine the idea
 - Prefer multiple choice questions when possible, but open-ended is fine too
+- In Codex, use `request_user_input` with `autoResolutionMs` for useful but non-blocking multiple-choice questions when available; otherwise ask a concise direct question
 - Only one question per message
 - Focus on understanding: purpose, constraints, success criteria
 

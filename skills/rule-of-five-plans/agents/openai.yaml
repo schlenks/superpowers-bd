@@ -1,0 +1,7 @@
+interface:
+  display_name: "Rule of Five Plans"
+  short_description: "Run five focused plan passes"
+  brand_color: "#2563EB"
+  default_prompt: "Use $rule-of-five-plans to review this plan."
+policy:
+  allow_implicit_invocation: true

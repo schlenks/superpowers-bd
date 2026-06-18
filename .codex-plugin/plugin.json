@@ -1,6 +1,6 @@
 {
   "name": "superpowers-bd",
-  "version": "5.6.8",
+  "version": "5.7.0",
   "description": "Beads-integrated workflow skills for TDD, debugging, code review, and wave-based development.",
   "author": {
     "name": "Doug Schlenker",
@@ -24,7 +24,7 @@
   "interface": {
     "displayName": "Superpowers BD",
     "shortDescription": "TDD, reviews, and beads-based workflows",
-    "longDescription": "Superpowers-BD adds disciplined development workflows to Codex: brainstorming before implementation, TDD, systematic debugging, multi-pass review, beads issue tracking, wave-based parallel execution, native Codex agents, and Codex hooks for session context and edit feedback.",
+    "longDescription": "Superpowers-BD adds disciplined development workflows to Codex: brainstorming before implementation, TDD, systematic debugging, multi-pass review, beads issue tracking, wave-based parallel execution, native Codex agents with active model inheritance, and Codex hooks for session context, compaction safety, subagent verdicts, stop-time verification, and edit feedback.",
     "developerName": "Doug Schlenker",
     "category": "Productivity",
     "capabilities": [
@@ -37,7 +37,8 @@
     "defaultPrompt": [
       "Use $brainstorming to shape this feature before coding.",
       "Use $plan2beads to convert my plan into beads work.",
-      "Use $subagent-driven-development to execute epic <id>."
+      "Use $subagent-driven-development to execute epic <id>.",
+      "Use $verification-before-completion before claiming work is done."
     ],
     "brandColor": "#2563EB",
     "screenshots": []

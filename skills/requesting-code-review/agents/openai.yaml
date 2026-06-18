@@ -1,0 +1,7 @@
+interface:
+  display_name: "Request Review"
+  short_description: "Prepare work for code review"
+  brand_color: "#2563EB"
+  default_prompt: "Use $requesting-code-review before requesting review."
+policy:
+  allow_implicit_invocation: true

@@ -6,8 +6,10 @@ set -euo pipefail
 input=$(cat)
 
 project_dir=""
+hook_event_name="SessionStart"
 if command -v jq >/dev/null 2>&1; then
   project_dir=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null || true)
+  hook_event_name=$(printf '%s' "$input" | jq -r '.hook_event_name // "SessionStart"' 2>/dev/null || printf 'SessionStart')
 fi
 
 if [ -z "$project_dir" ]; then
@@ -72,4 +74,11 @@ ${using_superpowers_content}${checkpoint_message}
 
 context_json=$(escape_for_json "$additional_context")
 
-printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":%s}}\n' "$context_json"
+if command -v jq >/dev/null 2>&1; then
+  jq -nc --arg event "$hook_event_name" --argjson context "$context_json" \
+    '{hookSpecificOutput:{hookEventName:$event, additionalContext:$context}}'
+else
+  escaped_event="${hook_event_name//\\/\\\\}"
+  escaped_event="${escaped_event//\"/\\\"}"
+  printf '{"hookSpecificOutput":{"hookEventName":"%s","additionalContext":%s}}\n' "$escaped_event" "$context_json"
+fi

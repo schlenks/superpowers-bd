@@ -24,7 +24,7 @@ Task:
 
 ```
 spawn_agent:
-  model: "<active codex_model_profile model from budget-and-wave-cap.md>"
+  # Omit model so the worker inherits the active Codex model.
   model_reasoning_effort: "<medium|high|xhigh from budget-and-wave-cap.md>"
   description: "Implement Issue: [issue-id] [issue title]"
   prompt: |

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Rule of Five Tests"
+  short_description: "Run five focused test passes"
+  brand_color: "#2563EB"
+  default_prompt: "Use $rule-of-five-tests to review this test suite."
+policy:
+  allow_implicit_invocation: true

@@ -14,13 +14,13 @@ echo "Test 1: Skill loading..."
 
 output=$(run_claude "What is the subagent-driven-development skill? Describe its key steps briefly." 30)
 
-if assert_contains "$output" "subagent-driven-development" "Skill is recognized"; then
+if assert_contains "$output" "[Ss]ubagent-driven-development" "Skill is recognized"; then
     : # pass
 else
     exit 1
 fi
 
-if assert_contains "$output" "Load Plan\|read.*plan\|extract.*tasks" "Mentions loading plan"; then
+if assert_contains "$output" "Load epic\|bd show\|parse.*children" "Mentions loading beads epic"; then
     : # pass
 else
     exit 1
@@ -60,18 +60,18 @@ fi
 
 echo ""
 
-# Test 4: Verify plan is read once
-echo "Test 4: Plan reading efficiency..."
+# Test 4: Verify session setup is restored from checkpoint
+echo "Test 4: Checkpoint setup recovery..."
 
-output=$(run_claude "In subagent-driven-development, how many times should the controller read the plan file? When does this happen?" 30)
+output=$(run_claude "In subagent-driven-development, what setup is chosen once and restored from checkpoint instead of being re-asked?" 30)
 
-if assert_contains "$output" "once\|one time\|single" "Read plan once"; then
+if assert_contains "$output" "budget tier.*once\|choose.*budget.*once\|chosen once" "Budget tier chosen once"; then
     : # pass
 else
     exit 1
 fi
 
-if assert_contains "$output" "Step 1\|beginning\|start\|Load Plan" "Read at beginning"; then
+if assert_contains "$output" "checkpoint\|restore\|resume" "Checkpoint restores setup"; then
     : # pass
 else
     exit 1
@@ -117,18 +117,18 @@ fi
 
 echo ""
 
-# Test 7: Verify full task text is provided
+# Test 7: Verify implementer self-read context
 echo "Test 7: Task context provision..."
 
-output=$(run_claude "In subagent-driven-development, how does the controller provide task information to the implementer subagent? Does it make them read a file or provide it directly?" 30)
+output=$(run_claude "In subagent-driven-development, how does the implementer subagent load task context? What does the controller provide?" 30)
 
-if assert_contains "$output" "provide.*directly\|full.*text\|paste\|include.*prompt" "Provides text directly"; then
+if assert_contains "$output" "bd show\|self-read\|load.*context" "Implementer self-reads beads context"; then
     : # pass
 else
     exit 1
 fi
 
-if assert_not_contains "$output" "read.*file\|open.*file" "Doesn't make subagent read file"; then
+if assert_contains "$output" "issue_id\|epic_id\|file ownership\|owned files" "Controller provides routing and ownership context"; then
     : # pass
 else
     exit 1

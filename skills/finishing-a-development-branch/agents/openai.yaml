@@ -1,0 +1,7 @@
+interface:
+  display_name: "Finish Branch"
+  short_description: "Finish verified development branches"
+  brand_color: "#2563EB"
+  default_prompt: "Use $finishing-a-development-branch to finish this verified branch."
+policy:
+  allow_implicit_invocation: true

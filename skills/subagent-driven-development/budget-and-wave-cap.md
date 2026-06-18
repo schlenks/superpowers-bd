@@ -32,14 +32,9 @@ Claude Code routes work by Opus/Sonnet/Haiku model families. Complexity selects 
 
 ## Codex Project Model Policy
 
-Codex model routing uses an explicit `codex_model_profile`, not shell startup files. Read `.codex/config.toml` `[superpowers_bd] codex_model_profile`; if it is absent or invalid, default to `standard`. Use the profile table below as the portable policy source. This repository also mirrors the same values in `.codex/model-profiles.toml` for project-local checks.
+Codex plugin agents inherit the active Codex model. Do not pin a model in plugin-bundled agents or `spawn_agent` calls unless the user explicitly asks for a specific model. Codex does not currently expose a reliable authenticated plan-tier signal to this plugin, so Superpowers-BD does not auto-switch between paid-plan models.
 
-| Profile | Intended environment | Model |
-|---------|----------------------|-------|
-| `standard` | ChatGPT Plus / broadly available Codex installs | `gpt-5.3-codex` |
-| `premium` | Codex users with access to higher paid plan models | `gpt-5.5` |
-
-Route strength by `model_reasoning_effort`, not by Claude Opus/Sonnet/Haiku names. The committed project-local `.codex/agents/*.toml` files stay on the `standard` model so this repository loads safely for Plus users. Plugin-wide Codex agents are markdown agents without pinned model fields, so installed-plugin users inherit their active Codex model and can use the `premium` profile by setting Codex itself to `gpt-5.5`.
+Route strength by `model_reasoning_effort`, not by Claude Opus/Sonnet/Haiku names. If a future Codex runtime provides a reliable plan-tier signal, max-20x and max-5x sessions may default complex work to `xhigh` effort; without that signal, keep the active model and use the effort tables below.
 
 ### Implementer Reasoning Effort
 
@@ -55,10 +50,10 @@ Implementers may use the default Codex worker with the active profile model and 
 
 | Role | Codex agent | Model | Reasoning effort | Use |
 |------|-------------|-------|------------------|-----|
-| Spec compliance | `spec_reviewer` | active profile model (`gpt-5.3-codex` standard, `gpt-5.5` premium) | high | After implementer reports `DONE` or `DONE_WITH_CONCERNS` |
-| Code quality | `code_reviewer` | active profile model (`gpt-5.3-codex` standard, `gpt-5.5` premium) | high | N independent reviews by budget tier |
-| Review aggregation | `review_aggregator` | active profile model (`gpt-5.3-codex` standard, `gpt-5.5` premium) | medium | Required when N > 1 |
-| Epic verification | `epic_verifier` | active profile model (`gpt-5.3-codex` standard, `gpt-5.5` premium) | xhigh | After all implementation tasks close |
+| Spec compliance | `spec_reviewer` | inherit active Codex model | high | After implementer reports `DONE` or `DONE_WITH_CONCERNS` |
+| Code quality | `code_reviewer` | inherit active Codex model | high | N independent reviews by budget tier |
+| Review aggregation | `review_aggregator` | inherit active Codex model | medium | Required when N > 1 |
+| Epic verification | `epic_verifier` | inherit active Codex model | xhigh | After all implementation tasks close |
 
 | Tier | N Code Reviews | Aggregator | Simplify |
 |------|----------------|------------|----------|
@@ -74,7 +69,7 @@ Default issue complexity is `standard`.
 - Standard context: no `[1m]` suffix or unknown; default wave cap 3; budget per wave 9.
 - Codex: use visible context info if available; otherwise standard.
 
-Store `context_tier`, `platform`, `platform_agent_plan`, and Codex-only `codex_model_profile`/`codex_model` in the checkpoint. In Claude Code only, also store `codex_enabled` and `codex_install_path` when a separate Codex advisory integration is detected.
+Store `context_tier`, `platform`, `platform_agent_plan`, and Codex-only `codex_model_policy: "inherit_active_model"` in the checkpoint. In Claude Code only, also store `codex_enabled` and `codex_install_path` when a separate Codex advisory integration is detected.
 
 ## Setting Priority
 
@@ -129,6 +124,6 @@ Ask the user to confirm unless the recommendation is at or below the context def
 - Old checkpoint without `context_tier`: default to standard.
 - Old checkpoint without `platform`: infer current platform and store it at the next checkpoint write.
 - Old checkpoint without `platform_agent_plan`: rebuild it from the active platform dispatch path.
-- Old Codex checkpoint without `codex_model_profile`: read `.codex/config.toml`; default to `standard` if unset.
+- Old Codex checkpoint with model profile fields: ignore them and continue with active model inheritance.
 - Old checkpoint with `codex_enabled` in a Codex session: ignore it; native Codex sessions are the orchestrator, not a cross-model advisory review.
 - Out-of-range explicit cap: warn, clamp to 1-10, and store clamped value.

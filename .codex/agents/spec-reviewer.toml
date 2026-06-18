@@ -1,6 +1,5 @@
 name = "spec_reviewer"
 description = "Checks whether an implementation matches a beads issue specification without trusting implementer claims."
-model = "gpt-5.3-codex"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Test-Driven Development"
+  short_description: "Use red green refactor discipline"
+  brand_color: "#2563EB"
+  default_prompt: "Use $test-driven-development for this implementation."
+policy:
+  allow_implicit_invocation: true

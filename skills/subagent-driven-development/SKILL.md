@@ -18,7 +18,7 @@ Execute a beads epic by dispatching independent implementation issues in paralle
 2. Detect platform: `claude-code`, `codex`, or another supported native layer. Store it as `platform` in the checkpoint.
 3. If `temp/sdd-checkpoint-{epic_id}.json` exists, restore it and resume from the next wave. Do not re-ask budget tier, platform, or wave cap.
 4. Choose budget tier once (`max-20x`, `max-5x`, or `pro/api`) and store it in the checkpoint.
-5. Codex only: resolve `codex_model_profile` from `.codex/config.toml` `[superpowers_bd]`, defaulting to `standard`. Use the Codex profile table in `budget-and-wave-cap.md`; this repository also mirrors those values in `.codex/model-profiles.toml`.
+5. Codex only: inherit the active Codex model. Do not auto-select models from plan tier unless Codex exposes a reliable authenticated tier signal; route strength with role-specific `model_reasoning_effort`.
 6. Detect context tier. Claude Code: `[1m]` model suffix means extended; otherwise standard. Codex: use visible model/context info; if unknown, default to standard.
 7. Build `platform_agent_plan` once per session and store it in the checkpoint. It must name the native dispatch path for implementers, spec reviewers, code reviewers, aggregators, and epic verifier.
 8. Claude Code only: detect Codex cross-model advisory review by looking for `<codex-integration>`. Store `codex_enabled` and `codex_install_path` in the checkpoint. In Codex sessions, omit `codex_install_path` and set `codex_enabled: false` or leave it absent because Codex is the orchestrator.
@@ -41,7 +41,7 @@ Execute a beads epic by dispatching independent implementation issues in paralle
 
 1. Use `spawn_agent` for implementers and reviewers; use `wait_agent` only when the orchestrator is blocked on a result.
 2. Route specialist work through Codex native agents when available: `spec_reviewer`, `code_reviewer`, `review_aggregator`, and `epic_verifier`.
-3. Route Codex model strength by `codex_model_profile` plus `model_reasoning_effort` per project policy in `budget-and-wave-cap.md`; do not describe Codex work using Claude Opus/Sonnet/Haiku tiers.
+3. Inherit the active Codex model and route strength with `model_reasoning_effort` per project policy in `budget-and-wave-cap.md`; do not describe Codex work using Claude Opus/Sonnet/Haiku tiers.
 4. Assign explicit file ownership in every implementer prompt, tell workers they are not alone in the codebase, and keep write scopes disjoint within each wave.
 
 ## Checkpoint Platform Fields
@@ -51,8 +51,7 @@ The checkpoint schema includes these platform fields in addition to wave, budget
 ```json
 {
   "platform": "codex",
-  "codex_model_profile": "standard",
-  "codex_model": "gpt-5.3-codex",
+  "codex_model_policy": "inherit_active_model",
   "platform_agent_plan": {
     "implementer": "spawn_agent default worker with issue-owned files",
     "spec_review": "spawn_agent agent=spec_reviewer",
@@ -72,7 +71,7 @@ If you are updating an older checkpoint or prompt, map old behavior as follows:
 
 1. Missing `platform` -> infer from the current session and write it at the next checkpoint.
 2. Missing `platform_agent_plan` -> rebuild from the active dispatch path.
-3. Missing `codex_model_profile` in Codex -> read `.codex/config.toml` `[superpowers_bd] codex_model_profile` or default to `standard`.
+3. Old Codex checkpoint with stale model-routing fields -> ignore those fields and inherit the active Codex model.
 4. Missing `codex_enabled` in Claude Code -> detect `<codex-integration>` and store the result.
 5. Missing `codex_enabled` in Codex -> treat as false; native Codex sessions do not run a separate Codex cross-model advisory review.
 
@@ -81,7 +80,7 @@ If you are updating an older checkpoint or prompt, map old behavior as follows:
 - **Claude Code:** use `Task` with `run_in_background: true` as shown in prompt templates.
 - **Codex:** use `spawn_agent` for implementers/reviewers and `wait_agent` only when the controller is blocked. Use `.codex/agents/` names `spec_reviewer`, `code_reviewer`, `review_aggregator`, and `epic_verifier` for specialist stages.
 - **Progress tracking:** map `TaskCreate`/`TaskUpdate` blocks to the native progress tracker. Beads remains the durable source of truth for issue state.
-- **Questions:** use `AskUserQuestion` only where available; otherwise ask concise direct questions.
+- **Questions:** in Codex, use `request_user_input` with `autoResolutionMs` for useful but non-blocking choices when available; otherwise ask concise direct questions. Use `AskUserQuestion` only on platforms that provide it.
 
 ## Budget Summary
 
@@ -99,11 +98,11 @@ Budget tier selects implementer/reviewer strength and review count. Exact model 
 
 | Tier | Implementer effort | Spec reviewer | Code reviews | Aggregator | Verifier | Simplify |
 |------|--------------------|---------------|--------------|------------|----------|----------|
-| max-20x | active profile model (`gpt-5.3-codex` standard, `gpt-5.5` premium) with `model_reasoning_effort=high` or `xhigh` for complex | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
-| max-5x | active profile model (`gpt-5.3-codex` standard, `gpt-5.5` premium) with `model_reasoning_effort=high` or `xhigh` for complex | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
-| pro/api | active profile model (`gpt-5.3-codex` standard, `gpt-5.5` premium) with `model_reasoning_effort=medium` or `high` for complex | `spec_reviewer` (`high`) | 1 x `code_reviewer` (`high`) | skip | `epic_verifier` (`xhigh`) | no |
+| max-20x | inherit the active Codex model with `model_reasoning_effort=high` or `xhigh` for complex | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
+| max-5x | inherit the active Codex model with `model_reasoning_effort=high` or `xhigh` for complex | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
+| pro/api | inherit the active Codex model with `model_reasoning_effort=medium` or `high` for complex | `spec_reviewer` (`high`) | 1 x `code_reviewer` (`high`) | skip | `epic_verifier` (`xhigh`) | no |
 
-The Codex table is this repository's project policy from the current Codex agent layer, not an external guarantee about model availability.
+The Codex table is this repository's effort policy from the current Codex agent layer, not an external guarantee about model availability.
 
 Default issue complexity is `standard`. Use `complexity:simple|standard|complex` labels when present. Full formulas and edge cases: `budget-and-wave-cap.md`.
 

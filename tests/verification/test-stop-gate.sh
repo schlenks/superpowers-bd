@@ -29,6 +29,7 @@ chmod +x "$STUB_BIN/bd"
 
 CLAIM_NO_EVIDENCE='The authentication refactor is complete.'
 CLAIM_WITH_EVIDENCE='The authentication refactor is complete — ran pytest, exit code 0, 42 passed.'
+CLAIM_RAN_OUT_OF_TIME='The authentication refactor is complete, but I ran out of time to run tests.'
 
 payload() {
   jq -nc --arg sid "$1" --arg msg "$2" --argjson active "$3" \
@@ -72,6 +73,10 @@ run_test "Claim without evidence during live work blocks" \
 # Completion claim WITH evidence → no block.
 run_test "Claim with evidence passes" \
   "$(payload s2 "$CLAIM_WITH_EVIDENCE" false)" yes '[]' "" no
+
+# Completion claim with "ran out of time" is not evidence → block.
+run_test "Claim with ran-out-of-time wording blocks" \
+  "$(payload s2b "$CLAIM_RAN_OUT_OF_TIME" false)" yes '[]' "" yes
 
 # Completion claim, no evidence, but NO live work → no block.
 run_test "Claim without evidence when idle passes" \

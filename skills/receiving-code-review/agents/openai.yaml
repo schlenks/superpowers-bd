@@ -1,0 +1,7 @@
+interface:
+  display_name: "Receive Review"
+  short_description: "Evaluate code review feedback"
+  brand_color: "#2563EB"
+  default_prompt: "Use $receiving-code-review to triage this review feedback."
+policy:
+  allow_implicit_invocation: true
