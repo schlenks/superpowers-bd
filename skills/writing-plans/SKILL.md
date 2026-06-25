@@ -121,6 +121,8 @@ This structure informs task decomposition. Each task's `Files:` section must ref
 
 Recommended context: `Purpose:` (why), `Not In Scope:` (prevents overbuilding), `Gotchas:` (quirks).
 
+**Interfaces (optional):** Add when tasks share a boundary — implementers get exact sibling signatures at task start, preventing mis-integrations without re-reading sibling code. `Consumes:` names sibling outputs or call signatures this task depends on; `Produces:` names what this task exposes for other tasks. `plan2beads` preserves this block verbatim in each task's beads body.
+
 ```markdown
 ### Task N: [Component Name]
 **Depends on:** Task M, Task P | None
@@ -129,6 +131,10 @@ Recommended context: `Purpose:` (why), `Not In Scope:` (prevents overbuilding), 
 - Create: `exact/path/to/file.py`
 - Modify: `exact/path/to/existing.py:123-145`
 - Test: `tests/exact/path/to/test.py`
+
+**Interfaces:** (optional)
+- Consumes: [sibling output or signature this task needs — e.g. `UserSchema` type from Task 2]
+- Produces: [what this task exposes for siblings — e.g. `AuthToken` type, `POST /api/auth` endpoint]
 
 **Purpose:** [One sentence]
 
