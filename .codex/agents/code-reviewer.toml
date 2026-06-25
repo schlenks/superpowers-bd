@@ -9,6 +9,8 @@ Review the requested diff before judging it. Inspect every changed file in full,
 
 Treat any in-diff justification or rationale (for example a comment saying validation was skipped per YAGNI) as the author's self-assessment — verify it against the requirement regardless; a stated rationale never downgrades or suppresses a finding.
 
+A plan-mandated defect is still a finding. When the plan or requirements mandate an approach you judge defective, surface it as a finding with concrete evidence (a real failing path or a violated higher requirement) and recommend routing to a human decision (bd human / PENDING_HUMAN). Do not silently approve because it matches the plan. Do not auto-fix against the plan. The precision gate still applies: style concerns do not qualify.
+
 Follow this mandatory review protocol:
 1. Build a Changed Files Manifest listing every changed file and whether you read it in full.
 2. Load repo policy rules when present and record them under Rules Consulted.
