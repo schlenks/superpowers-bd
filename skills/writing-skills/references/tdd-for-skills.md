@@ -41,6 +41,19 @@ TaskCreate: "REFACTOR: Close loopholes"
 - Cannot commit skill until all 3 phases complete
 - TaskList shows if you're skipping phases
 
+## Micro-Test Wording (Pre-Step)
+
+Before running full eval scenarios, spend 10–15 minutes sanity-checking that your scenario wording actually produces the failure you expect. This is cheap insurance against spending an hour on a baseline that never fails for the wrong reason.
+
+**Protocol:**
+1. **No-guidance control run.** Strip the skill from the context entirely. Run the raw scenario prompt against a fresh subagent — no preamble, no hints. You want to see what the model does with zero scaffolding.
+2. **Minimum 5 reps.** A single run proves nothing. Run the identical prompt at least 5 times and record each outcome independently. LLM variance is real; one "pass" in 5 is a different signal than 5/5.
+3. **Read every transcript by hand.** Do not grep-and-trust (`grep "complied" transcript.jsonl`). Open each transcript and read it. The rationalization pattern you need to counter often appears mid-response, not at the end, and grep misses it. Variance in *how* the model fails is as important as whether it fails.
+4. **Record variance as a signal.** Tally not just pass/fail but the shape of each response: Did it comply on wording but violate the spirit? Did it skip the critical clause or invert it? High output variance means the boundary is fuzzy — your scenario wording may need tightening before you can trust a RED baseline.
+5. **Classifier handoff.** If you observe **high variance + output-shaping failures** (model is trying to comply but phrasing trips it up), pair this with the "Match the Form to the Failure" classifier in `bulletproofing.md` (A2): a positive recipe ("always do X") is the right fix, not a prohibition. Low variance + clean refusal = a prohibition counter is correct.
+
+**Exit condition:** You have a scenario that produces a consistent failure pattern across ≥5 reps. If you can't get a consistent failure, your scenario wording is the problem — rewrite before entering RED.
+
 ## RED: Write Failing Test (Baseline)
 
 Run pressure scenario with subagent WITHOUT the skill. Document exact behavior:
