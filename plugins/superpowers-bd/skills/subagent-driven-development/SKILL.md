@@ -146,6 +146,8 @@ If reviewers find issues, loop: implementer fixes, reviewers re-check, and closu
 
 **Always:** check `bd ready` before each wave; compare file lists for conflicts; close passing issues immediately; re-check `bd ready` after each close; write checkpoint after each wave; post `[WAVE-SUMMARY]`.
 
+**Review re-dispatch:** When re-dispatching a reviewer after a fix (`Task`/`spawn_agent`), or writing a gap-fix task description, give the reviewer only the diff and requirements. Route your own assessment ("this is minor", "the plan already chose this", "don't flag X") to the resolution step, never into the reviewer's prompt — it biases an independent review.
+
 **Deadlock:** `bd ready` empty but open issues remain -> inspect `bd blocked` for circular dependencies or forgotten closes.
 
 **Crash/compact recovery:** read `temp/sdd-checkpoint-{epic_id}.json`, restore wave state, and resume at LOADING. At COMPLETE, delete checkpoint and metrics files.
