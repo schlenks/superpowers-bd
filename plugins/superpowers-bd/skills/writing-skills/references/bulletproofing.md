@@ -85,6 +85,47 @@ Add to description: symptoms of when you're ABOUT to violate the rule:
 description: use when implementing any feature or bugfix, before writing implementation code
 ```
 
+## Match the Form to the Failure
+
+Not all failures respond to the same fix. Using the wrong form makes skills actively worse.
+
+### Two Failure Classes
+
+**Discrete-action failures** — the agent skips a step, calls the wrong tool, or commits without running tests. The action is binary: it either happened or it didn't. Prohibition lists work here because there is a clear wrong move to forbid.
+
+```markdown
+# Works for discrete-action failures
+- Do NOT commit before running the test suite.
+- Do NOT skip the RED phase and write implementation first.
+```
+
+**Output-shaping failures** — the agent produces the right kind of output but in the wrong register: too verbose, too terse, wrong tone, ignores format conventions. The failure is on a continuous scale with no single wrong move. Prohibition lists backfire here. Measured upstream: a "do not" list for output style performed *worse than a no-guidance control* — agents spent tokens avoiding named anti-patterns while introducing unnamed variants. The prohibition primes the failure pattern.
+
+### For Output-Shaping Failures: Use a Positive Recipe
+
+Instead of naming what to avoid, show the target form directly. Give the agent a worked example it can match against.
+
+**Bad (prohibition list for tone):**
+```markdown
+- Do not be verbose.
+- Do not use filler phrases.
+- Do not repeat the question before answering.
+```
+
+**Good (positive recipe with worked example):**
+```markdown
+**Report format:** one sentence of outcome, one sentence of evidence, stop.
+
+Example:
+> Gate passed. `grep -n "Match the Form to the Failure" bulletproofing.md` returned line 111.
+```
+
+The recipe gives the agent a concrete target. The example anchors the register without naming the failure modes.
+
+### Telling Which Class You Have
+
+Run the micro-test described in `tdd-for-skills.md` → "Micro-Test Wording" (A3). If the failure scenario asks "did the agent perform action X?" it is discrete. If it asks "did the agent's output have quality Y?" it is output-shaping. Write the skill guidance to match.
+
 ## Anti-Patterns
 
 ### Narrative Example
