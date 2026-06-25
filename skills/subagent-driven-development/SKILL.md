@@ -23,12 +23,13 @@ Execute a beads epic by dispatching independent implementation issues in paralle
 7. Build `platform_agent_plan` once per session and store it in the checkpoint. It must name the native dispatch path for implementers, spec reviewers, code reviewers, aggregators, and epic verifier.
 8. Claude Code only: detect Codex cross-model advisory review by looking for `<codex-integration>`. Store `codex_enabled` and `codex_install_path` in the checkpoint. In Codex sessions, omit `codex_install_path` and set `codex_enabled: false` or leave it absent because Codex is the orchestrator.
 9. Run `bd ready`, filter to this epic's children, and exclude blocked/cross-epic/file-conflicting issues.
-10. Select wave cap. Use explicit invocation first; otherwise use the budget/context heuristic in `budget-and-wave-cap.md`.
-11. Dispatch implementers in parallel for non-conflicting ready issues. Mark each issue `in_progress` before dispatch.
-12. Route implementer status: `DONE`/`DONE_WITH_CONCERNS` -> review; `NEEDS_CONTEXT`/`BLOCKED` -> re-dispatch or escalate.
-13. Run review pipeline: spec review, code review(s), platform-native aggregation when needed, and gap closure up to 3 attempts.
-14. Close passing issues immediately with evidence, post `[WAVE-SUMMARY]`, update checkpoint, and loop back to `bd ready`.
-15. When all implementation tasks are closed, dispatch the platform-native epic verifier; after PASS, run `finishing-a-development-branch`.
+10. **Pre-flight requirement-conflict scan:** read each in-scope child issue body (`bd show <id>`) and check for contradictory requirements on a shared surface — two issues specifying incompatible behavior for the same file, API endpoint, data contract, or behavioral rule. This is requirement-level contradiction only; `wave_file_map` handles file-write conflicts separately. If a contradiction is found, surface it and hold at PENDING_HUMAN before dispatching wave 1. If clean, proceed silently.
+11. Select wave cap. Use explicit invocation first; otherwise use the budget/context heuristic in `budget-and-wave-cap.md`.
+12. Dispatch implementers in parallel for non-conflicting ready issues. Mark each issue `in_progress` before dispatch.
+13. Route implementer status: `DONE`/`DONE_WITH_CONCERNS` -> review; `NEEDS_CONTEXT`/`BLOCKED` -> re-dispatch or escalate.
+14. Run review pipeline: spec review, code review(s), platform-native aggregation when needed, and gap closure up to 3 attempts.
+15. Close passing issues immediately with evidence, post `[WAVE-SUMMARY]`, update checkpoint, and loop back to `bd ready`.
+16. When all implementation tasks are closed, dispatch the platform-native epic verifier; after PASS, run `finishing-a-development-branch`.
 
 ## Claude Code Dispatch Path
 
@@ -115,6 +116,16 @@ STATUS_ROUTE [NEEDS_CONTEXT|BLOCKED] -> RE_DISPATCH -> MONITOR
 RE_DISPATCH [>2 attempts] -> PENDING_HUMAN
 LOADING [no open implementation tasks] -> EPIC_VERIFIER -> COMPLETE
 ```
+
+## Pre-flight Requirement-Conflict Scan
+
+Before dispatching wave 1, read every in-scope child issue body (`bd show <id>` for each). Scan for **contradictory requirements on a shared surface**: two issues specifying incompatible behavior for the same file, API endpoint, data contract, or behavioral rule.
+
+**Distinct from file-conflict detection.** `wave_file_map` detects write-write conflicts at the file level; this scan checks for semantic incompatibilities in the requirements themselves — e.g., issue A requires an endpoint to return 404 on missing keys while issue B requires it to return an empty list.
+
+**When a contradiction is found:** Surface the specific conflicting requirement pairs and hold at PENDING_HUMAN. Do not dispatch wave 1 until resolved.
+
+**When clean:** Proceed silently. No log entry, no announcement — noise on every clean epic defeats the purpose.
 
 ## Implementer Status Routing
 
