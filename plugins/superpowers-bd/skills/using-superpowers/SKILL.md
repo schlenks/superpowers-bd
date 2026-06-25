@@ -77,6 +77,13 @@ When multiple skills could apply, use this order:
 
 Instructions say WHAT, not HOW. "Add X" or "Fix Y" doesn't mean skip workflows.
 
+**Priority on conflict:** When a direct instruction contradicts skill guidance, resolve using this hierarchy:
+1. **User's direct instruction** / `CLAUDE.md` (Claude) / `AGENTS.md` (Codex) — explicit overrides win.
+2. **Rigid skills** (TDD, debugging discipline) — follow exactly; they are second only to direct user authority.
+3. **Flexible skill guidance** — adapt to context when no higher-priority rule applies.
+
+The WHAT-not-HOW rule still holds: skills own the HOW *unless the user directly names a specific step to skip or change*. The hierarchy is about resolving conflicts, not about whether to invoke a skill in the first place.
+
 ## Native Progress Integration
 
 Many skills use native progress tools to enforce quality gates and track execution progress. Use the implementation for the platform currently running the skill.
