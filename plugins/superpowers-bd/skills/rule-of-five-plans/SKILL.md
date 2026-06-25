@@ -108,6 +108,14 @@ Announce: "Applying rule-of-five-plans to [artifact]. Starting 5-pass review."
 | **Risk** | What could go wrong? Migration, data loss, breaking changes, parallel conflicts? | Risks identified and mitigated |
 | **Optimality** | Simplest approach? YAGNI? Could tasks be combined? | You'd defend every task to a senior colleague |
 
+### Structural Checks
+
+**Feasibility pass:**
+- `**Interfaces:**` line (Consumes/Produces) present on every task that consumes a sibling's output or signature — without it, the step is not executable as written
+
+**Completeness pass:**
+- `## Global Constraints` block present when the plan has cross-task constraints/invariants (plan2beads threads it into every child task; omitting it means constraints won't propagate)
+
 ## Common Mistakes
 
 | Mistake | Fix |
