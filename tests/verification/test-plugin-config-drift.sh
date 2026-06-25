@@ -158,14 +158,15 @@ if (fs.existsSync(hooksPath) && fs.existsSync(lifecycleHooksPath)) {
 }
 if (fs.existsSync(hooksPath)) {
   const hooksConfig = JSON.parse(fs.readFileSync(hooksPath, "utf8"));
+  const command = (script) => '"${PLUGIN_ROOT}/hooks/' + script + '"';
   const expectedHooks = {
-    SessionStart: { matcher: "startup|resume|clear|compact", command: "./hooks/codex-session-start.sh" },
-    UserPromptSubmit: { command: "./hooks/codex-work-state-anchor.sh" },
-    PostToolUse: { matcher: "apply_patch|Edit|Write", command: "./hooks/codex-post-tool-use.sh" },
-    SubagentStop: { command: "./hooks/codex-verdict-audit.sh" },
-    Stop: { command: "./hooks/codex-stop-gate.sh" },
-    PreCompact: { matcher: "manual|auto", command: "./hooks/codex-pre-compact.sh" },
-    PostCompact: { matcher: "manual|auto", command: "./hooks/codex-session-start.sh" },
+    SessionStart: { matcher: "startup|resume|clear|compact", command: command("codex-session-start.sh") },
+    UserPromptSubmit: { command: command("codex-work-state-anchor.sh") },
+    PostToolUse: { matcher: "apply_patch|Edit|Write", command: command("codex-post-tool-use.sh") },
+    SubagentStop: { command: command("codex-verdict-audit.sh") },
+    Stop: { command: command("codex-stop-gate.sh") },
+    PreCompact: { matcher: "manual|auto", command: command("codex-pre-compact.sh") },
+    PostCompact: { matcher: "manual|auto", command: command("codex-session-start.sh") },
   };
   for (const [event, expectation] of Object.entries(expectedHooks)) {
     const entry = hooksConfig.hooks?.[event]?.[0];

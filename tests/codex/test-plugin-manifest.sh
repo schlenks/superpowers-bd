@@ -107,13 +107,16 @@ for (const [file, name] of Object.entries({
 
 const pluginHooks = readJson(path.join(pluginRoot, 'hooks.json'));
 const lifecycleHooks = readJson(path.join(pluginRoot, 'hooks', 'hooks.json'));
-assert(pluginHooks.hooks?.SessionStart?.[0]?.hooks?.[0]?.command === './hooks/codex-session-start.sh', 'plugin wrapper bundles SessionStart hook command');
-assert(pluginHooks.hooks?.PostToolUse?.[0]?.hooks?.[0]?.command === './hooks/codex-post-tool-use.sh', 'plugin wrapper bundles PostToolUse hook command');
+function pluginHookCommand(scriptName) {
+  return '"${PLUGIN_ROOT}/hooks/' + scriptName + '"';
+}
+assert(pluginHooks.hooks?.SessionStart?.[0]?.hooks?.[0]?.command === pluginHookCommand('codex-session-start.sh'), 'plugin wrapper bundles SessionStart hook command');
+assert(pluginHooks.hooks?.PostToolUse?.[0]?.hooks?.[0]?.command === pluginHookCommand('codex-post-tool-use.sh'), 'plugin wrapper bundles PostToolUse hook command');
 assert(JSON.stringify(pluginHooks) === JSON.stringify(lifecycleHooks), 'plugin wrapper mirrors hooks.json into hooks/hooks.json lifecycle config');
-assert(pluginHooks.hooks?.UserPromptSubmit?.[0]?.hooks?.[0]?.command === './hooks/codex-work-state-anchor.sh', 'plugin wrapper bundles UserPromptSubmit hook command');
-assert(pluginHooks.hooks?.PreCompact?.[0]?.hooks?.[0]?.command === './hooks/codex-pre-compact.sh', 'plugin wrapper bundles PreCompact hook command');
-assert(pluginHooks.hooks?.Stop?.[0]?.hooks?.[0]?.command === './hooks/codex-stop-gate.sh', 'plugin wrapper bundles Stop hook command');
-assert(pluginHooks.hooks?.SubagentStop?.[0]?.hooks?.[0]?.command === './hooks/codex-verdict-audit.sh', 'plugin wrapper bundles SubagentStop hook command');
+assert(pluginHooks.hooks?.UserPromptSubmit?.[0]?.hooks?.[0]?.command === pluginHookCommand('codex-work-state-anchor.sh'), 'plugin wrapper bundles UserPromptSubmit hook command');
+assert(pluginHooks.hooks?.PreCompact?.[0]?.hooks?.[0]?.command === pluginHookCommand('codex-pre-compact.sh'), 'plugin wrapper bundles PreCompact hook command');
+assert(pluginHooks.hooks?.Stop?.[0]?.hooks?.[0]?.command === pluginHookCommand('codex-stop-gate.sh'), 'plugin wrapper bundles Stop hook command');
+assert(pluginHooks.hooks?.SubagentStop?.[0]?.hooks?.[0]?.command === pluginHookCommand('codex-verdict-audit.sh'), 'plugin wrapper bundles SubagentStop hook command');
 for (const hookName of ['codex-session-start.sh', 'codex-post-tool-use.sh', 'codex-work-state-anchor.sh', 'codex-pre-compact.sh', 'codex-stop-gate.sh', 'codex-verdict-audit.sh']) {
   const hookPath = path.join(pluginRoot, 'hooks', hookName);
   assert(fs.existsSync(hookPath), `plugin wrapper bundles ${hookName}`);

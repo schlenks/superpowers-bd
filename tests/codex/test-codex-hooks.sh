@@ -62,21 +62,22 @@ check_node "plugin Codex hooks config has expanded lifecycle command hooks" '
   const fs = require("fs");
   const config = JSON.parse(fs.readFileSync("plugins/superpowers-bd/hooks.json", "utf8"));
   const hooks = config.hooks || {};
+  const command = (script) => "\"${PLUGIN_ROOT}/hooks/" + script + "\"";
   const expected = {
-    SessionStart: { matcher: "startup|resume|clear|compact", command: "codex-session-start.sh" },
-    UserPromptSubmit: { command: "codex-work-state-anchor.sh" },
-    PostToolUse: { matcher: "apply_patch|Edit|Write", command: "codex-post-tool-use.sh" },
-    SubagentStop: { command: "codex-verdict-audit.sh" },
-    Stop: { command: "codex-stop-gate.sh" },
-    PreCompact: { matcher: "manual|auto", command: "codex-pre-compact.sh" },
-    PostCompact: { matcher: "manual|auto", command: "codex-session-start.sh" },
+    SessionStart: { matcher: "startup|resume|clear|compact", command: command("codex-session-start.sh") },
+    UserPromptSubmit: { command: command("codex-work-state-anchor.sh") },
+    PostToolUse: { matcher: "apply_patch|Edit|Write", command: command("codex-post-tool-use.sh") },
+    SubagentStop: { command: command("codex-verdict-audit.sh") },
+    Stop: { command: command("codex-stop-gate.sh") },
+    PreCompact: { matcher: "manual|auto", command: command("codex-pre-compact.sh") },
+    PostCompact: { matcher: "manual|auto", command: command("codex-session-start.sh") },
   };
   for (const [event, expectation] of Object.entries(expected)) {
     const entry = hooks[event]?.[0];
     const hook = entry?.hooks?.[0];
     if (!entry || hook?.type !== "command") process.exit(1);
     if (expectation.matcher && entry.matcher !== expectation.matcher) process.exit(1);
-    if (!hook.command.includes(`/hooks/${expectation.command}`)) process.exit(1);
+    if (hook.command !== expectation.command) process.exit(1);
   }
 '
 
@@ -313,6 +314,7 @@ check_node "Codex plugin manifest describes hooks without manifest-level hook de
   if (!manifest.interface?.longDescription?.includes("Codex hooks")) process.exit(1);
 '
 
+# shellcheck disable=SC2016
 check_node "Codex plugin wrapper bundles hook packaging" '
   const fs = require("fs");
   const manifest = JSON.parse(fs.readFileSync(".codex-plugin/plugin.json", "utf8"));
@@ -326,8 +328,9 @@ check_node "Codex plugin wrapper bundles hook packaging" '
   if (!prompts.every((line) => typeof line === "string" && nativeSkillPattern.test(line))) process.exit(1);
   if (prompts.some((line) => line.includes("/superpowers-bd:"))) process.exit(1);
   if (!fs.existsSync(".codex/hooks.json")) process.exit(1);
-  if (wrapperHooks.hooks?.SessionStart?.[0]?.hooks?.[0]?.command !== "./hooks/codex-session-start.sh") process.exit(1);
-  if (wrapperHooks.hooks?.PostToolUse?.[0]?.hooks?.[0]?.command !== "./hooks/codex-post-tool-use.sh") process.exit(1);
+  const pluginHookCommand = (script) => "\"${PLUGIN_ROOT}/hooks/" + script + "\"";
+  if (wrapperHooks.hooks?.SessionStart?.[0]?.hooks?.[0]?.command !== pluginHookCommand("codex-session-start.sh")) process.exit(1);
+  if (wrapperHooks.hooks?.PostToolUse?.[0]?.hooks?.[0]?.command !== pluginHookCommand("codex-post-tool-use.sh")) process.exit(1);
   if (JSON.stringify(wrapperHooks) !== JSON.stringify(lifecycleHooks)) process.exit(1);
   if (!wrapperHooks.hooks?.Stop || !wrapperHooks.hooks?.PreCompact || !wrapperHooks.hooks?.UserPromptSubmit) process.exit(1);
 '

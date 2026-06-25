@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/codex-session-start.sh"
+            "command": "\"${PLUGIN_ROOT}/hooks/codex-session-start.sh\""
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/codex-work-state-anchor.sh",
+            "command": "\"${PLUGIN_ROOT}/hooks/codex-work-state-anchor.sh\"",
             "timeout": 5
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/codex-post-tool-use.sh",
+            "command": "\"${PLUGIN_ROOT}/hooks/codex-post-tool-use.sh\"",
             "timeout": 5
           }
         ]
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/codex-verdict-audit.sh",
+            "command": "\"${PLUGIN_ROOT}/hooks/codex-verdict-audit.sh\"",
             "timeout": 5
           }
         ]
@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/codex-stop-gate.sh",
+            "command": "\"${PLUGIN_ROOT}/hooks/codex-stop-gate.sh\"",
             "timeout": 10
           }
         ]
@@ -62,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/codex-pre-compact.sh",
+            "command": "\"${PLUGIN_ROOT}/hooks/codex-pre-compact.sh\"",
             "timeout": 5
           }
         ]
@@ -74,7 +74,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/codex-session-start.sh",
+            "command": "\"${PLUGIN_ROOT}/hooks/codex-session-start.sh\"",
             "timeout": 5
           }
         ]
