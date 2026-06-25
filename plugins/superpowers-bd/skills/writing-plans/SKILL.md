@@ -72,6 +72,30 @@ These sections are OPTIONAL. When a plan includes them, `plan2beads` carries the
 
 Both surfaces (`commands/plan2beads.md` and `skills/plan2beads/references/codex-plan2beads-flow.md`) parse these identically.
 
+## Global Constraints
+
+**OPTIONAL. Keep it short** — `plan2beads` threads this block verbatim into every child task body so each implementer carries it. Anything here multiplies by N tasks; trim ruthlessly.
+
+Use for epic-wide rules every implementer must honor: version floors, commit/push restrictions, mirror-sync requirements, shared invariants. Rules that apply to only one or two tasks belong in those tasks' bodies, not here.
+
+**Template:**
+
+```markdown
+## Global Constraints
+- [Rule — concise and actionable, one line each]
+- [Rule 2]
+```
+
+**Example (from this epic's own plan):**
+
+```markdown
+## Global Constraints
+- All plan2beads edits touch BOTH parsers; mirror skills, `diff -rq` empty before commit.
+- Commit local only — no push/tag/bd dolt push. No version bump.
+```
+
+`plan2beads` propagates this block into each child task body and retains it in the epic description. If absent, import is unchanged — backward-compatible.
+
 ## File Structure
 
 Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
