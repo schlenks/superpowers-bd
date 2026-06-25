@@ -42,6 +42,7 @@ See `references/task-enforcement-examples.md` for full TaskCreate blocks and dis
 ## Bite-Sized Task Granularity
 
 Each step is one action (2-5 min): write failing test, run it to verify failure, implement minimal code, run test to verify pass, commit.
+Split tasks only where a reviewer could reject one while approving its neighbor.
 
 ## Plan Document Header
 
