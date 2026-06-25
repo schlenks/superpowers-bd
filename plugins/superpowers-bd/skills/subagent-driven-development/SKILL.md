@@ -136,6 +136,10 @@ Claude-only Codex cross-model advisory language applies only when Claude Code de
 
 If reviewers find issues, loop: implementer fixes, reviewers re-check, and closure happens only after evidence passes. More than 3 failed review attempts -> pause for human.
 
+**CANNOT_VERIFY resolution.** A spec reviewer returns `VERDICT: CANNOT_VERIFY` when a finding depends on code or state OUTSIDE the reviewed diff (e.g. a symbol or file owned by a sibling task in a parallel wave). This is neither PASS nor FAIL — the orchestrator must resolve it, and a task may NOT close on an unresolved CANNOT_VERIFY. Take the sibling dependency the reviewer named and check it against `wave_file_map` and the sibling's receipts/`[IMPL-REPORT]`:
+- If a closed sibling already satisfies the dependency (the named file/symbol exists and is correct), resolve to PASS and proceed to close.
+- Otherwise, HOLD the task (do not close) and re-review it after the sibling lands — once the sibling task closes or in the next wave.
+
 ## Guardrails
 
 **Never:** dispatch blocked issues, cross-epic issues, or file-conflicting issues in the same wave; skip `bd update --status=in_progress`; close without review evidence; start code review before spec review passes; skip Claude-only Codex advisory review when `platform: "claude-code"` and `codex_enabled: true` in the checkpoint.

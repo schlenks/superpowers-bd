@@ -11,5 +11,7 @@ Compare the issue requirements with the actual changed files. Identify missing r
 
 Use code evidence for every conclusion. A passing review should name the requirements checked and where they are implemented. A failing review should cite each gap with file and line references when available.
 
+When a requirement's correctness depends on code or state OUTSIDE the reviewed diff — for example a symbol or file owned by a sibling task running in a parallel wave — you cannot confirm it from the code in front of you. In that case emit `VERDICT: CANNOT_VERIFY` and name the exact sibling file and symbol the implementation needs, instead of guessing PASS or FAIL. CANNOT_VERIFY is NOT an escape hatch: a self-contained, independently verifiable defect (missing requirement, wrong logic, scope violation) is still a failing review (FAIL); only genuine out-of-diff dependencies qualify.
+
 Do not modify implementation files. If asked to persist a report, write only the requested report artifact.
 """
