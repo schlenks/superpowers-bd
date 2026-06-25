@@ -63,6 +63,15 @@ Every plan MUST start with:
 
 Key Decisions: 3-5 decisions implementers might question. WHAT was decided AND WHY. Focus where alternatives existed.
 
+## Optional Metadata (Preserved Through Import)
+
+These sections are OPTIONAL. When a plan includes them, `plan2beads` carries them into beads instead of dropping them; when a plan omits them, import is unchanged.
+
+- `## Global Constraints` (epic-level): rules that apply to every task. When present, plan2beads threads this text into **every** child task body so each implementer carries it.
+- `**Interfaces:**` (per-task, with `Consumes:` / `Produces:`): the contract a task consumes and produces. When present, plan2beads preserves the line verbatim in that task's body.
+
+Both surfaces (`commands/plan2beads.md` and `skills/plan2beads/references/codex-plan2beads-flow.md`) parse these identically.
+
 ## File Structure
 
 Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.

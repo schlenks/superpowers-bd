@@ -39,8 +39,10 @@ TaskCreate: "Final validation gate" [blockedBy: verify] → Epic exists, childre
 - Dependencies: `**Depends on:**` line -> `--deps`
 - Complexity: `**Complexity:**` line -> `-l "complexity:..."` label
 - Files: `**Files:**` section -> preserved in description
+- Interfaces (OPTIONAL): per-task `**Interfaces:**` line with `Consumes:` / `Produces:` -> preserved verbatim in that task's description (absent = task body unchanged)
 - Success Criteria: H2 with `- [ ]` -> epic acceptance criteria
 - Key Decisions: `## Key Decisions` -> epic description (placed first)
+- Global Constraints (OPTIONAL): `## Global Constraints` -> epic-wide rules; thread the block text into EVERY child task body and keep it on the epic (absent = no constraints, every task body unchanged)
 
 **Parsing Rules:**
 - H2s NOT matching phases/stages/success-metrics are context
@@ -49,6 +51,9 @@ TaskCreate: "Final validation gate" [blockedBy: verify] → Epic exists, childre
 - Parse `Depends on:` for task-level deps (see Step 3)
 - Parse `Complexity:` for model selection label (simple/standard/complex, default: standard)
 - Extract and preserve `Files:` section in task description
+- **Global Constraints (OPTIONAL, backward-compatible):** If a `## Global Constraints` H2 exists, copy its text into each child task body (so every implementer carries the epic-wide rules) and retain it in the epic description. If absent, parse exactly as before — no constraints block, no change to any task body.
+- **Interfaces (OPTIONAL, backward-compatible):** If a task has a `**Interfaces:**` line (with `Consumes:` / `Produces:`), preserve it verbatim in that task's description. If absent, the task body is unchanged. Regex: `\*\*Interfaces:\*\*` then capture the following `Consumes:` / `Produces:` lines.
+- A plan with NEITHER `## Global Constraints` nor any `**Interfaces:**` imports identically to prior behavior.
 
 ### Step 1b: Ask Completion Strategy
 
@@ -89,6 +94,8 @@ bd create --silent --parent hub-abc "Update Error Messages" --body-file temp/hub
 bd create --silent --parent hub-abc "Auth Service" --body-file temp/hub-abc-task-3.md -l "complexity:complex" --deps "hub-abc.1" -p 2
 ```
 Same pattern for all. `## Files` section CRITICAL for parallel safety — if missing, warn. Phase labels combine with complexity: `-l "complexity:standard,phase:1"` if plan uses phases.
+
+**Global Constraints + Interfaces (optional, additive):** When the plan has a `## Global Constraints` block, prepend its text to every child task body so each implementer carries the epic-wide rules. When a task carries an `**Interfaces:**` line, copy it verbatim into that task's body. Plans without these sections produce identical task bodies to before — the additions never alter the section-less path.
 
 ### Step 3f: Epic Verification Task (Required)
 

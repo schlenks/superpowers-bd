@@ -25,6 +25,7 @@ Read the plan file, create the epic and child issues with `bd create`, verify de
 
 - Use `temp/*.md` body files for multiline issue descriptions and comments.
 - Keep each child issue dependency-aware with clear `Depends on:`, `Complexity:`, and `Files:` sections from the source plan.
+- Preserve optional metadata when the plan carries it: a `## Global Constraints` block threads into **every** child task body, and a per-task `**Interfaces:**` line (`Consumes:` / `Produces:`) stays verbatim in that task's body. Both are optional — a plan without them imports exactly as before (backward-compatible).
 - Verify the dependency shape with `bd ready`, `bd blocked`, and `bd show <epic-id>` before handing off.
 - If the plan is incomplete or ambiguous, ask a concise question before creating issues.
 
