@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.8.0] - 2026-06-25
+
+Ports a batch of "Superpowers-6" learnings into the plugin, hardening reviewer rigor, plan authoring contracts, plan2beads metadata propagation, and SDD guardrails. Every change keeps both the Claude Code and Codex surfaces first-class; all skill edits are mirrored into the bundled `plugins/superpowers-bd/skills/` wrapper.
+
+### Added
+
+- **Reviewer `CANNOT_VERIFY` channel (B1)**: spec reviewers can now return `VERDICT: CANNOT_VERIFY` when a requirement cannot be confirmed from the diff alone (e.g. an out-of-diff dependency), with an over-emission guardrail; the SDD orchestrator resolves it in Review Rules. Added to all spec-reviewer surfaces (Claude skill, Codex Markdown agent, Codex TOML fallback). `verdict-audit` gates only `NO_VERDICT`, so no hook change was needed.
+- **Plan Global Constraints + per-task Interfaces (B5, B6)**: writing-plans now authors an optional `## Global Constraints` block and a per-task `Interfaces:` (Consumes/Produces) field in the task template.
+- **plan2beads propagates plan metadata (B7)**: both parsers — Claude `commands/plan2beads.md` and Codex `skills/plan2beads/references/codex-plan2beads-flow.md` — recognize and propagate the optional `## Global Constraints` block (into every child body) and per-task `Interfaces:` field. Backward-compatible: section-less plans import unchanged.
+- **rule-of-five-plans structural checks (B8)**: Interfaces routed to the Feasibility pass, Global Constraints routed to the Completeness pass.
+- **SDD pre-flight requirement-conflict scan (B4)**: before dispatch, the orchestrator scans ready issues for conflicting requirements; silent when clean, distinct from the wave file map.
+- **SDD no-prejudge review guardrail (B2)**: a review re-dispatch must not prejudge the outcome (names `Task` and `spawn_agent`).
+- **Instruction-priority hierarchy (B10)**: using-superpowers documents the priority order on conflict, naming `CLAUDE.md` and `AGENTS.md`.
+- **Task right-sizing heuristic (B11)**: writing-plans guidance — split a task only where a reviewer could reject one half while approving its neighbor.
+- **Match-the-Form-to-the-Failure (A2)**: new bulletproofing.md section on choosing the enforcement shape that fits the failure mode.
+- **Micro-Test Wording pre-step (A3)**: tdd-for-skills.md guidance on wording skill micro-tests before writing them.
+- **`scripts/lint-shell.sh` + test (B9)**: shellcheck wrapper that lints tracked shell scripts at `--severity=warning`, with `tests/shell-lint/test-lint-shell.sh`.
+
+### Changed
+
+- **Reviewer rationale-skepticism + read-only (A1)**: all six reviewer surfaces now treat an in-diff justification as the author's self-assessment — a stated rationale never downgrades or suppresses a finding — and reaffirm that reviewers are read-only.
+- **Plan-mandated-defect tripwire (B3)**: code reviewers surface a plan-mandated defect as a finding and route it to a human decision (`bd human` / PENDING_HUMAN) rather than silently approving or auto-fixing against the plan.
+
+### Fixed
+
+- **"Ultra-think" trigger keyword (A4)**: corrected `Ultrathink` → `Ultra-think` in systematic-debugging rationalizations so the trigger phrase matches.
+- **shellcheck SC2034 (B9)**: removed unused variables from `hooks/task-completed.sh`; `scripts/lint-shell.sh` resolves shellcheck via `command -v` instead of a hardcoded Homebrew path (CI portability).
+
 ## [5.7.0] - 2026-06-18
 
 ### Added
@@ -628,7 +656,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Personal superpowers overlay system — replaced with git branch workflow
 - `setup-personal-superpowers` hook — replaced by `initialize-skills.sh`
 
-[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.7.0...HEAD
+[Unreleased]: https://github.com/schlenks/superpowers-bd/compare/v5.8.0...HEAD
+[5.8.0]: https://github.com/schlenks/superpowers-bd/compare/v5.7.0...v5.8.0
 [5.7.0]: https://github.com/schlenks/superpowers-bd/compare/v5.6.8...v5.7.0
 [5.6.8]: https://github.com/schlenks/superpowers-bd/compare/v5.6.7...v5.6.8
 [5.6.7]: https://github.com/schlenks/superpowers-bd/compare/v5.6.6...v5.6.7

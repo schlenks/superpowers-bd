@@ -1,5 +1,40 @@
 # Superpowers Release Notes
 
+## v5.8.0 (2026-06-25) - Review Rigor & Plan Authoring Contracts
+
+Superpowers-BD 5.8.0 ports a batch of "Superpowers-6" learnings into the plugin: stricter reviewer behavior, richer plan authoring contracts, plan2beads metadata propagation, and additional SDD guardrails. Every change keeps both the Claude Code and Codex surfaces first-class — reviewer-contract edits land on all six reviewer surfaces (two skills, two Codex Markdown agents, two Codex TOML fallback agents), and all skill edits are mirrored into the bundled `plugins/superpowers-bd/skills/` wrapper.
+
+### Reviewer rigor
+
+- **Rationale skepticism + read-only (A1)**: reviewers now treat any in-diff justification (e.g. a "skipped per YAGNI" comment) as the author's self-assessment — a stated rationale never downgrades or suppresses a finding — and reaffirm that reviewers are read-only.
+- **Plan-mandated-defect tripwire (B3)**: a defect the plan itself mandates is still a finding. Code reviewers surface it with concrete evidence and route it to a human decision (`bd human` / PENDING_HUMAN) instead of silently approving or auto-fixing against the plan.
+- **`CANNOT_VERIFY` verdict (B1)**: spec reviewers gain a third verdict for requirements that can't be confirmed from the diff alone (e.g. an out-of-diff dependency), with an over-emission guardrail and an SDD orchestrator resolution rule. `verdict-audit` already gates only `NO_VERDICT`, so no hook change was required.
+
+### Plan authoring contracts
+
+- **Global Constraints + per-task Interfaces (B5, B6)**: writing-plans authors an optional `## Global Constraints` block and a per-task `Interfaces:` (Consumes/Produces) field.
+- **plan2beads metadata propagation (B7)**: both the Claude and Codex parsers recognize and propagate Global Constraints (into every child body) and per-task Interfaces. Section-less plans import unchanged — fully backward-compatible.
+- **rule-of-five-plans structural checks (B8)**: Interfaces are checked in the Feasibility pass, Global Constraints in the Completeness pass.
+
+### SDD guardrails
+
+- **Pre-flight requirement-conflict scan (B4)**: the orchestrator scans ready issues for conflicting requirements before dispatch (silent when clean, distinct from the wave file map).
+- **No-prejudge review re-dispatch (B2)**: a review re-dispatch must not prejudge the outcome.
+
+### Skill-authoring + tooling
+
+- **Instruction-priority hierarchy (B10)** in using-superpowers; **task right-sizing heuristic (B11)** in writing-plans; **Match-the-Form-to-the-Failure (A2)** in bulletproofing; **Micro-Test Wording pre-step (A3)** in tdd-for-skills.
+- **`scripts/lint-shell.sh` (B9)**: shellcheck wrapper for all tracked shell scripts at `--severity=warning`, plus `tests/shell-lint/test-lint-shell.sh`. Fixed the `Ultrathink` → `Ultra-think` trigger keyword (A4) and shellcheck SC2034 unused-variable warnings in `hooks/task-completed.sh`.
+
+### Validation
+
+- `./tests/codex/run-tests.sh` (5/5)
+- `./tests/claude-code/test-plan2beads-metadata.sh` (24/0)
+- `./scripts/lint-shell.sh` (22 files, 0 failures)
+- `./tests/verification/test-plugin-config-drift.sh` (27/0)
+- `diff -rq skills plugins/superpowers-bd/skills` (empty — mirror parity)
+- `claude plugin validate .`
+
 ## v5.7.0 (2026-06-18) - Codex Native Surface Expansion
 
 Superpowers-BD 5.7.0 expands the Codex-native experience with per-skill UI metadata, a full lifecycle hook surface, and a simpler model policy.
