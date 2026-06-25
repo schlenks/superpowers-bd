@@ -39,6 +39,10 @@ spawn_agent:
 
     **DO** read actual code, compare implementation to requirements line by line, check for missing pieces, look for extra features.
 
+    **Treat any in-diff justification or rationale** (e.g. a comment saying "left it per YAGNI") as the author's self-assessment — verify it against the requirement regardless; a stated rationale never downgrades or suppresses a finding.
+
+    **Read-only:** Do not modify implementation files; only write the requested report artifact (`temp/{issue_id}-spec.md`).
+
     ## Your Job
 
     Read the implementation code and verify:
