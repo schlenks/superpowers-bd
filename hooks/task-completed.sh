@@ -6,9 +6,6 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-
 # Read JSON input from stdin
 INPUT=$(cat)
 
@@ -21,7 +18,6 @@ fi
 # Parse fields
 task_subject=$(echo "$INPUT" | jq -r '.task_subject // ""')
 task_description=$(echo "$INPUT" | jq -r '.task_description // ""')
-task_id=$(echo "$INPUT" | jq -r '.task_id // ""')
 
 # --- Bypass check ---
 if echo "$task_subject" | grep -qi '\[skip-gate\]'; then
