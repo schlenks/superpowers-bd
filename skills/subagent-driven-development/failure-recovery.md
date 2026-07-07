@@ -46,7 +46,7 @@ elif blocker indicates capacity limit ("architectural decision", "multiple appro
     # Reasoning capacity — upgrade native strength, capped by tier
     if checkpoint.platform == "codex":
         current_effort = pending_tasks[task_id]["model_reasoning_effort"]
-        next_effort = upgrade_effort(current_effort)  # medium->high->xhigh, capped by Codex tier table
+        next_effort = upgrade_effort(current_effort)  # medium->high, capped by Codex tier table
         if next_effort == current_effort:
             escalated_tasks[task_id] = blocker
             report_to_human(task_id, blocker)

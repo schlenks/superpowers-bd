@@ -229,6 +229,40 @@ check_node "Plugin-bundled PostToolUse wrapper returns linter feedback for edite
   if (!/JSON syntax error/.test(payload.reason || '')) process.exit(1);
 "
 
+# Parity for the .sh shellcheck path (companion to the .json path above). Codex 0.142.0
+# (#28365) now honors a blocking PostToolUse decision for code-mode tool calls, so both
+# lint paths must emit decision:block. Guarded on shellcheck availability so the suite
+# stays green on machines without it.
+if command -v shellcheck >/dev/null 2>&1; then
+  # shellcheck disable=SC2016  # literal $UNQUOTED is written into bad.sh on purpose
+  printf 'ls $UNQUOTED\n' > "$TEST_DIR/src/bad.sh"
+  sh_post_input="$TEST_DIR/sh-post-input.json"
+  sh_post_stdout="$TEST_DIR/sh-post-stdout.json"
+  # shellcheck disable=SC2016
+  node -e '
+    const fs = require("fs");
+    const [cwd, file, out] = process.argv.slice(1);
+    const payload = {
+      hook_event_name: "PostToolUse",
+      cwd,
+      tool_name: "apply_patch",
+      tool_input: {
+        command: `*** Begin Patch\n*** Update File: ${file}\n@@\n*** End Patch\n`
+      }
+    };
+    fs.writeFileSync(out, `${JSON.stringify(payload)}\n`);
+  ' "$TEST_DIR" "$TEST_DIR/src/bad.sh" "$sh_post_input"
+  bash hooks/codex-post-tool-use.sh < "$sh_post_input" > "$sh_post_stdout"
+  check_node "PostToolUse wrapper blocks a shellcheck-failing .sh edit" "
+    const fs = require('fs');
+    const payload = JSON.parse(fs.readFileSync('$sh_post_stdout', 'utf8').trim());
+    if (payload.decision !== 'block') process.exit(1);
+    if (!/shellcheck/.test(payload.reason || '')) process.exit(1);
+  "
+else
+  echo "SKIP: shellcheck not installed — .sh block path not exercised"
+fi
+
 mkdir -p "$TEST_DIR/active/temp"
 printf 'active\n' > "$TEST_DIR/active/temp/sdd-wave-active-demo.flag"
 

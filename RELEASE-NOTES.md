@@ -1,5 +1,28 @@
 # Superpowers Release Notes
 
+## v5.9.0 (2026-07-07) - Changelog Audit Adoption & Effort Retune
+
+Superpowers-BD 5.9.0 adopts the 2026-07-07 changelog audit (Claude Code 2.1.108–202) and retunes model-effort policy across both the Claude Code and Codex surfaces. All skill edits are mirrored into the bundled `plugins/superpowers-bd/skills/` wrapper.
+
+### Model-effort policy
+
+`xhigh` is retired from static Claude Code frontmatter in favor of a two-tier split: review/analysis gates run at `effort: high`, workflow/orchestration skills at `effort: medium`. On Opus the `medium ≈ high ≈ xhigh` band sits within benchmark error bars — only `max` is a distinguishable gain — so `xhigh` cost ~2× `high` for no measurable benefit. Because the Codex/GPT path *does* show a real `high`→`xhigh` gain and never runs Fable, the SDD reviewer/verifier dispatch (`spec_reviewer`, `code_reviewer`, `epic_verifier`) is raised to `xhigh` there, while `review_aggregator` stays `medium` and implementers stay `medium`/`high`. With frontmatter now topping out at `high`, the Fable effort ceiling (never `xhigh`/`max` on Fable) is satisfied by construction.
+
+### Platform adoption (CC 2.1.108–202)
+
+- **Notification wave-observability hook (2.1.198)**: new `hooks/notification.sh` logs `agent_needs_input`/`agent_completed` during active SDD waves (never blocks), gathering evidence before any reactive-MONITOR gate is built.
+- **Context-tier detection by model family (2.1.173/2.1.197)**: recognizes 1M-native `sonnet-5`/`fable-5` after the `[1m]` suffix auto-strip, so extended-context wave caps aren't silently lost.
+- **Scoped simplifier revert (2.1.183)**: `git restore -- <files>` replaces the now-blocked `git checkout -- .`.
+- **Worktree `baseRef` gotcha (2.1.133)** documented; **skill frontmatter reference** expanded (`disallowed-tools`, `display-name`, `default-enabled`, `fallback`, `metadata.*`); **minimum Claude Code raised to 2.1.144**.
+
+### Validation
+
+- `./tests/codex/run-tests.sh` (5/5)
+- `./scripts/lint-shell.sh` (23 files, 0 failures)
+- `diff -rq skills plugins/superpowers-bd/skills` (empty — mirror parity)
+- `claude plugin validate .`
+- `./tests/claude-code/run-skill-tests.sh` (2/2) — `test-subagent-driven-development.sh` redesigned from flaky/slow live-model probes to deterministic structural checks on the skill source (`superpowers_bd-ei5`/`ajn`).
+
 ## v5.8.0 (2026-06-25) - Review Rigor & Plan Authoring Contracts
 
 Superpowers-BD 5.8.0 ports a batch of "Superpowers-6" learnings into the plugin: stricter reviewer behavior, richer plan authoring contracts, plan2beads metadata propagation, and additional SDD guardrails. Every change keeps both the Claude Code and Codex surfaces first-class — reviewer-contract edits land on all six reviewer surfaces (two skills, two Codex Markdown agents, two Codex TOML fallback agents), and all skill edits are mirrored into the bundled `plugins/superpowers-bd/skills/` wrapper.

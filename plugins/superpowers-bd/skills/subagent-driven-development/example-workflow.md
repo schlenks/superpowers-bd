@@ -16,7 +16,7 @@ You: I'm using Subagent-Driven Development to execute beads epic hub-abc.
 
 [Smart wave cap calculation:]
   avg_weight = (1×1 + 2×2 + 3×1) / 4 = 2.0
-  context_tier = "extended" (model ID contains [1m])
+  context_tier = "extended" (1M-native model: [1m] suffix, or Sonnet 5 / Fable 5)
   BUDGET_PER_WAVE = 15, DEFAULT_CAP = 5
   recommended = min(floor(15/2.0), max_parallel=2, 10) = 2
   Recommended (2) ≤ DEFAULT_CAP (5) → skip question, use recommended

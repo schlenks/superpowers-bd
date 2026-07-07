@@ -51,6 +51,8 @@ The user has consented to an isolated workspace (Step 0). Do you already have a 
 
 Native tools manage directory placement, branch creation, and harness lifecycle hooks (`WorktreeCreate`/`WorktreeRemove`). Using `git worktree add` when you have a native tool creates phantom state your harness can't see or manage.
 
+**`baseRef` gotcha (unpushed commits):** since Claude Code 2.1.133, `EnterWorktree`/`--worktree`/agent-isolation worktrees default to `worktree.baseRef: "fresh"`, branching from `origin/<default>` — **not** local `HEAD`. Any unpushed local commits (a brainstorming/plan commit from this session, or an in-progress feature branch) will **not** appear in the new worktree. This matters because `executing-plans` and SDD run inside these worktrees and often build on a just-committed plan. If the work must build on unpushed local `HEAD`, either set `worktree.baseRef: "head"` in settings or push the base commits first before entering the worktree.
+
 Only proceed to Step 1b if you have no native worktree tool available.
 
 ### Step 1b: Git Worktree Fallback

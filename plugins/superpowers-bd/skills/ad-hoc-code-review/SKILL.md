@@ -1,7 +1,8 @@
 ---
 name: ad-hoc-code-review
 description: Use when the user asks for /cr-style review of local changes, commits, a branch diff, or a GitHub PR outside subagent-driven development
-effort: xhigh
+effort: high
+disallowed-tools: [Write, Edit, NotebookEdit]
 ---
 
 # Ad-hoc Code Review

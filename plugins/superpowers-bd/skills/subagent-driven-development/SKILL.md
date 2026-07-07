@@ -1,7 +1,7 @@
 ---
 name: subagent-driven-development
 description: Use when user says "execute epic [id]" or when executing beads epics with parallel subagents in the current session
-effort: xhigh
+effort: medium
 ---
 
 # Subagent-Driven Development
@@ -19,7 +19,7 @@ Execute a beads epic by dispatching independent implementation issues in paralle
 3. If `temp/sdd-checkpoint-{epic_id}.json` exists, restore it and resume from the next wave. Do not re-ask budget tier, platform, or wave cap.
 4. Choose budget tier once (`max-20x`, `max-5x`, or `pro/api`) and store it in the checkpoint.
 5. Codex only: inherit the active Codex model. Do not auto-select models from plan tier unless Codex exposes a reliable authenticated tier signal; route strength with role-specific `model_reasoning_effort`.
-6. Detect context tier. Claude Code: `[1m]` model suffix means extended; otherwise standard. Codex: use visible model/context info; if unknown, default to standard.
+6. Detect context tier. Claude Code: extended if the model ID contains `[1m]` **or** is a 1M-native family (`sonnet-5`, `fable-5`); otherwise standard. Codex: use visible model/context info; if unknown, default to standard. See `budget-and-wave-cap.md` Context Tier and the Fable effort ceiling.
 7. Build `platform_agent_plan` once per session and store it in the checkpoint. It must name the native dispatch path for implementers, spec reviewers, code reviewers, aggregators, and epic verifier.
 8. Claude Code only: detect Codex cross-model advisory review by looking for `<codex-integration>`. Store `codex_enabled` and `codex_install_path` in the checkpoint. In Codex sessions, omit `codex_install_path` and set `codex_enabled: false` or leave it absent because Codex is the orchestrator.
 9. Run `bd ready`, filter to this epic's children, and exclude blocked/cross-epic/file-conflicting issues.
@@ -99,11 +99,11 @@ Budget tier selects implementer/reviewer strength and review count. Exact model 
 
 | Tier | Implementer effort | Spec reviewer | Code reviews | Aggregator | Verifier | Simplify |
 |------|--------------------|---------------|--------------|------------|----------|----------|
-| max-20x | inherit the active Codex model with `model_reasoning_effort=high` or `xhigh` for complex | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
-| max-5x | inherit the active Codex model with `model_reasoning_effort=high` or `xhigh` for complex | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
-| pro/api | inherit the active Codex model with `model_reasoning_effort=medium` or `high` for complex | `spec_reviewer` (`high`) | 1 x `code_reviewer` (`high`) | skip | `epic_verifier` (`xhigh`) | no |
+| max-20x | inherit the active Codex model with `model_reasoning_effort=high` | `spec_reviewer` (`xhigh`) | 3 x `code_reviewer` (`xhigh`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
+| max-5x | inherit the active Codex model with `model_reasoning_effort=high` | `spec_reviewer` (`xhigh`) | 3 x `code_reviewer` (`xhigh`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
+| pro/api | inherit the active Codex model with `model_reasoning_effort=medium` or `high` for complex | `spec_reviewer` (`xhigh`) | 1 x `code_reviewer` (`xhigh`) | skip | `epic_verifier` (`xhigh`) | no |
 
-The Codex table is this repository's effort policy from the current Codex agent layer, not an external guarantee about model availability.
+The Codex table is this repository's effort policy from the current Codex agent layer, not an external guarantee about model availability. On the Claude Code path, the Fable effort ceiling in `budget-and-wave-cap.md` (Model and Effort Policy) still applies: never escalate above `high` (to `xhigh`/`max`) when the active model is Fable.
 
 Default issue complexity is `standard`. Use `complexity:simple|standard|complex` labels when present. Full formulas and edge cases: `budget-and-wave-cap.md`.
 

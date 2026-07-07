@@ -110,8 +110,8 @@ task_labels = parse_labels(bd_show_output)
 task_complexity = extract_label(task_labels, "complexity") or "standard"
 
 CODEX_IMPL_EFFORT = {
-    "max-20x": {"simple": "medium", "standard": "high", "complex": "xhigh"},
-    "max-5x": {"simple": "medium", "standard": "high", "complex": "xhigh"},
+    "max-20x": {"simple": "medium", "standard": "high", "complex": "high"},
+    "max-5x": {"simple": "medium", "standard": "high", "complex": "high"},
     "pro/api": {"simple": "medium", "standard": "medium", "complex": "high"},
 }
 
@@ -188,6 +188,8 @@ Issue hub-abc.3 files: [auth.service.ts, models/index.ts]  ← CONFLICT with .1!
    ```
    Include files from ALL dispatched (non-deferred) issues so each agent sees who owns what.
 9. Dispatch all non-conflicting issues in parallel
+
+**Keep dispatch flat.** Since Claude Code 2.1.172 a subagent can spawn its own subagents (up to 5 levels deep). Do **not** rely on this in SDD: the wave cap is a context-budget constraint that assumes a single dispatch level, and nested fan-out multiplies token cost outside that accounting. Implementers stay flat — they must not spawn further parallel workers. The only sanctioned exception is an implementer invoking a read-only helper skill (e.g. `systematic-debugging`) for its own task; that helper must not itself fan out.
 
 **If `## Files` section is missing:** Treat as conflicting with ALL other issues (cannot parallelize, must dispatch alone).
 

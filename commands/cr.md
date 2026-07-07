@@ -1,6 +1,6 @@
 ---
 description: "Code review: /cr for interactive review (local or GitHub PR), /cr N for N independent reviewers with aggregation (max 10)"
-effort: xhigh
+effort: medium
 ---
 
 # /cr Command
@@ -9,6 +9,8 @@ Ad-hoc code review using the code-reviewer agent. Works outside SDD for any chan
 
 **Usage:** `/cr` (single) or `/cr N` (N independent reviewers, aggregated, max 10)
 **Platform ownership:** This is the Claude Code command implementation. Codex users should invoke the `ad-hoc-code-review` skill and follow `skills/ad-hoc-code-review/references/codex-review-flow.md`.
+
+**Why `/cr` and not the built-in `/code-review`?** Claude Code now ships `/code-review` (effort-leveled, `--fix`, `--comment`, `ultra` cloud tier). `/cr` is the preferred path here because it adds layers the built-in does not: **N genuinely independent reviewers whose findings are unioned** (not one pass), a **deterministic verdict contract**, **severity-voting aggregation** (`multi-review-aggregation`), a **Codex cross-model second opinion**, and **beads/SDD integration**. `/cr` also deliberately does **not** auto-fix — it presents findings for you to triage. Reach for the built-in `/code-review --fix`/`--comment` only when you explicitly want a fast single-pass review that edits the tree or posts inline PR comments.
 
 <!-- disable-model-invocation intentionally omitted — this command requires model invocation to parse arguments, ask interactive questions, and dispatch subagents. Same pattern as plan2beads.md. -->
 

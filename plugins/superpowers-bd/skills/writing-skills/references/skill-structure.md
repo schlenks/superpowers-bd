@@ -76,10 +76,15 @@ Claude Code plugins have three component types:
 |-------|----------|-------------|
 | `name` | yes | Skill name (letters, numbers, hyphens only) |
 | `description` | yes | "Use when..." triggering conditions (≤300 chars recommended) |
-| `effort` | no | `high` or `medium` — overrides model effort when skill is invoked (since 2.1.80) |
-| `paths` | no | YAML list of globs — activates skill only for matching file paths (since 2.1.84) |
+| `effort` | no | `low`/`medium`/`high`/`xhigh`/`max` — overrides model effort when the skill is invoked (since 2.1.80; `xhigh` from 2.1.111) |
+| `paths` | no | YAML list of globs — activates the skill only for matching file paths (since 2.1.84) |
+| `disallowed-tools` | no | Denylist of tools removed while the skill is active (since 2.1.152). Leaky via Bash (`tee`, `python3 -c`) — treat as discipline, not hard enforcement. |
+| `display-name` | no | Human-friendly name shown in `/skills` listings |
+| `default-enabled` | no | Set `false` to ship the skill disabled by default |
+| `fallback` | no | Recognized optional key (see Claude Code docs for exact semantics) |
+| `metadata.*` | no | Arbitrary namespaced metadata keys |
 
-Max 1024 characters total frontmatter.
+`display-name`, `default-enabled`, `fallback`, and `metadata.*` accept kebab-case, snake_case, or camelCase (since 2.1.186). Max 1024 characters total frontmatter.
 
 ### Agents (`agents/*.md`)
 

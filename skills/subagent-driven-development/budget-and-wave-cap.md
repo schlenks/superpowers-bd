@@ -34,14 +34,20 @@ Claude Code routes work by Opus/Sonnet/Haiku model families. Complexity selects 
 
 Codex plugin agents inherit the active Codex model. Do not pin a model in plugin-bundled agents or `spawn_agent` calls unless the user explicitly asks for a specific model. Codex does not currently expose a reliable authenticated plan-tier signal to this plugin, so Superpowers-BD does not auto-switch between paid-plan models.
 
-Route strength by `model_reasoning_effort`, not by Claude Opus/Sonnet/Haiku names. If a future Codex runtime provides a reliable plan-tier signal, max-20x and max-5x sessions may default complex work to `xhigh` effort; without that signal, keep the active model and use the effort tables below.
+Route strength by `model_reasoning_effort`, not by Claude Opus/Sonnet/Haiku names. If a future Codex runtime provides a reliable plan-tier signal, max-20x and max-5x sessions may default complex work to `high` effort; without that signal, keep the active model and use the effort tables below.
+
+### Model and Effort Policy
+
+Preferred model: **Opus** — it is the Claude Code default and the model the skill/agent frontmatter effort is tuned for. Frontmatter tops out at `high` (review/analysis gates at `effort: high`, workflow/orchestration skills at `effort: medium`); `xhigh` is retired because on Opus it costs roughly 2× `high` for a gain that sits inside the benchmark error bars (`medium ≈ high ≈ xhigh`; only `max` shows a real, distinguishable gain). Do not switch models automatically.
+
+**Fable effort ceiling:** when the active model is a Fable family model (ID contains `fable`), cap every reasoning-effort selection at `high`. Never request `xhigh` or `max` on Fable. The static skill/agent frontmatter tops out at `high`, so the Claude Code path satisfies this ceiling by construction — no static-frontmatter effort can exceed the Fable cap. (The Codex reviewer/verifier tables below do use `xhigh`, but they run on GPT-family models via Codex, never Fable, so that `xhigh` never reaches a Fable session.) The rule remains as a guard against escalation (failure-recovery) or a manual `/effort xhigh|max` on a Fable session: clamp back to `high`.
 
 ### Implementer Reasoning Effort
 
 | Tier | simple | standard | complex |
 |------|--------|----------|---------|
-| max-20x | medium | high | xhigh |
-| max-5x | medium | high | xhigh |
+| max-20x | medium | high | high |
+| max-5x | medium | high | high |
 | pro/api | medium | medium | high |
 
 Implementers may use the default Codex worker with the active profile model and requested effort because there is no dedicated implementer agent in the current project policy.
@@ -50,10 +56,12 @@ Implementers may use the default Codex worker with the active profile model and 
 
 | Role | Codex agent | Model | Reasoning effort | Use |
 |------|-------------|-------|------------------|-----|
-| Spec compliance | `spec_reviewer` | inherit active Codex model | high | After implementer reports `DONE` or `DONE_WITH_CONCERNS` |
-| Code quality | `code_reviewer` | inherit active Codex model | high | N independent reviews by budget tier |
+| Spec compliance | `spec_reviewer` | inherit active Codex model | xhigh | After implementer reports `DONE` or `DONE_WITH_CONCERNS` |
+| Code quality | `code_reviewer` | inherit active Codex model | xhigh | N independent reviews by budget tier |
 | Review aggregation | `review_aggregator` | inherit active Codex model | medium | Required when N > 1 |
 | Epic verification | `epic_verifier` | inherit active Codex model | xhigh | After all implementation tasks close |
+
+`spec_reviewer`, `code_reviewer`, and `epic_verifier` run at `xhigh` — they are no-feedback review gates where reasoning depth is recall, and GPT-family Codex models (unlike Opus) show a real `high`→`xhigh` gain rather than a plateau. `review_aggregator` stays at `medium`: it consolidates existing findings rather than finding new defects. These tables run on Codex GPT-family models, never Fable, so `xhigh` here never reaches a Fable session and does not touch the Fable ceiling.
 
 | Tier | N Code Reviews | Aggregator | Simplify |
 |------|----------------|------------|----------|
@@ -65,8 +73,10 @@ Default issue complexity is `standard`.
 
 ## Context Tier
 
-- Extended context: model ID contains `[1m]`; default wave cap 5; budget per wave 15.
-- Standard context: no `[1m]` suffix or unknown; default wave cap 3; budget per wave 9.
+Detect the active model's context window by family, not by suffix alone. Since Claude Code 2.1.173/2.1.197 the `[1m]` suffix is auto-stripped for models whose 1M window is the default (Sonnet 5, Fable 5), so a pure `[1m]` substring test now under-detects and silently drops those models to the 3-wave/9-budget tier.
+
+- Extended context (1M): the model ID contains `[1m]`, OR it is a 1M-native family — `sonnet-5` or `fable-5` (extend this allowlist as new 1M-default families ship). Default wave cap 5; budget per wave 15.
+- Standard context (~200k): none of the above — e.g. Haiku, or an Opus/Sonnet variant without `[1m]`. Default wave cap 3; budget per wave 9.
 - Codex: use visible context info if available; otherwise standard.
 
 Store `context_tier`, `platform`, `platform_agent_plan`, and Codex-only `codex_model_policy: "inherit_active_model"` in the checkpoint. In Claude Code only, also store `codex_enabled` and `codex_install_path` when a separate Codex advisory integration is detected.

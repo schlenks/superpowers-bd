@@ -1,7 +1,7 @@
 ---
 name: finishing-a-development-branch
 description: Use when ALL tasks in an epic or branch are closed and you are ready to integrate the entire body of work - never after individual task completions, never mid-epic
-effort: xhigh
+effort: medium
 ---
 
 # Finishing a Development Branch

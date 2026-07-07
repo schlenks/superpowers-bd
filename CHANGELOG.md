@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.9.0] - 2026-07-07
+
+Adopts the 2026-07-07 changelog audit (Claude Code 2.1.108–202) and retunes model-effort policy across both surfaces. All skill edits are mirrored into the bundled `plugins/superpowers-bd/skills/` wrapper.
+
+### Added
+
+- **Notification wave-observability hook (2.1.198)**: new `hooks/notification.sh` and a `Notification` entry in `hooks/hooks.json`. During an active SDD wave it logs `agent_needs_input`/`agent_completed` notifications to `temp/sdd-notifications.log`; silent no-op otherwise, never blocks. Gathers evidence on whether the 2.1.198 payloads fire for in-session Task-tool subagents (UNVERIFIED) before any reactive-MONITOR gate is built on top of it. Covered by `tests/codex/test-codex-hooks.sh`.
+- **Expanded skill frontmatter reference**: `writing-skills/references/skill-structure.md` now documents `disallowed-tools` (2.1.152), `display-name`, `default-enabled`, `fallback`, `metadata.*`, the full `effort` value range (`low`–`max`; `xhigh` from 2.1.111), and case-insensitivity of the optional keys (2.1.186).
+
+### Changed
+
+- **Model-effort policy retune**: retired `xhigh` from static Claude Code skill/agent/command frontmatter in favor of a two-tier split — review/analysis gates at `effort: high`, workflow/orchestration at `effort: medium`. On Opus `medium ≈ high ≈ xhigh` sits within benchmark error bars (only `max` is a distinguishable gain), so `xhigh` cost ~2× `high` for no measurable benefit. On the Codex/GPT path — where `high`→`xhigh` is a real gain and Fable never runs — the SDD reviewer/verifier dispatch (`spec_reviewer`, `code_reviewer`, `epic_verifier`) is raised to `xhigh`; `review_aggregator` stays `medium`; implementers stay `medium`/`high`. Frontmatter now tops out at `high`, satisfying the Fable ceiling (never `xhigh`/`max` on Fable) by construction.
+- **Context-tier detection by model family (2.1.173/2.1.197)**: the `[1m]` suffix is auto-stripped for 1M-native models (Sonnet 5, Fable 5), so wave-cap detection no longer relies on a bare `[1m]` substring — it also recognizes `sonnet-5`/`fable-5` as extended-context, preventing a silent drop to the 3-wave/9-budget tier.
+- **Scoped simplifier revert (2.1.183)**: post-wave and pre-merge simplification recovery uses `git restore -- <files passed to the simplifier>` instead of `git checkout -- .`, which auto mode now blocks as a destructive bulk revert.
+- **Minimum Claude Code raised to 2.1.144**: 2.1.141–143 shipped a Skill-tool headless-permission regression (the subagent skill discovery SDD depends on) fixed in 2.1.144. Newer optional features degrade gracefully.
+- **Release process**: documents `claude plugin validate .` (inspects local `source="."` plugins since 2.1.196) as a pre-tag validation step.
+
+### Docs
+
+- **Worktree `baseRef` gotcha (2.1.133)**: `using-git-worktrees` warns that native/agent-isolation worktrees default to `baseRef: "fresh"` (branch from `origin/<default>`, not local `HEAD`), so unpushed plan/feature commits won't appear — set `worktree.baseRef: "head"` or push the base first.
+
+### Fixed
+
+- **SDD skill-test redesign (`superpowers_bd-ei5`/`ajn`)**: `tests/claude-code/test-subagent-driven-development.sh` was rewritten from six sequential live-model `claude -p` probes to deterministic structural assertions that grep the skill source for each documented property (spec-before-code ordering, self-review/completeness, checkpoint restore, reviewer skepticism, review loop, context/ownership). The old file used a positional phrase-order probe (`assert_order` on `spec compliance` → `code quality` in free text) that failed on *correct* answers phrased differently; fixing that unmasked further latent brittleness (a probe asserting "completeness" where the skill says "Complete") and pushed the full run past the runner's 300s timeout — its `exit 1`-on-first-failure had been masking the downstream probes. The suite is now fast and reliably green (2/2). Behavioral skill-invocation coverage remains in the `skill-triggering/` and `explicit-skill-requests/` suites.
+
 ## [5.8.0] - 2026-06-25
 
 Ports a batch of "Superpowers-6" learnings into the plugin, hardening reviewer rigor, plan authoring contracts, plan2beads metadata propagation, and SDD guardrails. Every change keeps both the Claude Code and Codex surfaces first-class; all skill edits are mirrored into the bundled `plugins/superpowers-bd/skills/` wrapper.

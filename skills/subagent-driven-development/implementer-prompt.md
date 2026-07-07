@@ -25,7 +25,7 @@ Task:
 ```
 spawn_agent:
   # Omit model so the worker inherits the active Codex model.
-  model_reasoning_effort: "<medium|high|xhigh from budget-and-wave-cap.md>"
+  model_reasoning_effort: "<medium|high from budget-and-wave-cap.md>"
   description: "Implement Issue: [issue-id] [issue title]"
   prompt: |
     [Use the shared implementer prompt below.]

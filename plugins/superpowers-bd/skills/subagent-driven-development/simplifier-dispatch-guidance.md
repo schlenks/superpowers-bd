@@ -26,7 +26,7 @@ redundant abstractions. Preserve all behavior and keep tests green.
 **After dispatch:**
 1. Run full test suite
 2. If tests pass: `git commit -m "refactor: post-wave simplification (wave N)"`
-3. If tests fail: `git checkout -- .` (revert all simplification changes), continue
+3. If tests fail: revert the simplifier's uncommitted changes with a **scoped** restore of the files it was passed — `git restore -- <wave file list>` — then continue. Do not use `git checkout -- .`: auto mode blocks destructive bulk reverts since Claude Code 2.1.183. Simplification only edits existing files, so restoring the passed list is sufficient.
 4. Record metrics in `task_metrics[f"wave{N}.simplify"]`
 
 ## Pre-Merge Simplification
@@ -65,7 +65,7 @@ indirection. Preserve all behavior and keep tests green.
 
 Both post-wave and pre-merge follow the same recovery:
 
-1. **Revert all simplification changes:** `git checkout -- .`
+1. **Revert the simplifier's changes with a scoped restore:** `git restore -- <files passed to the simplifier>`. Do not use `git checkout -- .` — auto mode blocks destructive bulk reverts (Claude Code 2.1.183+). A scoped restore of the known file list reads as intentional and avoids the block. Because simplification is best-effort and non-blocking, if the restore is still denied, note it and proceed.
 2. **Do not retry** — if the simplifier broke tests, the changes were too aggressive
 3. **Continue the workflow** — simplification is best-effort, not blocking
 4. **Note in wave summary or completion report:** "Simplification: skipped (test failure after changes)"
