@@ -48,11 +48,28 @@ fi
 [ "$work_live" = 0 ] && exit 0
 
 # Completion claim with no evidence?
-claim_re='is (now )?complete|is (now )?fixed|is (now )?done|implementation (is )?complete|successfully (implemented|completed|fixed)|ready to merge|ready for review|all tests pass|everything works|work is done|task is done'
-evidence_re='exit code[ :]*[0-9]+|[0-9]+ (tests? )?(passed|passing)|0 failures|output:|evidence:|✓|✅|all .*pass|ran (npm|pnpm|yarn|pytest|go test|cargo|make|bash|sh|node|python|python3|\./[^[:space:]]+)|executed (npm|pnpm|yarn|pytest|go test|cargo|make|bash|sh|node|python|python3|\./[^[:space:]]+)|result:|passed|no .*fail'
+# NOTE: 'ready to merge'/'ready for review' are deliberately absent — those are
+# reviewer-verdict vocabulary, not the orchestrator's own claim. During SDD the
+# main agent relays those constantly (MONITOR/REVIEW), so matching them here is a
+# category error that fires on every status turn.
+claim_re='is (now )?complete|is (now )?fixed|is (now )?done|implementation (is )?complete|successfully (implemented|completed|fixed)|all tests pass|everything works|work is done|task is done'
+evidence_re='exit code[ :]*[0-9]+|[0-9]+ (tests? )?(passed|passing)|0 failures|output:|evidence:|✓|✅|ran (npm|pnpm|yarn|pytest|go test|cargo|make|bash|sh|node|python|python3|\./[^[:space:]]+)|executed (npm|pnpm|yarn|pytest|go test|cargo|make|bash|sh|node|python|python3|\./[^[:space:]]+)|result:|passed|no .*fail'
 
 printf '%s' "$last_message" | grep -qiE "$claim_re" || exit 0
 printf '%s' "$last_message" | grep -qiE "$evidence_re" && exit 0
+
+# Not a sign-off? A warranted block is a declarative, terminal "it's done" claim.
+# Completion vocabulary also shows up when the turn is NOT signing off — either
+# reporting work still in flight (relaying subagent/reviewer status) or soliciting
+# the user's direction (a question / offer to proceed). Neither is a completion
+# claim, so don't nag. Declarative claims fall through to the block below.
+inflight_re='still (work|runn|go|pend|open|await)|waiting (on|for)|holding|in flight|in progress|not (yet )?(complete|done|finish)|stays open|remains open|[0-9]+ of [0-9]+|awaiting'
+solicit_re='want me to|shall i|should i|do you want|would you like|awaiting your|your (go-ahead|call|decision|preference)'
+printf '%s' "$last_message" | grep -qiE "$inflight_re" && exit 0
+printf '%s' "$last_message" | grep -qiE "$solicit_re" && exit 0
+# Trailing question mark → soliciting input, not declaring done.
+trimmed=$(printf '%s' "$last_message" | sed -e 's/[[:space:]]*$//')
+case "$trimmed" in *\?) exit 0 ;; esac
 
 # Bounded per-session counter so a degenerate case cannot nag indefinitely.
 count_file="$temp_dir/stop-gate-${session_id}.count"

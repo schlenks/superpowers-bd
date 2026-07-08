@@ -30,6 +30,18 @@ chmod +x "$STUB_BIN/bd"
 CLAIM_NO_EVIDENCE='The authentication refactor is complete.'
 CLAIM_WITH_EVIDENCE='The authentication refactor is complete — ran pytest, exit code 0, 42 passed.'
 CLAIM_RAN_OUT_OF_TIME='The authentication refactor is complete, but I ran out of time to run tests.'
+CLAIM_DECLARATIVE_SIGNOFF='Everything works and the task is done.'
+# Bare "all tests pass" asserts verification without quoting output — a claim, not
+# evidence. It must block (regression: evidence_re 'all .*pass' used to self-exempt it).
+CLAIM_ALL_TESTS_PASS='All tests pass.'
+
+# Not sign-offs: completion vocabulary appears while relaying reviewer/subagent
+# status (work in flight) or while soliciting user direction (question/offer).
+# These must NOT block — see the two false-positive classes in stop-gate.sh.
+STATUS_REVIEWER_DONE='Reviewer 2 is done and persisted; 1 and 3 still working. Holding.'
+STATUS_VERDICT_RELAY='Reviewer 3 also approves ("Ready to merge? Yes" — 65/65 both compilers). Two of three in; waiting on reviewer 1 to aggregate.'
+META_PROPOSAL_QUESTION='The tightened regex still matches a turn that says task is done or everything works. Want me to implement the removal test-first?'
+META_AWAITING_GOAHEAD='Everything works once we drop the bare forms. Awaiting your go-ahead on implementing the removal.'
 
 payload() {
   jq -nc --arg sid "$1" --arg msg "$2" --argjson active "$3" \
@@ -93,6 +105,30 @@ run_test "Escape hatch SDD_ALLOW_STOP=1 passes" \
 # Liveness via in_progress beads (no wave flag) still gates the block on.
 run_test "In-progress beads work triggers gate" \
   "$(payload s6 "$CLAIM_NO_EVIDENCE" false)" no '[{"id":"x"}]' "" yes
+
+# Declarative terminal claim with no evidence still blocks (warranted).
+run_test "Declarative sign-off without evidence blocks" \
+  "$(payload s7 "$CLAIM_DECLARATIVE_SIGNOFF" false)" yes '[]' "" yes
+
+# Bare "all tests pass" is an unevidenced claim, not evidence → blocks.
+run_test "Bare all-tests-pass claim without output blocks" \
+  "$(payload s7b "$CLAIM_ALL_TESTS_PASS" false)" yes '[]' "" yes
+
+# --- Not a sign-off: must NOT block even during live work ---
+# Workflow class: relaying reviewer/subagent status while work is in flight.
+run_test "Reviewer status report during wave passes" \
+  "$(payload s8 "$STATUS_REVIEWER_DONE" false)" yes '[]' "" no
+
+run_test "Verdict relay while awaiting reviewers passes" \
+  "$(payload s9 "$STATUS_VERDICT_RELAY" false)" yes '[]' "" no
+
+# Meta class: discussing/quoting completion vocabulary while soliciting direction.
+run_test "Proposal ending in a question passes" \
+  "$(payload s10 "$META_PROPOSAL_QUESTION" false)" yes '[]' "" no
+
+run_test "Awaiting go-ahead solicitation passes" \
+  "$(payload s11 "$META_AWAITING_GOAHEAD" false)" yes '[]' "" no
+
 
 # Counter cap: same session, 4 stops → first 3 block, 4th releases.
 echo "--- counter cap (same session_id, 4 stops) ---"

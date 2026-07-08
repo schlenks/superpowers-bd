@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.9.1] - 2026-07-08
+
+Fixes false-positive blocks in the `Stop` verification gate that fired on ordinary SDD status turns, and reconciles version drift left over from the 5.9.0 release. Mirrored across the Claude Code and Codex hook surfaces.
+
+### Fixed
+
+- **Stop-gate false positives during SDD review (`stop-gate.sh` + `codex-stop-gate.sh`)**: the completion-claim detector blocked turns that were not sign-offs. Two classes are now handled: (1) removed `ready to merge`/`ready for review` from `claim_re` — reviewer-verdict vocabulary the orchestrator *relays* during MONITOR/REVIEW, not its own completion claim; (2) added a not-a-sign-off suppressor that exits silently when a matched claim turn also reports work in flight (`still working`, `waiting on`, `N of M`, `holding`) or solicits user direction (trailing `?`, `want me to`, `awaiting your go-ahead`). Declarative terminal claims still block. Precision-over-recall by design: a false block harms the workflow, a false silence reverts to pre-hook behavior; the per-session counter cap and `SDD_ALLOW_STOP=1` remain as backstops.
+- **Dead `all tests pass` claim entry**: `evidence_re` matched `all .*pass`, which self-exempted the bare `all tests pass` claim it collided with (an unevidenced assertion that should block). Removed `all .*pass` from `evidence_re` in both hooks; real evidence (`42 passed`, `ran pytest`, `exit code 0`) still exempts. Regression-tested.
+- **Version drift from the 5.9.0 release**: `.codex-plugin/plugin.json` (5.8.0) and `AGENTS.md` (5.8.0) were never bumped alongside the Claude manifest. All four manifests plus `CLAUDE.md`/`AGENTS.md` now agree at 5.9.1, restoring the `test-plugin-config-drift.sh` version checks to green.
+
 ## [5.9.0] - 2026-07-07
 
 Adopts the 2026-07-07 changelog audit (Claude Code 2.1.108–202) and retunes model-effort policy across both surfaces. All skill edits are mirrored into the bundled `plugins/superpowers-bd/skills/` wrapper.

@@ -39,11 +39,22 @@ if [ "$work_live" = 0 ] && command -v bd >/dev/null 2>&1; then
 fi
 [ "$work_live" = 0 ] && exit 0
 
-claim_re='is (now )?complete|is (now )?fixed|is (now )?done|implementation (is )?complete|successfully (implemented|completed|fixed)|ready to merge|ready for review|all tests pass|everything works|work is done|task is done'
-evidence_re='exit code[ :]*[0-9]+|[0-9]+ (tests? )?(passed|passing)|0 failures|output:|evidence:|all .*pass|ran (npm|pnpm|yarn|pytest|go test|cargo|make|bash|sh|node|python|python3|\./[^[:space:]]+)|executed (npm|pnpm|yarn|pytest|go test|cargo|make|bash|sh|node|python|python3|\./[^[:space:]]+)|result:|passed|no .*fail'
+# 'ready to merge'/'ready for review' deliberately absent — reviewer-verdict
+# vocabulary the orchestrator relays, not its own completion claim. See stop-gate.sh.
+claim_re='is (now )?complete|is (now )?fixed|is (now )?done|implementation (is )?complete|successfully (implemented|completed|fixed)|all tests pass|everything works|work is done|task is done'
+evidence_re='exit code[ :]*[0-9]+|[0-9]+ (tests? )?(passed|passing)|0 failures|output:|evidence:|ran (npm|pnpm|yarn|pytest|go test|cargo|make|bash|sh|node|python|python3|\./[^[:space:]]+)|executed (npm|pnpm|yarn|pytest|go test|cargo|make|bash|sh|node|python|python3|\./[^[:space:]]+)|result:|passed|no .*fail'
 
 printf '%s' "$last_message" | grep -qiE "$claim_re" || exit 0
 printf '%s' "$last_message" | grep -qiE "$evidence_re" && exit 0
+
+# Not a sign-off (work in flight, or soliciting user direction) → don't nag.
+# Declarative terminal claims fall through to the block. See stop-gate.sh.
+inflight_re='still (work|runn|go|pend|open|await)|waiting (on|for)|holding|in flight|in progress|not (yet )?(complete|done|finish)|stays open|remains open|[0-9]+ of [0-9]+|awaiting'
+solicit_re='want me to|shall i|should i|do you want|would you like|awaiting your|your (go-ahead|call|decision|preference)'
+printf '%s' "$last_message" | grep -qiE "$inflight_re" && exit 0
+printf '%s' "$last_message" | grep -qiE "$solicit_re" && exit 0
+trimmed=$(printf '%s' "$last_message" | sed -e 's/[[:space:]]*$//')
+case "$trimmed" in *\?) exit 0 ;; esac
 
 mkdir -p "$temp_dir"
 count_file="${temp_dir}/stop-gate-${session_id}.count"
