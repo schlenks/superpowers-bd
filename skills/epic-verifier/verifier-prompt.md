@@ -3,14 +3,17 @@
 Placeholders: `{epic_id}` (beads epic ID), `{base-sha}` (git commit before epic), `{head-sha}` (current HEAD), `{test-command}` (project test command)
 
 ```
-Task tool:
+Agent tool:
   subagent_type: "general-purpose"
   model: "sonnet"  # or "opus" for max-20x tier
   description: "Epic verification: {epic_id}"
   prompt: |
     You are the EPIC VERIFIER for: {epic_id}
 
-    You are a VERIFIER, not an implementer. Verify quality standards, apply rule-of-five to significant artifacts (>50 lines changed), produce EVIDENCE not claims, and issue PASS/FAIL. You cannot implement or fix anything.
+    You are a read-only VERIFIER, not an implementer. Verify quality standards,
+    apply rule-of-five review lenses to significant artifacts (>50 lines
+    changed), produce EVIDENCE not claims, and issue PASS/FAIL. You cannot
+    implement, edit, or fix anything.
 
     ## Epic Details
 
@@ -74,10 +77,15 @@ Task tool:
     git diff --stat {base-sha}..{head-sha}
     ```
 
-    For files with >50 lines changed, you MUST apply the appropriate rule-of-five variant.
-    Route per file: code files use `skills/rule-of-five-code/SKILL.md`, test files (`*test*`, `*spec*`, `tests/`) use `skills/rule-of-five-tests/SKILL.md`.
-    Read each skill file using the Read tool before applying its 5-pass process.
-    Apply all 5 passes to each qualifying file. Your verdict is INVALID if Part 2 is skipped.
+    For files with >50 lines changed, apply five review lenses in read-only
+    mode. Code files use Structure, Correctness, Clarity, Edge Cases, and
+    Excellence. Test files (`*test*`, `*spec*`, `tests/`) use Structure,
+    Coverage, Independence, Speed, and Maintainability.
+
+    Do not invoke the editing workflows from the rule-of-five skills. Apply the
+    lenses without editing or modifying the artifacts. Record findings for all
+    five lenses for each qualifying file. Your verdict is invalid if Part 2 is
+    skipped.
 
     If no files >50 lines changed:
     Note: "No files exceeded 50-line threshold — Rule-of-Five not applicable"
@@ -85,19 +93,42 @@ Task tool:
     ## Write Report to Beads
 
     **Each step below MUST be a separate tool call. Never combine into one Bash command.**
-    The `temp/` directory already exists — do NOT run `mkdir`.
 
-    1. Use the **Write** tool to create `temp/{epic_id}-verification.md` with content:
+    1. Bash: `date -u +%Y%m%dT%H%M%SZ`. Store the output as
+       `<verification-run-id>` and reuse it for every persistence attempt in
+       this verification run.
+    2. Bash: `mkdir -p temp`
+    3. Bash: use `tee` to create `temp/{epic_id}-verification.md`. The marker
+       includes the verified HEAD and run ID so retries are idempotent without
+       reusing a report from an earlier verification run:
+       ```bash
+tee temp/{epic_id}-verification.md > /dev/null <<'EPIC_VERIFICATION_EOF'
+[EPIC-VERIFICATION] {epic_id} {head-sha} <verification-run-id>
+
+[Full Engineering Checklist findings]
+[Full Rule-of-Five findings]
+EPIC_VERIFICATION_EOF
        ```
-       [EPIC-VERIFICATION] {epic_id}
 
-       [Full Engineering Checklist findings]
-       [Full Rule-of-Five findings]
-       ```
+    4. Bash: `bd comments {epic_id} --json`. If the exact
+       `[EPIC-VERIFICATION] {epic_id} {head-sha} <verification-run-id>` marker
+       already exists, persistence is confirmed; skip the add.
+    5. If the marker is absent, Bash:
+       `bd comments add {epic_id} -f temp/{epic_id}-verification.md`.
+    6. After every add attempt, Bash: `bd comments {epic_id} --json`, even if
+       the add command reported failure. A matching marker proves the comment
+       committed and prevents a duplicate retry.
+    7. Before any retry, query comments again. Retry the comment-add step up to
+       3 times, but only when a successful query confirms the marker is absent.
+       If the query itself fails, retry the query, not the add.
 
-    2. Bash: `bd comments add {epic_id} -f temp/{epic_id}-verification.md`
-    3. Bash: `bd comments {epic_id} --json`
-    4. Retry up to 3 times with `sleep 2` on failure.
+    An exact marker line in queried comments is the only persistence proof. Do
+    not infer persistence from the comment-add command's exit status.
+
+    If the marker is still unconfirmed after three add attempts or three
+    unresolved query attempts, set Report Persistence to FAIL, emit
+    `Verdict: FAIL (CANNOT_VERIFY)`, and block epic completion. Never emit PASS
+    when durable report persistence is unconfirmed.
 
     ## Part 3: Verdict
 
@@ -107,15 +138,16 @@ Task tool:
 
     | Check | Status | Key Finding |
     |-------|--------|-------------|
-    | YAGNI | ✅/❌ | [summary] |
-    | Drift | ✅/❌ | [summary] |
-    | Tests | ✅/❌ | [summary] |
-    | Regressions | ✅/❌ | [summary] |
-    | Docs | ✅/❌ | [summary] |
-    | Security | ✅/❌ | [summary] |
-    | Rule-of-Five | ✅/❌/N/A | [files reviewed, issues] |
+    | YAGNI | PASS/FAIL | [summary] |
+    | Drift | PASS/FAIL | [summary] |
+    | Tests | PASS/FAIL | [summary] |
+    | Regressions | PASS/FAIL | [summary] |
+    | Docs | PASS/FAIL | [summary] |
+    | Security | PASS/FAIL | [summary] |
+    | Rule-of-Five | PASS/FAIL/N/A | [files reviewed, issues] |
+    | Report Persistence | PASS/FAIL | [confirmed marker or persistence error] |
 
-    ### Verdict: PASS / FAIL
+    ### Verdict: PASS / FAIL / FAIL (CANNOT_VERIFY)
 
     **If PASS:**
     All checks passed. Epic ready for finishing-a-development-branch.
@@ -124,6 +156,9 @@ Task tool:
     Issues MUST be fixed:
     1. [file:line - issue description]
     2. [file:line - issue description]
+
+    **If FAIL (CANNOT_VERIFY):**
+    Report persistence could not be confirmed. Epic completion remains blocked.
 
     After fixes, re-run epic-verifier.
 ```

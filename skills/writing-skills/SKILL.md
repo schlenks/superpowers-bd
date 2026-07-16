@@ -37,9 +37,9 @@ This skill demonstrates the pattern it teaches: core workflow here, deep detail 
    # GOOD: Forces Claude to read the skill for workflow details
    description: Use when executing implementation plans with independent tasks in the current session
    ```
-4. **RED** -- Run pressure scenarios WITHOUT skill -> document baseline failures and rationalizations verbatim
+4. **RED** -- Run representative scenarios WITHOUT the skill and document the baseline failures
 5. **GREEN** -- Write SKILL.md addressing those specific failures -> verify agents comply with skill present
-6. **REFACTOR** -- Close loopholes, build rationalization table, re-test until bulletproof
+6. **REFACTOR** -- Tighten only the instructions the evaluation shows are still needed
 7. **Validate:**
    ```bash
    npx claude-skills-cli validate <skill-dir> --lenient
@@ -76,18 +76,15 @@ Keep this focused -- "what do I do now?" belongs here.
 What goes wrong + fixes. Keep to top 3-5.
 ```
 
-## The Iron Law
+## Behavioral Baseline
 
 ```
-NO SKILL WITHOUT A FAILING TEST FIRST
+NO BEHAVIOR-SHAPING SKILL CHANGE WITHOUT A BASELINE
 ```
 
-This applies to NEW skills AND EDITS to existing skills. No exceptions.
-
-Write skill before testing? Delete it. Start over.
-- Don't keep untested changes as "reference"
-- Don't "adapt" while running tests
-- Delete means delete
+New skills and edits that change model behavior need a failing or insufficient
+baseline first. Purely mechanical changes such as path corrections, mirror sync,
+or frontmatter formatting use deterministic structural checks instead.
 
 ## Description Writing
 
@@ -108,11 +105,10 @@ Full guide with examples: `references/description-and-discovery.md`
 - `references/skill-structure.md`: directory layout, skill types, frontmatter fields for all components
 - `references/description-and-discovery.md`: writing descriptions, CSO, token efficiency, flowcharts, naming
 - `references/tdd-for-skills.md`: TDD mapping, phase tasks, RED-GREEN-REFACTOR detail, testing by type
-- `references/bulletproofing.md`: rationalization tables, loophole closing, anti-patterns
+- `references/bulletproofing.md`: matching instruction form to observed failure shape
 - `references/creation-checklist.md`: full 40-item checklist, STOP directive, validation step
 - `references/anthropic-best-practices.md`: official Anthropic skill authoring guidance
 - `references/testing-skills-with-subagents.md`: pressure scenario methodology, meta-testing
-- `references/persuasion-principles.md`: psychology research behind bulletproofing (Cialdini, Meincke)
 - `references/graphviz-conventions.dot`: Graphviz style rules for flowcharts
 - `references/examples/`: worked examples (CLAUDE_MD_TESTING.md)
 

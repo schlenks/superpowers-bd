@@ -6,7 +6,7 @@ This file provides guidance to agent tools when working with code in this reposi
 
 Superpowers-BD is a multi-agent-tool plugin providing workflow skills for TDD, debugging, and collaboration patterns. It has first-class Claude Code, Codex, and OpenCode support, and integrates with **beads** (git-backed issue tracker) for persistent task management and wave-based parallel execution across sessions.
 
-**Plugin version:** 5.9.1
+**Plugin version:** 5.10.0
 
 Codex reads this file as the project instruction source. Keep Claude Code minimum-version and release-tagging details in `CLAUDE.md`; keep Codex-native install, agent, hook, and `$skill` details in `docs/README.codex.md`.
 
@@ -17,7 +17,7 @@ Shared skills describe workflow intent. Each supported agent tool executes that 
 | Shared intent | Claude Code implementation | Codex implementation |
 |---------------|----------------------------|----------------------|
 | Track progress | `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` | `update_plan` |
-| Delegate work | `Task` with background execution when appropriate | `spawn_agent`, then `wait_agent` when blocked on results |
+| Delegate work | `Agent` with background execution when appropriate | `spawn_agent`, then `wait_agent` when blocked on results |
 | Ask questions | `AskUserQuestion` | Direct user question, or structured question tool when available |
 | Verify completion | `Skill` plus verification commands and captured evidence | `$skill` plus verification commands and captured evidence |
 
@@ -78,7 +78,7 @@ skills/                     # Core skill definitions (SKILL.md files)
   rule-of-five-tests/           # 5-pass test quality review
   ...
 
-agents/                     # Claude Code subagent definitions for Task tool
+agents/                     # Claude Code subagent definitions for Agent tool
   code-reviewer.md         # Code review subagent
   epic-verifier.md         # Epic verification subagent
 
@@ -182,7 +182,12 @@ Plugin-loaded frontmatter hook behavior has changed across Claude Code releases.
 - Local dev marketplace must be enabled in `~/.claude/settings.json`
 - Use `--permission-mode bypassPermissions` and `--add-dir` for test directories
 
-<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
+The managed Beads block below governs durable issue tracking only. It does not
+prohibit native workflow progress: Claude Code still uses
+`TaskCreate`/`TaskUpdate`, and Codex still uses `update_plan`, for execution
+phases and quality gates.
+
+<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:6cd5cc61 -->
 ## Beads Issue Tracker
 
 This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
@@ -202,29 +207,37 @@ bd close <id>         # Complete work
 - Run `bd prime` for detailed command reference and session close protocol
 - Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
 
+**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
+
+## Agent Context Profiles
+
+The managed Beads block is task-tracking guidance, not permission to override repository, user, or orchestrator instructions.
+
+- **Conservative (default)**: Use `bd` for task tracking. Do not run git commits, git pushes, or Dolt remote sync unless explicitly asked. At handoff, report changed files, validation, and suggested next commands.
+- **Minimal**: Keep tool instruction files as pointers to `bd prime`; use the same conservative git policy unless active instructions say otherwise.
+- **Team-maintainer**: Only when the repository explicitly opts in, agents may close beads, run quality gates, commit, and push as part of session close. A current "do not commit" or "do not push" instruction still wins.
+
 ## Session Completion
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+This protocol applies when ending a Beads implementation workflow. It is subordinate to explicit user, repository, and orchestrator instructions.
 
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
+1. **File issues for remaining work** - Create beads for anything that needs follow-up
 2. **Run quality gates** (if code changed) - Tests, linters, builds
 3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+4. **Handle git/sync by active profile**:
    ```bash
-   git pull --rebase
-   bd dolt push
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
+   # Conservative/minimal/default: report status and proposed commands; wait for approval.
+   git status
 
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+   # Team-maintainer opt-in only, unless current instructions forbid it:
+   git pull --rebase
+   git push
+   git status
+   ```
+5. **Hand off** - Summarize changes, validation, issue status, and any blocked sync/commit/push step
+
+**Critical rules:**
+- Explicit user or orchestrator instructions override this Beads block.
+- Do not commit or push without clear authority from the active profile or the current user request.
+- If a required sync or push is blocked, stop and report the exact command and error.
 <!-- END BEADS INTEGRATION -->

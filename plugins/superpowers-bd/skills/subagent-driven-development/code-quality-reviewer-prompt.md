@@ -14,7 +14,7 @@ Pass absolute paths as `{code_reviewer_path}`, `{rule_of_five_code_path}`, `{rul
 ## Claude Code Dispatch
 
 ```
-Task:
+Agent:
   subagent_type: "general-purpose"
   model: "<tier-based Claude model from budget-and-wave-cap.md>"
   description: "Code review: {issue_id}"

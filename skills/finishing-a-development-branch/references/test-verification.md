@@ -19,7 +19,7 @@ npm test / cargo test / pytest / go test ./...
 
 ## Enforcement Rules
 
-This task CANNOT be marked `completed` unless:
+Mark the task `completed` only after recording evidence that:
 - Test command was run (fresh, in this message)
 - Output shows 0 failures
 - Exit code was 0

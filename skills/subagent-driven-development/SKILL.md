@@ -25,7 +25,7 @@ Execute a beads epic by dispatching independent implementation issues in paralle
 9. Run `bd ready`, filter to this epic's children, and exclude blocked/cross-epic/file-conflicting issues.
 10. **Pre-flight requirement-conflict scan:** read each in-scope child issue body (`bd show <id>`) and check for contradictory requirements on a shared surface — two issues specifying incompatible behavior for the same file, API endpoint, data contract, or behavioral rule. This is requirement-level contradiction only; `wave_file_map` handles file-write conflicts separately. If a contradiction is found, surface it and hold at PENDING_HUMAN before dispatching wave 1. If clean, proceed silently.
 11. Select wave cap. Use explicit invocation first; otherwise use the budget/context heuristic in `budget-and-wave-cap.md`.
-12. Dispatch implementers in parallel for non-conflicting ready issues. Mark each issue `in_progress` before dispatch.
+12. Load `wave-orchestration.md`, create the active-wave flag, then dispatch implementers in parallel for non-conflicting ready issues. Mark each issue `in_progress` before dispatch.
 13. Route implementer status: `DONE`/`DONE_WITH_CONCERNS` -> review; `NEEDS_CONTEXT`/`BLOCKED` -> re-dispatch or escalate.
 14. Run review pipeline: spec review, code review(s), platform-native aggregation when needed, and gap closure up to 3 attempts.
 15. Close passing issues immediately with evidence, post `[WAVE-SUMMARY]`, update checkpoint, and loop back to `bd ready`.
@@ -33,7 +33,7 @@ Execute a beads epic by dispatching independent implementation issues in paralle
 
 ## Claude Code Dispatch Path
 
-1. Use `Task` with `run_in_background: true` for implementers, spec reviewers, code reviewers, aggregation, simplification, and epic verification.
+1. Use `Agent` with `run_in_background: true` for implementers, spec reviewers, code reviewers, aggregation, simplification, and epic verification.
 2. Route implementer/reviewer models with the Claude Code table in `budget-and-wave-cap.md`.
 3. For 2+ code reviewers, aggregate with `multi-review-aggregation`.
 4. If `codex_enabled: true`, run the Codex cross-model advisory review in parallel with Claude Code code reviewers. This is Claude-only advisory input and must not replace Claude reviewer verdicts.
@@ -78,7 +78,7 @@ If you are updating an older checkpoint or prompt, map old behavior as follows:
 
 ## Platform Mapping
 
-- **Claude Code:** use `Task` with `run_in_background: true` as shown in prompt templates.
+- **Claude Code:** use `Agent` with `run_in_background: true` as shown in prompt templates.
 - **Codex:** use `spawn_agent` for implementers/reviewers and `wait_agent` only when the controller is blocked. Use `.codex/agents/` names `spec_reviewer`, `code_reviewer`, `review_aggregator`, and `epic_verifier` for specialist stages.
 - **Progress tracking:** map `TaskCreate`/`TaskUpdate` blocks to the native progress tracker. Beads remains the durable source of truth for issue state.
 - **Questions:** in Codex, use `request_user_input` with `autoResolutionMs` for useful but non-blocking choices when available; otherwise ask concise direct questions. Use `AskUserQuestion` only on platforms that provide it.
@@ -157,7 +157,7 @@ If reviewers find issues, loop: implementer fixes, reviewers re-check, and closu
 
 **Always:** check `bd ready` before each wave; compare file lists for conflicts; close passing issues immediately; re-check `bd ready` after each close; write checkpoint after each wave; post `[WAVE-SUMMARY]`.
 
-**Review re-dispatch:** When re-dispatching a reviewer after a fix (`Task`/`spawn_agent`), or writing a gap-fix task description, give the reviewer only the diff and requirements. Route your own assessment ("this is minor", "the plan already chose this", "don't flag X") to the resolution step, never into the reviewer's prompt — it biases an independent review.
+**Review re-dispatch:** When re-dispatching a reviewer after a fix (`Agent`/`spawn_agent`), or writing a gap-fix task description, give the reviewer only the diff and requirements. Route your own assessment ("this is minor", "the plan already chose this", "don't flag X") to the resolution step, never into the reviewer's prompt — it biases an independent review.
 
 **Deadlock:** `bd ready` empty but open issues remain -> inspect `bd blocked` for circular dependencies or forgotten closes.
 
@@ -181,6 +181,7 @@ If reviewers find issues, loop: implementer fixes, reviewers re-check, and closu
 - `metrics-tracking.md`: summary templates and usage tracking
 - `context-loading.md`: self-read pattern and orchestrator responsibilities
 - `failure-recovery.md`: timeout, rejection loop, deadlock, bd errors
+- `wave-orchestration.md`: required before DISPATCH; owns active-wave flag creation, cleanup, and checkpoint ordering
 - `example-workflow.md`: complete worked example
 
 <!-- compressed: 2026-05-14, original: 235 lines, compressed: 123 lines -->

@@ -8,6 +8,7 @@ Step 1.5 detail: Dispatch code-simplifier on all changed files before merge.
 TaskCreate: "Pre-merge simplification"
   description: "Dispatch code-simplifier on all files changed vs base branch. Focus: accumulated complexity, naming consistency, redundant abstractions. Revert if tests fail."
   activeForm: "Running pre-merge simplification"
+TaskUpdate: simplification-task-id
   addBlockedBy: [verify-tests-task-id]
 ```
 
@@ -27,7 +28,7 @@ git diff --name-only <merge-base-sha>..HEAD
 ### 2. Dispatch code-simplifier on the full changeset
 
 ```python
-Task(
+Agent(
     subagent_type="code-simplifier:code-simplifier",
     description="Simplify: pre-merge",
     prompt=f"Focus on these files from the branch: {changed_files}. "

@@ -20,29 +20,33 @@ TaskCreate: "Pass 1: Draft"
 TaskCreate: "Pass 2: Correctness"
   description: "Logic, bugs, regressions. Does it work? Did it break anything?"
   activeForm: "Checking correctness"
+TaskUpdate: pass-2-id
   addBlockedBy: [draft-task-id]
 
 TaskCreate: "Pass 3: Clarity"
   description: "Comprehension. Can someone unfamiliar understand this? Simplify."
   activeForm: "Improving clarity"
+TaskUpdate: pass-3-id
   addBlockedBy: [correctness-task-id]
 
 TaskCreate: "Pass 4: Edge Cases"
   description: "Failure modes. What's missing? What breaks under stress?"
   activeForm: "Handling edge cases"
+TaskUpdate: pass-4-id
   addBlockedBy: [clarity-task-id]
 
 TaskCreate: "Pass 5: Excellence"
   description: "Pride. Would you show this to a senior colleague? Polish rough spots."
   activeForm: "Polishing"
+TaskUpdate: pass-5-id
   addBlockedBy: [edge-cases-task-id]
 ```
 
-**ENFORCEMENT:**
-- Each pass is blocked until the previous completes
-- Cannot commit until all 5 tasks show `status: completed`
-- TaskList shows your progress through the passes
-- Skipping passes is visible - blocked tasks can't be marked in_progress
+**Progress contract:**
+- Record each dependency with `TaskUpdate` after creating the task.
+- TaskList makes the intended order and skipped passes visible.
+- Advance only after the prior pass has evidence; task state does not prevent
+  unrelated tool or git actions by itself.
 
 ## Cross-Model Review (Codex)
 

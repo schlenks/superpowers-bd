@@ -6,8 +6,6 @@ description: |
 model: inherit
 effort: high
 skills:
-  - rule-of-five-code
-  - rule-of-five-tests
   - verification-before-completion
 maxTurns: 40
 disallowedTools:
@@ -38,14 +36,45 @@ For EACH item, provide EVIDENCE (not just yes/no):
 
 ### Part 2: Rule-of-Five Review
 
-For files with >50 lines changed, apply the appropriate rule-of-five variant:
+For files with >50 lines changed, apply five read-only review lenses. Do not
+invoke the editing workflows from the rule-of-five skills and do not modify the
+artifacts:
 
-**Code files** (rule-of-five-code): Draft, Correctness, Clarity, Edge Cases, Excellence
-**Test files** (`*test*`, `*spec*`, `tests/`) (rule-of-five-tests): Draft, Coverage, Independence, Speed, Maintainability
+**Code files:** Structure, Correctness, Clarity, Edge Cases, Excellence
+**Test files** (`*test*`, `*spec*`, `tests/`): Structure, Coverage, Independence, Speed, Maintainability
 
 Report findings per file with specific line references.
 
 ### Part 3: Verdict
+
+Before issuing a verdict, persist the full report idempotently:
+
+1. Resolve `<head-sha>` with `git rev-parse HEAD`. Generate
+   `<verification-run-id>` once with `date -u +%Y%m%dT%H%M%SZ` and reuse it for
+   every persistence attempt in this run.
+2. Run `mkdir -p temp`, then use `tee` to create the report:
+   ```bash
+tee temp/<epic-id>-verification.md > /dev/null <<'EPIC_VERIFICATION_EOF'
+[EPIC-VERIFICATION] <epic-id> <head-sha> <verification-run-id>
+[Full verification report]
+EPIC_VERIFICATION_EOF
+   ```
+3. Query `bd comments <epic-id> --json` before adding. If that exact marker
+   exists, persistence is already confirmed.
+4. If absent, run
+   `bd comments add <epic-id> -f temp/<epic-id>-verification.md`, then query
+   comments again even if the add command reported failure.
+5. Before any retry, query comments again. Retry the comment-add step up to
+   three times, but only when a successful query confirms the marker is absent.
+   If the query fails, retry the query, not the add.
+
+An exact marker line in queried comments is the only persistence proof. Do not
+infer persistence from the comment-add command's exit status.
+
+If the marker remains unconfirmed after three add attempts or three unresolved
+query attempts, set Report Persistence to FAIL, emit
+`Verdict: FAIL (CANNOT_VERIFY)`, and block epic completion. Never emit PASS when
+durable report persistence is unconfirmed.
 
 Summary table:
 
@@ -58,12 +87,16 @@ Summary table:
 | Docs | PASS/FAIL | [one-line] |
 | Security | PASS/FAIL | [one-line] |
 | Rule-of-Five | PASS/FAIL/N/A | [files reviewed, issues found] |
+| Report Persistence | PASS/FAIL | [confirmed marker or persistence error] |
 
 **Verdict: PASS** — All checks passed, epic ready for completion.
 
 **Verdict: FAIL** — Issues MUST be fixed:
 1. [file:line - issue description]
 2. [file:line - issue description]
+
+**Verdict: FAIL (CANNOT_VERIFY)** — Report persistence could not be confirmed.
+Epic completion remains blocked.
 
 After fixes, re-run epic-verifier.
 
@@ -82,7 +115,7 @@ After fixes, re-run epic-verifier.
 1. Engineering Checklist results (table format)
 2. Rule-of-Five results (per significant file)
 3. Summary table
-4. Clear PASS/FAIL verdict
+4. Clear PASS/FAIL or FAIL (CANNOT_VERIFY) verdict
 5. If FAIL: specific issues with file:line references
 
 ## Memory

@@ -1,6 +1,7 @@
 # Rationalizations and Red Flags
 
-Common excuses for skipping TDD and stop signals indicating TDD violations.
+Common excuses for skipping TDD and stop signals indicating TDD violations when
+no bounded exception from the parent skill applies.
 
 ## Common Rationalizations
 
@@ -12,15 +13,15 @@ Common excuses for skipping TDD and stop signals indicating TDD violations.
 | "Already manually tested" | Ad-hoc =/= systematic. No record, can't re-run. |
 | "Deleting X hours is wasteful" | Sunk cost fallacy. Keeping unverified code is technical debt. |
 | "Keep as reference, write tests first" | You'll adapt it. That's testing after. Delete means delete. |
-| "Need to explore first" | Fine. Throw away exploration, start with TDD. |
+| "Need to explore first" | Select the throwaway-prototype exception first, record its receipt, and discard the prototype before production TDD. |
 | "Test hard = design unclear" | Listen to test. Hard to test = hard to use. |
 | "TDD will slow me down" | TDD faster than debugging. Pragmatic = test-first. |
 | "Manual test faster" | Manual doesn't prove edge cases. You'll re-test every change. |
 | "Existing code has no tests" | You're improving it. Add tests for existing code. |
 
-## Red Flags - STOP and Start Over
+## Red Flags - Stop and Start Over
 
-- Code before test
+- Production behavior code before test without a bounded exception
 - Test after implementation
 - Test passes immediately
 - Can't explain why test failed
@@ -34,4 +35,5 @@ Common excuses for skipping TDD and stop signals indicating TDD violations.
 - "TDD is dogmatic, I'm being pragmatic"
 - "This is different because..."
 
-**All of these mean: Delete code. Start over with TDD.**
+When no bounded exception applies, these mean: discard the implementation and
+restart from the failing test.

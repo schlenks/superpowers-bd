@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
 # Integration Test: subagent-driven-development workflow
-# Actually executes a plan and verifies the new workflow behaviors
+# Executes a disposable Beads epic and verifies the current workflow behaviors.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/test-helpers.sh"
 
 echo "========================================"
 echo " Integration Test: subagent-driven-development"
 echo "========================================"
 echo ""
-echo "This test executes a real plan using the skill and verifies:"
-echo "  1. Plan is read once (not per task)"
-echo "  2. Full task text provided to subagents"
-echo "  3. Subagents perform self-review"
-echo "  4. Spec compliance review before code quality"
-echo "  5. Review loops when issues found"
-echo "  6. Spec reviewer reads code independently"
+echo "This test executes a real Beads epic using the skill and verifies:"
+echo "  1. A Beads epic is the source of truth"
+echo "  2. Claude dispatches through the Agent tool"
+echo "  3. Native progress tracking is used"
+echo "  4. Spec review runs before code-quality review"
+echo "  5. Passing child issues are closed"
+echo "  6. The implementation and its tests work"
 echo ""
 echo "WARNING: This test may take 10-30 minutes to complete."
 echo ""
@@ -26,7 +28,7 @@ TEST_PROJECT=$(create_test_project)
 echo "Test project: $TEST_PROJECT"
 
 # Trap to cleanup
-trap "cleanup_test_project $TEST_PROJECT" EXIT
+trap 'cleanup_test_project "$TEST_PROJECT"' EXIT
 
 # Set up minimal Node.js project
 cd "$TEST_PROJECT"
@@ -42,67 +44,7 @@ cat > package.json <<'EOF'
 }
 EOF
 
-mkdir -p src test docs/plans
-
-# Create a simple implementation plan
-cat > docs/plans/implementation-plan.md <<'EOF'
-# Test Implementation Plan
-
-This is a minimal plan to test the subagent-driven-development workflow.
-
-## Task 1: Create Add Function
-
-Create a function that adds two numbers.
-
-**File:** `src/math.js`
-
-**Requirements:**
-- Function named `add`
-- Takes two parameters: `a` and `b`
-- Returns the sum of `a` and `b`
-- Export the function
-
-**Implementation:**
-```javascript
-export function add(a, b) {
-  return a + b;
-}
-```
-
-**Tests:** Create `test/math.test.js` that verifies:
-- `add(2, 3)` returns `5`
-- `add(0, 0)` returns `0`
-- `add(-1, 1)` returns `0`
-
-**Verification:** `npm test`
-
-## Task 2: Create Multiply Function
-
-Create a function that multiplies two numbers.
-
-**File:** `src/math.js` (add to existing file)
-
-**Requirements:**
-- Function named `multiply`
-- Takes two parameters: `a` and `b`
-- Returns the product of `a` and `b`
-- Export the function
-- DO NOT add any extra features (like power, divide, etc.)
-
-**Implementation:**
-```javascript
-export function multiply(a, b) {
-  return a * b;
-}
-```
-
-**Tests:** Add to `test/math.test.js`:
-- `multiply(2, 3)` returns `6`
-- `multiply(0, 5)` returns `0`
-- `multiply(-2, 3)` returns `-6`
-
-**Verification:** `npm test`
-EOF
+mkdir -p src test
 
 # Initialize git repo
 git init --quiet
@@ -111,50 +53,82 @@ git config user.name "Test User"
 git add .
 git commit -m "Initial commit" --quiet
 
+# Create an isolated Beads epic. The two child issues own disjoint files so SDD
+# can place them in the same wave.
+bd init --non-interactive --skip-hooks --skip-agents --setup-exclude --prefix sddtest --quiet
+EPIC_ID=$(bd create --silent --type=epic --priority=2 \
+    --title="Implement arithmetic helpers" \
+    --description="Exercise the current subagent-driven-development workflow against a real Beads epic." \
+    --acceptance="Both child issues are reviewed, closed, and verified by npm test.")
+ADD_ID=$(bd create --silent --type=task --priority=2 --parent="$EPIC_ID" \
+    --title="Implement add helper" \
+    --description="Create src/add.js exporting add(a, b). Create test/add.test.js covering positive, zero, and negative operands. Run npm test. Commit only these owned files." \
+    --acceptance="add(2,3)=5, add(0,0)=0, and add(-1,1)=0; npm test passes.")
+MULTIPLY_ID=$(bd create --silent --type=task --priority=2 --parent="$EPIC_ID" \
+    --title="Implement multiply helper" \
+    --description="Create src/multiply.js exporting multiply(a, b). Create test/multiply.test.js covering positive, zero, and negative operands. Run npm test. Commit only these owned files. Do not add divide, power, or subtract helpers." \
+    --acceptance="multiply(2,3)=6, multiply(0,5)=0, and multiply(-2,3)=-6; npm test passes.")
+
 echo ""
-echo "Project setup complete. Starting execution..."
+echo "Project setup complete. Starting epic $EPIC_ID..."
 echo ""
 
 # Run Claude with subagent-driven-development
 # Capture full output to analyze
 OUTPUT_FILE="$TEST_PROJECT/claude-output.txt"
 
-# Create prompt file
-cat > "$TEST_PROJECT/prompt.txt" <<'EOF'
-I want you to execute the implementation plan at docs/plans/implementation-plan.md using the subagent-driven-development skill.
+# The Claude process starts at the plugin repository so local development skills
+# are available. Every project and Beads command must target the isolated
+# fixture explicitly.
+PROMPT="Execute epic $EPIC_ID using the superpowers-bd:subagent-driven-development skill.
 
-IMPORTANT: Follow the skill exactly. I will be verifying that you:
-1. Read the plan once at the beginning
-2. Provide full task text to subagents (don't make them read files)
-3. Ensure subagents do self-review before reporting
-4. Run spec compliance review before code quality review
-5. Use review loops when issues are found
+The disposable project root is $TEST_PROJECT. Treat it as the only implementation
+workspace. Prefix every Beads command with: bd -C \"$TEST_PROJECT\"
+Run each project shell command as: cd \"$TEST_PROJECT\" && <command>
+Use absolute paths under $TEST_PROJECT for file operations.
 
-Begin now. Execute the plan.
-EOF
-
-# Note: We use a longer timeout since this is integration testing
-# Use --allowed-tools to enable tool usage in headless mode
-# IMPORTANT: Run from superpowers directory so local dev skills are available
-PROMPT="Change to directory $TEST_PROJECT and then execute the implementation plan at docs/plans/implementation-plan.md using the subagent-driven-development skill.
-
-IMPORTANT: Follow the skill exactly. I will be verifying that you:
-1. Read the plan once at the beginning
-2. Provide full task text to subagents (don't make them read files)
-3. Ensure subagents do self-review before reporting
-4. Run spec compliance review before code quality review
-5. Use review loops when issues are found
-
-Begin now. Execute the plan."
+Use the pro/api budget tier. Follow the current Beads self-read workflow: load the
+epic and each child issue from Beads, dispatch implementers with Agent, run spec
+review before code-quality review, close passing child issues, and verify npm test.
+Do not read or create a markdown implementation plan. Do not push. After epic
+verification passes, leave the disposable branch as-is and report completion."
 
 echo "Running Claude (output will be shown below and saved to $OUTPUT_FILE)..."
 echo "================================================================================"
-cd "$SCRIPT_DIR/../.." && timeout 1800 claude -p "$PROMPT" --allowed-tools=all --add-dir "$TEST_PROJECT" --permission-mode bypassPermissions 2>&1 | tee "$OUTPUT_FILE" || {
+CLAUDE_STATE_ROOT="${CLAUDE_INTEGRATION_CONFIG_DIR:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}}"
+SESSION_ENV_ROOT="$CLAUDE_STATE_ROOT/session-env"
+SESSION_ENV_PROBE="$SESSION_ENV_ROOT/sdd-integration-$$"
+if ! mkdir -p "$SESSION_ENV_ROOT" 2>/dev/null ||
+    ! mkdir "$SESSION_ENV_PROBE" 2>/dev/null; then
+    echo "SKIP: nested Claude cannot write $SESSION_ENV_ROOT"
+    echo "Run from a host with a writable authenticated Claude config, or set"
+    echo "CLAUDE_INTEGRATION_CONFIG_DIR to an authenticated writable config."
+    exit 77
+fi
+rmdir "$SESSION_ENV_PROBE"
+
+SESSION_ID=$(python3 -c 'import uuid; print(uuid.uuid4())')
+set +e
+(
+    cd "$REPO_ROOT" &&
+        if [ -n "${CLAUDE_INTEGRATION_CONFIG_DIR:-}" ]; then
+            export CLAUDE_CONFIG_DIR="$CLAUDE_INTEGRATION_CONFIG_DIR"
+        fi
+        timeout 1800 claude -p "$PROMPT" \
+            --allowed-tools=all \
+            --add-dir "$TEST_PROJECT" \
+            --permission-mode bypassPermissions \
+            --plugin-dir "$REPO_ROOT" \
+            --session-id "$SESSION_ID"
+) 2>&1 | tee "$OUTPUT_FILE"
+claude_exit=${PIPESTATUS[0]}
+set -e
+if [ "$claude_exit" -ne 0 ]; then
     echo ""
     echo "================================================================================"
-    echo "EXECUTION FAILED (exit code: $?)"
+    echo "EXECUTION FAILED (exit code: $claude_exit)"
     exit 1
-}
+fi
 echo "================================================================================"
 
 echo ""
@@ -163,15 +137,13 @@ echo ""
 
 # Find the session transcript
 # Session files are in ~/.claude/projects/-<working-dir>/<session-id>.jsonl
-WORKING_DIR_ESCAPED=$(echo "$SCRIPT_DIR/../.." | sed 's/\//-/g' | sed 's/^-//')
-SESSION_DIR="$HOME/.claude/projects/$WORKING_DIR_ESCAPED"
+WORKING_DIR_ESCAPED=$(printf '%s' "$REPO_ROOT" | sed 's/\//-/g')
+SESSION_DIR="$CLAUDE_STATE_ROOT/projects/$WORKING_DIR_ESCAPED"
+SESSION_FILE="$SESSION_DIR/$SESSION_ID.jsonl"
 
-# Find the most recent session file (created during this test run)
-SESSION_FILE=$(find "$SESSION_DIR" -name "*.jsonl" -type f -mmin -60 2>/dev/null | sort -r | head -1)
-
-if [ -z "$SESSION_FILE" ]; then
+if [ ! -f "$SESSION_FILE" ]; then
     echo "ERROR: Could not find session transcript file"
-    echo "Looked in: $SESSION_DIR"
+    echo "Looked for: $SESSION_FILE"
     exit 1
 fi
 
@@ -194,62 +166,78 @@ else
 fi
 echo ""
 
-# Test 2: Subagents were used (Task tool)
+# Test 2: Subagents were used through the current Agent tool
 echo "Test 2: Subagents dispatched..."
-task_count=$(grep -c '"name":"Task"' "$SESSION_FILE" || echo "0")
-if [ "$task_count" -ge 2 ]; then
-    echo "  [PASS] $task_count subagents dispatched"
+agent_count=$(grep -c '"name":"Agent"' "$SESSION_FILE" || true)
+if [ "$agent_count" -ge 2 ]; then
+    echo "  [PASS] $agent_count Agent dispatches observed"
 else
-    echo "  [FAIL] Only $task_count subagent(s) dispatched (expected >= 2)"
+    echo "  [FAIL] Only $agent_count Agent dispatch(es) observed (expected >= 2)"
     FAILED=$((FAILED + 1))
 fi
 echo ""
 
-# Test 3: Task tracking was used (TaskCreate/TaskUpdate or legacy TodoWrite)
+# Test 3: Native progress tracking was used
 echo "Test 3: Task tracking..."
-task_create_count=$(grep -c '"name":"TaskCreate"' "$SESSION_FILE" || echo "0")
-task_update_count=$(grep -c '"name":"TaskUpdate"' "$SESSION_FILE" || echo "0")
-todo_count=$(grep -c '"name":"TodoWrite"' "$SESSION_FILE" || echo "0")
-total_task_ops=$((task_create_count + task_update_count + todo_count))
-if [ "$total_task_ops" -ge 1 ]; then
-    if [ "$task_create_count" -ge 1 ] || [ "$task_update_count" -ge 1 ]; then
-        echo "  [PASS] Native task tools used (TaskCreate: $task_create_count, TaskUpdate: $task_update_count)"
-    else
-        echo "  [PASS] TodoWrite used $todo_count time(s) for task tracking (legacy)"
-    fi
+task_create_count=$(grep -c '"name":"TaskCreate"' "$SESSION_FILE" || true)
+task_update_count=$(grep -c '"name":"TaskUpdate"' "$SESSION_FILE" || true)
+if [ "$task_create_count" -ge 1 ] && [ "$task_update_count" -ge 1 ]; then
+    echo "  [PASS] Native task tools used (TaskCreate: $task_create_count, TaskUpdate: $task_update_count)"
 else
-    echo "  [FAIL] No task tracking tools used"
+    echo "  [FAIL] Expected both TaskCreate and TaskUpdate"
+    FAILED=$((FAILED + 1))
+fi
+echo ""
+
+# Test 4: Spec review was dispatched before code-quality review
+echo "Test 4: Review ordering..."
+spec_review_line=$(grep -n -m 1 '"description":"Spec review:' "$SESSION_FILE" | cut -d: -f1 || true)
+code_review_line=$(grep -n -m 1 '"description":"Code review' "$SESSION_FILE" | cut -d: -f1 || true)
+if [ -n "$spec_review_line" ] &&
+    [ -n "$code_review_line" ] &&
+    [ "$spec_review_line" -lt "$code_review_line" ]; then
+    echo "  [PASS] Spec review precedes code-quality review"
+else
+    echo "  [FAIL] Expected a Spec review Agent dispatch before Code review"
+    FAILED=$((FAILED + 1))
+fi
+echo ""
+
+# Test 5: Both Beads child issues were closed
+echo "Test 5: Beads issue closure..."
+closed_count=$(bd -C "$TEST_PROJECT" list --parent "$EPIC_ID" --status=closed --json |
+    python3 -c 'import json, sys; print(len(json.load(sys.stdin)))')
+if [ "$closed_count" -eq 2 ]; then
+    echo "  [PASS] Both child issues closed"
+else
+    echo "  [FAIL] $closed_count child issue(s) closed (expected 2: $ADD_ID, $MULTIPLY_ID)"
     FAILED=$((FAILED + 1))
 fi
 echo ""
 
 # Test 6: Implementation actually works
 echo "Test 6: Implementation verification..."
-if [ -f "$TEST_PROJECT/src/math.js" ]; then
-    echo "  [PASS] src/math.js created"
-
-    if grep -q "export function add" "$TEST_PROJECT/src/math.js"; then
-        echo "  [PASS] add function exists"
-    else
-        echo "  [FAIL] add function missing"
-        FAILED=$((FAILED + 1))
-    fi
-
-    if grep -q "export function multiply" "$TEST_PROJECT/src/math.js"; then
-        echo "  [PASS] multiply function exists"
-    else
-        echo "  [FAIL] multiply function missing"
-        FAILED=$((FAILED + 1))
-    fi
+if [ -f "$TEST_PROJECT/src/add.js" ] &&
+    grep -q "export function add" "$TEST_PROJECT/src/add.js"; then
+    echo "  [PASS] add helper exists"
 else
-    echo "  [FAIL] src/math.js not created"
+    echo "  [FAIL] src/add.js or add export missing"
     FAILED=$((FAILED + 1))
 fi
 
-if [ -f "$TEST_PROJECT/test/math.test.js" ]; then
-    echo "  [PASS] test/math.test.js created"
+if [ -f "$TEST_PROJECT/src/multiply.js" ] &&
+    grep -q "export function multiply" "$TEST_PROJECT/src/multiply.js"; then
+    echo "  [PASS] multiply helper exists"
 else
-    echo "  [FAIL] test/math.test.js not created"
+    echo "  [FAIL] src/multiply.js or multiply export missing"
+    FAILED=$((FAILED + 1))
+fi
+
+if [ -f "$TEST_PROJECT/test/add.test.js" ] &&
+    [ -f "$TEST_PROJECT/test/multiply.test.js" ]; then
+    echo "  [PASS] Both test files exist"
+else
+    echo "  [FAIL] One or both test files are missing"
     FAILED=$((FAILED + 1))
 fi
 
@@ -276,7 +264,7 @@ echo ""
 
 # Test 8: Check for extra features (spec compliance should catch)
 echo "Test 8: No extra features added (spec compliance)..."
-if grep -q "export function divide\|export function power\|export function subtract" "$TEST_PROJECT/src/math.js" 2>/dev/null; then
+if grep -R -q "export function divide\|export function power\|export function subtract" "$TEST_PROJECT/src" 2>/dev/null; then
     echo "  [WARN] Extra features found (spec review should have caught this)"
     # Not failing on this as it tests reviewer effectiveness
 else
@@ -303,11 +291,11 @@ if [ $FAILED -eq 0 ]; then
     echo "All verification tests passed!"
     echo ""
     echo "The subagent-driven-development skill correctly:"
-    echo "  ✓ Reads plan once at start"
-    echo "  ✓ Provides full task text to subagents"
-    echo "  ✓ Enforces self-review"
+    echo "  ✓ Uses a Beads epic as the source of truth"
+    echo "  ✓ Dispatches through the Agent tool"
+    echo "  ✓ Uses native progress tracking"
     echo "  ✓ Runs spec compliance before code quality"
-    echo "  ✓ Spec reviewer verifies independently"
+    echo "  ✓ Closes passing child issues"
     echo "  ✓ Produces working implementation"
     exit 0
 else

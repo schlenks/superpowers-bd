@@ -20,12 +20,14 @@ Write comprehensive implementation plans assuming zero codebase context. Documen
 
 ## Mandatory Tasks (Enforcement)
 
-Create these 7 native tasks at plan start (each blocked by previous via addBlockedBy). Cannot call ExitPlanMode with pending tasks:
+Create these 7 native tasks at plan start. After each task is created, use
+`TaskUpdate(addBlockedBy=[previous-task-id])` to record the dependency. Complete
+the sequence before leaving plan mode; TaskList makes unfinished passes visible:
 
 1. **Write draft plan** -- Initial structure with all tasks, dependencies, file lists
    - **After saving plan — context check:** Look at your model ID in the system prompt (e.g., `claude-opus-4-6[1m]`).
-     - **`[1m]` present (default):** Skip compact. Announce "Plan written to {path}. Proceeding to verification." and continue to task 2.
-     - **No `[1m]` (200k):** Show copy-pasteable `/compact` command (see `references/announcements-protocol.md`) and wait for user's follow-up before proceeding to task 2.
+     - **Extended context:** The model ID contains `[1m]`, or belongs to a 1M-native family (`sonnet-5`, `fable-5`). Skip compact. Announce "Plan written to {path}. Proceeding to verification." and continue to task 2.
+     - **Standard context (~200k):** Show the copy-pasteable `/compact` command (see `references/announcements-protocol.md`) and wait for the user's follow-up before proceeding to task 2.
 2. **Plan Verification Checklist** -- Complete/Accurate/Commands valid/YAGNI/Minimal/Not over-engineered
 3. **Rule-of-five-plans: Draft pass** -- Shape and structure
 4. **Rule-of-five-plans: Feasibility pass** -- Can every step be executed? Deps available? Paths valid?

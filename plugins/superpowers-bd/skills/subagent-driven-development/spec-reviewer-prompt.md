@@ -3,7 +3,7 @@
 ## Claude Code Dispatch
 
 ```
-Task:
+Agent:
   subagent_type: "general-purpose"
   model: "<complexity-adjusted Claude model from budget-and-wave-cap.md>"
   description: "Spec review: {issue_id}"

@@ -6,109 +6,73 @@ effort: medium
 
 # Verification Before Completion
 
-**Core principle:** Evidence before claims, always.
+Make completion claims only from fresh evidence produced in the same response
+cycle as the claim. Evidence from an earlier turn is context, not proof for a
+per-message completion gate.
 
-**Violating the letter of this rule is violating the spirit of this rule.**
+## Gate
 
-## The Iron Law
+1. Identify the claim being made.
+2. Choose the command or inspection that directly proves that claim.
+3. Run it fresh and read the complete result, including exit code and failures.
+4. Decide whether the result supports the claim. If verification is incomplete
+   or failed, report the actual status.
+5. **ONLY THEN:** Make the claim and include the command and result in the same
+   completion message.
 
-```
-NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
-```
+The proof must match the claim: a linter does not prove a build, a build does not
+prove runtime behavior, and an agent report does not prove its own changes.
 
-If you haven't run the verification command in this message, you cannot claim it passes.
+## Proportional Verification
 
-## The Gate Function
+Scale breadth to risk while keeping evidence fresh:
 
-```
-BEFORE claiming any status or expressing satisfaction:
+- **Documentation, metadata, and formatting:** Run the relevant formatter,
+  validator, link check, render check, or focused structural test.
+- **Localized code changes:** Run the focused regression plus the nearest
+  affected suite and static checks.
+- **Cross-component, public API, security, auth, payments, migrations, or data
+  integrity:** Run the full relevant test/build stack and any required runtime or
+  migration checks.
 
-1. IDENTIFY: What command proves this claim?
-2. RUN: Execute the FULL command (fresh, complete)
-3. READ: Full output, check exit code, count failures
-4. VERIFY: Does output confirm the claim?
-   - If NO: State actual status with evidence
-   - If YES: State claim WITH evidence
-5. ONLY THEN: Make the claim
+Use a dedicated progress item for multi-step or high-risk verification. A
+one-line documentation correction does not need a ceremonial task if its direct
+validator can be run immediately.
 
-Skip any step = lying, not verifying
-```
+## Visual Verification
 
-## Visual Verification (Frontend)
+When frontend files changed and browser automation is available, include a
+visual smoke check. If frontend files changed but browser verification cannot
+run, report one concise skip reason in the final verification evidence. See
+`references/visual-verification.md`.
 
-When frontend code is modified and browser tools are available, visual verification is part of the gate function. Triggers when: browser tools exist, frontend files changed (`.tsx`, `.jsx`, `.vue`, `.svelte`, `.css`), dev server running. Skip silently if not applicable.
+## Gap Closure
 
-See `references/visual-verification.md` for full protocol.
+When verification fails:
 
-## Gap Closure Loop
+1. Record the failure evidence.
+2. Fix the root cause.
+3. Re-run the same verification.
+4. After three failed repair attempts, stop and request human direction with the
+   attempted fixes and current evidence.
 
-When verification fails, don't just report — fix and re-verify:
+See `references/gap-closure-protocol.md` for native progress examples.
 
-```
-IF verification fails:
-  1. CREATE gap-fix task
-  2. CREATE re-verification task (blocked by fix)
-  3. WAIT for gap fix completion
-  4. RUN re-verification
-  5. IF still fails AND attempt < 3: → Increment attempt, GOTO step 1
-  6. IF still fails AND attempt >= 3: → ESCALATE to human
-```
+## Evidence Examples
 
-See `references/gap-closure-protocol.md` for TaskCreate blocks and attempt tracking.
-
-## Verification Task Enforcement
-
-**Before making ANY completion claim, create a verification task:**
-
-```
-TaskCreate: "Verify: [specific claim]"
-  description: "Evidence required: [verification command]. Must capture command output and exit code."
-  activeForm: "Verifying [claim]"
-```
-
-**ENFORCEMENT:**
-- Task description MUST specify the verification command
-- Task CANNOT be marked `completed` without evidence in the conversation
-- Evidence = actual command output showing pass/fail
-- Subsequent completion claims blocked until verification task completed
-
-## Common Failures
-
-| Claim | Requires | Not Sufficient |
-|-------|----------|----------------|
-| Tests pass | Test command output: 0 failures | Previous run, "should pass" |
-| Linter clean | Linter output: 0 errors | Partial check, extrapolation |
-| Build succeeds | Build command: exit 0 | Linter passing, logs look good |
-| Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
-| Regression test works | Red-green cycle verified | Test passes once |
-| Agent completed | VCS diff shows changes | Agent reports "success" |
-| Requirements met | Line-by-line checklist | Tests passing |
-| UI renders correctly | Visual smoke test: page loads, no console errors | "Code looks right", build passes |
-
-## Red Flags — STOP
-
-Using "should", "probably", "seems to". Expressing satisfaction before verification ("Great!", "Perfect!", "Done!"). About to commit/push/PR without verification. Trusting agent success reports. Relying on partial verification. Thinking "just this once". **ANY wording implying success without having run verification.**
-
-## Rationalization Prevention
-
-| Excuse | Reality |
-|--------|---------|
-| "Should work now" | RUN the verification |
-| "I'm confident" | Confidence ≠ evidence |
-| "Just this once" | No exceptions |
-| "Linter passed" | Linter ≠ compiler |
-| "Agent said success" | Verify independently |
-| "I'm tired" | Exhaustion ≠ excuse |
-| "Partial check is enough" | Partial proves nothing |
-| "Different words so rule doesn't apply" | Spirit over letter |
+| Claim | Direct evidence | Not Sufficient |
+|-------|-----------------|----------------|
+| Tests pass | Relevant test command exits 0 with no failures | Earlier run or “should pass” |
+| Linter clean | Configured linter exits 0 | Partial check or extrapolation |
+| Build succeeds | Build command exits 0 | Linter passing |
+| Bug fixed | Original symptom regression passes | Code changed |
+| Requirements met | Requirement-by-requirement review plus tests | Tests alone |
+| UI works | Browser smoke check and clean console | Build or visual inspection of code |
 
 ## Reference Files
 
-- `references/visual-verification.md`: Full visual/frontend verification protocol
-- `references/gap-closure-protocol.md`: Gap-fix → re-verify → escalate enforcement
-- `references/key-patterns-examples.md`: Verification patterns with examples
-- `references/why-this-matters.md`: Context from failure memories
-- `references/when-to-apply.md`: When verification is required
-- `references/SKILL.test.md`: Pressure test scenarios
-
-<!-- compressed: 2026-02-11, original: 780 words, compressed: 558 words -->
+- `references/visual-verification.md`: Load when frontend files changed
+- `references/gap-closure-protocol.md`: Load after a verification failure
+- `references/key-patterns-examples.md`: Load for claim-to-evidence examples
+- `references/when-to-apply.md`: Load when the required verification boundary is unclear
+- `references/SKILL.test.md`: Pressure-test scenarios

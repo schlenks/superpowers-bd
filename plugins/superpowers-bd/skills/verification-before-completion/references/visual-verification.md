@@ -1,16 +1,27 @@
 # Visual Verification Protocol
 
+**Load this reference when:** frontend files changed and the completion claim
+depends on rendered behavior.
+
 When frontend code is modified and browser tools are available, visual verification
 is part of the gate function - not optional.
 
 ## Automatic Triggering
 
 Visual verification runs automatically when ALL conditions are met:
-- Browser tools available (`mcp__plugin_superpowers-chrome_chrome__use_browser` OR `browser_navigate`)
+- A browser-automation capability is available: navigation plus at least one of
+  DOM inspection, screenshots, console inspection, or interaction. Detect this
+  from the current tool descriptions rather than from one provider name.
+  Known examples include
+  `mcp__plugin_superpowers-chrome_chrome__use_browser` and `browser_navigate`,
+  but the list is not exclusive.
 - Frontend files changed (see patterns below)
 - Dev server is running (check common ports: 3000, 5173, 4200, 8080)
 
-If browser tools aren't available or no frontend files changed, skip silently.
+If no frontend files changed, skip silently.
+If frontend files changed but no browser capability is available, include one
+final evidence line: "Visual verification skipped: no browser automation
+capability available."
 If dev server isn't running, note: "Visual verification skipped: start dev server for browser testing"
 
 ## Frontend File Patterns

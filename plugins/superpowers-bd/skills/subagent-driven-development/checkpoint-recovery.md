@@ -21,9 +21,9 @@ Written to `temp/sdd-checkpoint-{epic_id}.json` after each wave CLOSE phase:
   "codex_enabled": false,
   "wave_cap": 5,
   "wave_receipts": [
-    "Wave 1: 2 tasks closed (hub-abc.1, hub-abc.2), 168k tokens, ~$1.52. Conventions: uuid-v4, camelCase.",
-    "Wave 2: 1 task closed (hub-abc.3), 62k tokens, ~$0.56. No new conventions.",
-    "Wave 3: 2 tasks closed (hub-abc.4, hub-abc.5), 95k tokens, ~$0.86. Conventions: error boundaries."
+    "Wave 1: 2 tasks closed (hub-abc.1, hub-abc.2), 168k known tokens, 0 metrics unavailable. Conventions: uuid-v4, camelCase.",
+    "Wave 2: 1 task closed (hub-abc.3), structured metrics unavailable. No new conventions.",
+    "Wave 3: 2 tasks closed (hub-abc.4, hub-abc.5), 95k known tokens, 1 metric unavailable. Conventions: error boundaries."
   ],
   "closed_issues": ["hub-abc.1", "hub-abc.2", "hub-abc.3", "hub-abc.4", "hub-abc.5"],
   "escalated_tasks": {
@@ -31,24 +31,27 @@ Written to `temp/sdd-checkpoint-{epic_id}.json` after each wave CLOSE phase:
     "hub-abc.7": "NEEDS_CONTEXT: 3 re-dispatches exhausted, unclear auth pattern"
   },
   "epic_tokens": 325000,
+  "epic_input_tokens": 214000,
+  "epic_output_tokens": 111000,
   "epic_tool_uses": 412,
-  "epic_cost": 2.94,
+  "epic_metrics_unavailable": 2,
   "timestamp": "2026-02-11T14:32:00Z"
 }
 ```
 
 ## Write Timing
 
-Write checkpoint at the end of CLOSE phase, **after** wave summary is posted and temp report files cleaned (`rm -f temp/<epic-prefix>*`).
+Write checkpoint at the end of CLOSE phase, **after** the wave summary is posted
+and the exact report files created for that wave are cleaned.
 
-The `sdd-checkpoint-` prefix ensures the checkpoint file survives wave cleanup, which only removes `temp/<epic-prefix>*` files.
+The checkpoint path is not part of the exact per-wave report-file cleanup list.
 
 ## Recovery Logic
 
 When the orchestrator detects a checkpoint (via INIT check or `<sdd-checkpoint-recovery>` injection):
 
 1. Read `temp/sdd-checkpoint-{epic_id}.json`
-2. Restore: `budget_tier`, `context_tier`, `platform`, `platform_agent_plan`, `wave_cap`, `wave_receipts`, `closed_issues`, running metrics (`epic_tokens`, `epic_tool_uses`, `epic_cost`). If `wave_cap` is absent (old checkpoint), default to 3. If `context_tier` is absent, default to "standard" (200k behavior — safe fallback). If `platform` is absent, infer the current session platform and write it at the next checkpoint. If `platform_agent_plan` is absent, rebuild it from the active platform dispatch path.
+2. Restore: `budget_tier`, `context_tier`, `platform`, `platform_agent_plan`, `wave_cap`, `wave_receipts`, `closed_issues`, and running measured metrics (`epic_tokens`, `epic_input_tokens`, `epic_output_tokens`, `epic_tool_uses`, `epic_metrics_unavailable`). For older checkpoints, default missing metric fields to 0 and ignore the retired `epic_cost` estimate. If `wave_cap` is absent, default to 3. If `context_tier` is absent, default to "standard" (200k behavior — safe fallback). If `platform` is absent, infer the current session platform and write it at the next checkpoint. If `platform_agent_plan` is absent, rebuild it from the active platform dispatch path.
 3. Restore `escalated_tasks` (default `{}` if absent in old checkpoint) — these need human resolution before dispatch. Skip them during LOADING filter (treat as not-ready even if `bd ready` lists them).
 4. Set `wave_number = wave_completed + 1`
 5. Restore Claude-only Codex advisory fields only when `platform` is `claude-code`. In Codex sessions, ignore stale `codex_enabled`/`codex_install_path`; native Codex is the orchestrator, not an external advisory reviewer.

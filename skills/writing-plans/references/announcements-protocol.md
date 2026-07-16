@@ -4,9 +4,11 @@ Announce each verification phase explicitly. This creates a visible audit trail.
 
 ## After Draft Plan Saved
 
-Check your model ID in the system prompt for `[1m]` suffix (e.g., `claude-opus-4-6[1m]`).
+Check your model ID in the system prompt. Treat context as extended when the
+ID contains the `[1m]` suffix (for example, `claude-opus-4-6[1m]`) **or**
+belongs to a 1M-native family (`sonnet-5` or `fable-5`).
 
-### `[1m]` present (default) — skip compact, proceed directly
+### Extended context — skip compact, proceed directly
 
 ```
 Plan written to docs/plans/2026-02-12-user-auth.md. Proceeding to verification.
@@ -14,7 +16,7 @@ Plan written to docs/plans/2026-02-12-user-auth.md. Proceeding to verification.
 
 Continue immediately to task 2 (inline Plan Verification Checklist).
 
-### No `[1m]` (200k) — compact and pause
+### Neither `[1m]` nor a 1M-native family — compact and pause
 
 Show a copy-pasteable `/compact` command with the **actual plan file path** (not a placeholder):
 

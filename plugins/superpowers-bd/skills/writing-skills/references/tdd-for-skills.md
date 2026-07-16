@@ -27,19 +27,21 @@ TaskCreate: "RED: Write failing test (baseline)"
 TaskCreate: "GREEN: Write minimal skill"
   description: "Write skill addressing specific baseline failures. Run scenarios WITH skill and verify compliance. Apply rule-of-five-plans."
   activeForm: "Writing skill"
+TaskUpdate: green-task-id
   addBlockedBy: [red-task-id]
 
 TaskCreate: "REFACTOR: Close loopholes"
-  description: "Identify new rationalizations, add explicit counters, build rationalization table, re-test until bulletproof."
+  description: "Identify observed gaps, add the smallest evidence-backed correction, and rerun the same scenarios."
   activeForm: "Closing loopholes"
+TaskUpdate: refactor-task-id
   addBlockedBy: [green-task-id]
 ```
 
-**Enforcement:**
-- Cannot write any skill content until RED task is `status: completed`
+**Progress contract:**
+- Do not write skill content until the RED task is `status: completed`
 - GREEN task requires baseline documentation in RED task
-- Cannot commit skill until all 3 phases complete
-- TaskList shows if you're skipping phases
+- Complete all 3 phases before presenting the skill as verified
+- TaskList shows skipped or out-of-order phases
 
 ## Micro-Test Wording (Pre-Step)
 
@@ -50,7 +52,7 @@ Before running full eval scenarios, spend 10–15 minutes sanity-checking that y
 2. **Minimum 5 reps.** A single run proves nothing. Run the identical prompt at least 5 times and record each outcome independently. LLM variance is real; one "pass" in 5 is a different signal than 5/5.
 3. **Read every transcript by hand.** Do not grep-and-trust (`grep "complied" transcript.jsonl`). Open each transcript and read it. The rationalization pattern you need to counter often appears mid-response, not at the end, and grep misses it. Variance in *how* the model fails is as important as whether it fails.
 4. **Record variance as a signal.** Tally not just pass/fail but the shape of each response: Did it comply on wording but violate the spirit? Did it skip the critical clause or invert it? High output variance means the boundary is fuzzy — your scenario wording may need tightening before you can trust a RED baseline.
-5. **Classifier handoff.** If you observe **high variance + output-shaping failures** (model is trying to comply but phrasing trips it up), pair this with the "Match the Form to the Failure" classifier in `bulletproofing.md` (A2): a positive recipe ("always do X") is the right fix, not a prohibition. Low variance + clean refusal = a prohibition counter is correct.
+5. **Classifier handoff.** If you observe **high variance + output-shaping failures** (model is trying to comply but phrasing trips it up), pair this with the "Match Guidance to the Observed Failure" classifier in `bulletproofing.md`: a positive recipe ("always do X") is the right fix, not a prohibition. Low variance + clean refusal = a prohibition counter is correct.
 
 **Exit condition:** You have a scenario that produces a consistent failure pattern across ≥5 reps. If you can't get a consistent failure, your scenario wording is the problem — rewrite before entering RED.
 
@@ -71,7 +73,8 @@ Run same scenarios WITH skill. Agent should now comply.
 
 ## REFACTOR: Close Loopholes
 
-Agent found new rationalization? Add explicit counter. Re-test until bulletproof.
+When a repeated scenario reveals a new failure pattern, add the smallest
+instruction that addresses it and rerun the same scenario set.
 
 **Testing methodology:** See `testing-skills-with-subagents.md` (in this directory) for the complete testing methodology:
 - How to write pressure scenarios

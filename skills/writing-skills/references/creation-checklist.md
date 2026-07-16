@@ -33,9 +33,9 @@ Must complete before REFACTOR:
 
 - [ ] Identify NEW rationalizations from testing
 - [ ] Add explicit counters (if discipline skill)
-- [ ] Build rationalization table from all test iterations
+- [ ] Record observed failure patterns from all test iterations
 - [ ] Create red flags list
-- [ ] Re-test until bulletproof
+- [ ] Re-run the same scenarios and compare outcomes
 - [ ] Mark REFACTOR task as `completed`
 
 ## Quality Checks

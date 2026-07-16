@@ -180,7 +180,8 @@ When the orchestrator sees `<sdd-checkpoint-recovery>` in session context, or fi
    - wave_receipts (list of 2-line receipt strings)
    - closed_issues (for tracking)
    - escalated_tasks (default {} if absent; skip during LOADING)
-   - epic_tokens, epic_tool_uses, epic_cost (running metrics)
+   - epic_tokens, epic_input_tokens, epic_output_tokens, epic_tool_uses,
+     epic_metrics_unavailable (running measured metrics)
 4. Restore Claude-only Codex advisory fields only when platform is "claude-code".
    If current platform is Codex, ignore stale codex_enabled/codex_install_path fields.
 5. Check for in_progress tasks: bd show {epic_id}

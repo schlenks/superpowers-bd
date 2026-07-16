@@ -26,15 +26,18 @@ When batch complete:
 TaskCreate: "Await human feedback on batch N"
   description: "BLOCKED: Cannot proceed until human provides feedback on batch report. Mark complete when feedback received."
   activeForm: "Awaiting feedback"
+TaskUpdate: feedback-task-id
   addBlockedBy: [report-task-id]
 
 TaskCreate: "Execute batch N+1"
   description: "Execute next batch of newly unblocked issues."
   activeForm: "Executing batch"
+TaskUpdate: next-batch-task-id
   addBlockedBy: [feedback-task-id]
 ```
 
-**ENFORCEMENT:** The "Execute batch N+1" task is blocked until:
+**Progress contract:** Record the "Execute batch N+1" dependency so TaskList
+shows that it should wait until:
 - The report task is completed
 - The feedback task is completed (human feedback received)
 

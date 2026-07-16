@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.10.0] - 2026-07-16
+
+Workflow contract calibration for modern SOTA models (Fable 5, GPT-5.x Codex): fixes verified platform-API defects, replaces fictional enforcement rhetoric with honest progress semantics, and retunes prompt pressure to calibrated contracts — without weakening the TDD, verification, or review invariants. All skill edits are mirrored into the bundled `plugins/superpowers-bd/` wrapper. Plans: `docs/plans/2026-07-16-workflow-contract-calibration.md` and `...-review-fixes.md`.
+
+### Added
+
+- **Workflow contract audit (`tests/verification/test-workflow-contract-audit.sh`)**: 33 structural checks encoding the cross-file contracts (verdict vocabulary, read-only verifier paths, Agent terminology, TaskUpdate dependency semantics, calibrated framing, mirror identity, managed-block integrity via the versioned `beads-integration-v1-minimal.md` fixture). Wired into the fast Claude suite; the runner now fails closed on missing configured tests.
+- **Bounded TDD exceptions**: agents may self-select exactly four exception categories (documentation-only, declarative configuration, generated code, throwaway prototypes), each requiring a `TDD_EXCEPTION` verification receipt with alternative-verification evidence. The bright line and discard-and-restart rule remain for production behavior.
+- **Proportional triage**: `systematic-debugging` gains a quick-trace/full-investigation gate (risk-sensitive areas always full); `verification-before-completion` scales verification breadth to risk while keeping same-response-cycle evidence — matching the stop-gate contract exactly.
+- **Epic-verifier fail-closed persistence**: idempotent `[EPIC-VERIFICATION] <epic-id> <head-sha> <run-id>` marker, query-confirmed retries (never trust the add's exit status), a Report Persistence summary row, and a `FAIL (CANNOT_VERIFY)` verdict that blocks epic completion — on all three dispatch paths (Claude agent, prompt template, Codex TOML).
+
+### Changed
+
+- **Valid native-progress API usage**: `addBlockedBy` is a `TaskUpdate` field, not a `TaskCreate` parameter — every dependency example (~15 files) now creates the task, captures its ID, then records dependencies via `TaskUpdate`. Verified against the live tool schemas.
+- **Honest enforcement semantics**: "blocked tasks cannot be marked in_progress"/"cannot commit until" claims replaced with progress-contract wording — task state exposes ordering and skipped phases; it does not technically prevent unrelated actions.
+- **Current dispatch terminology**: active Claude examples use `Agent` (the current tool name) instead of `Task` across SDD prompt templates, `/cr`, and skill references; implementer verdict examples use the declared `DONE` vocabulary.
+- **Calibrated prompt pressure**: `using-superpowers` rewritten as concise routing (1% rule, rationalization table, and `<EXTREMELY-IMPORTANT>` framing removed); session-start injection on all three hook surfaces (Claude, Codex, bundled Codex) now uses a plain `<superpowers-bd-session-context>` wrapper; `writing-skills` bulletproofing reoriented from persuasion doctrine to evidence-matched guidance (retains the measured "prohibition list worse than no-guidance control" result).
+- **Family-aware 1M detection**: `writing-plans` and loaded references recognize 1M-native families (`sonnet-5`, `fable-5`) in addition to the `[1m]` suffix, so extended-context routing survives the suffix auto-strip.
+- **Read-only epic verification**: rule-of-five applied as five review lenses without invoking editing workflows; editing skill auto-loads removed from the Claude agent; `tee` heredoc report persistence with output suppression (`> /dev/null`) on every surface.
+- **Claude Agent bookkeeping**: metrics tracking uses the current Agent output schema (`agentId`, `outputFile`, `totalTokens`, `totalToolUseCount`, `totalDurationMs`, input/output usage); missing telemetry stays unknown instead of fake zeroes; the inaccurate `$9/M` blended-cost estimate is removed.
+- **Managed beads blocks (CLAUDE.md/AGENTS.md)**: replaced the push-mandating session-close protocol with the policy-controlled profile template (conservative default: no commit/push without explicit authority), guarded by a content-hash drift check against the versioned fixture.
+- **Aggregation model policy**: hardcoded `haiku` replaced with a caller-resolved `{low_cost_synthesis_model}` placeholder (omit `model` when no low-cost alias exists); SDD tier tables keep literal model names by design.
+- **Safer wave cleanup**: exact per-wave report-file removal replaces the broad `rm -f temp/<epic-prefix>*` glob that could delete checkpoints and flags.
+- **Integration harness rework**: separate 300s fast / 1860s integration budgets, a real Beads epic fixture, current Agent assertions, exact session IDs, `--plugin-dir` source loading, and exit-77 skip semantics for environments that cannot run nested Claude.
+
+### Removed
+
+- Obsolete references after de-linking: `persuasion-principles.md`, `why-this-matters.md` (threat register), `systematic-debugging` `CREATION-LOG.md` and `real-world-impact.md`, `dispatching-parallel-agents` `real-world-impact.md`, `multi-review-aggregation` `dispatch-code.md` (nonexistent API pseudocode) and `metrics-and-cost.md` (stale pricing).
+
+### Fixed
+
+- Hook-blocked `bd show ... | head` truncation example in the SDD worked example; renamed-section pointer in `tdd-for-skills.md`; `✅/❌` verdict vocabulary normalized to `PASS/FAIL`; version drift ruled out by bumping all four manifests plus CLAUDE.md/AGENTS.md together.
+
 ## [5.9.1] - 2026-07-08
 
 Fixes false-positive blocks in the `Stop` verification gate that fired on ordinary SDD status turns, and reconciles version drift left over from the 5.9.0 release. Mirrored across the Claude Code and Codex hook surfaces.

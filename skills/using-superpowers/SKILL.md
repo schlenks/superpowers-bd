@@ -4,112 +4,87 @@ description: Use when starting any conversation - establishes how to find and us
 effort: medium
 ---
 
-<EXTREMELY-IMPORTANT>
-If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill.
+# Using Superpowers-BD
 
-IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
+Before the first response in a conversation, load this routing skill. Then load
+relevant or explicitly requested skills before taking task actions. Skills
+provide workflow-specific context and quality gates; if a loaded skill is not
+relevant after inspection, do not apply it.
 
-This is not negotiable. This is not optional. You cannot rationalize your way out of this.
-</EXTREMELY-IMPORTANT>
+## Access Skills
 
-## How to Access Skills
-
-**In Claude Code:** Use the `Skill` tool. When you invoke a skill, its content is loaded and presented to you--follow it directly. Never use the Read tool on skill files.
-
-**In Codex:** Use native `$skill-name` invocation when installed as a Codex plugin. If using the manual fallback install, run `~/.codex/superpowers-bd/.codex/superpowers-bd-codex use-skill <skill-name>` and follow the returned instructions.
-
-**In other environments:** Use the platform's skill loader, then apply the native execution guidance in that platform's Superpowers-BD docs.
+- **Claude Code:** Use the `Skill` tool. Follow the loaded skill through Claude
+  Code's native tools.
+- **Codex:** Use native `$skill-name` invocation when installed as a plugin. For
+  the manual fallback, run
+  `~/.codex/superpowers-bd/.codex/superpowers-bd-codex use-skill <skill-name>`.
+- **Other platforms:** Use that platform's skill loader and native adapter.
 
 ## Platform Boundary
 
-Superpowers-BD skills define shared workflow intent first. Each agent tool executes that intent through its native platform layer, with comparable outcomes implemented in platform-native terms.
+Shared skills define workflow intent. Each platform implements that intent with
+its own tools and comparable outcomes.
 
-| Shared intent | Claude Code implementation | Codex implementation |
-|---------------|----------------------------|----------------------|
-| Track progress | `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` | `update_plan` |
-| Delegate work | `Task` with background execution when appropriate | `spawn_agent`, then `wait_agent` when blocked on results |
-| Ask questions | `AskUserQuestion` | `request_user_input` when available for structured choices, otherwise direct user question |
-| Verify completion | `Skill` plus verification commands and captured evidence | `$skill` plus verification commands and captured evidence |
+| Shared intent | Claude Code | Codex |
+|---------------|-------------|-------|
+| Track progress | `TaskCreate`, then `TaskUpdate` for status/dependencies | `update_plan` |
+| Delegate work | `Agent`, background when appropriate | `spawn_agent`, then `wait_agent` when blocked |
+| Ask questions | `AskUserQuestion` | `request_user_input` when available, otherwise a direct question |
+| Verify completion | `Skill` plus commands and captured evidence | `$skill` plus commands and captured evidence |
 
-Command-backed workflows must provide a native path for every supported platform. A Claude Code slash command, Codex `$skill`/plugin entry point, OpenCode command, or fallback CLI may share shell scripts and skill content, but the user-facing invocation and tool orchestration must be native to that platform.
+Command-backed workflows must expose native entry points for every supported
+platform. Shared scripts are fine; orchestration remains platform-native.
 
-# Using Skills
+## Skill Selection
 
-## The Rule
+1. Load process skills first when they determine the approach, such as
+   brainstorming, debugging, review reception, or planning.
+2. Load implementation/domain skills next.
+3. Use the smallest set that covers the task and state the order when several
+   apply.
+4. Read the current skill rather than relying on remembered wording.
 
-**Invoke relevant or requested skills BEFORE any response or action.** Even a 1% chance a skill might apply means that you should invoke the skill to check. If an invoked skill turns out to be wrong for the situation, you don't need to use it.
+Rigid skills define an invariant that must be preserved. Flexible skills define
+patterns that may be adapted to context. The skill should make that distinction
+clear.
 
-## Red Flags
+## Conflict Hierarchy
 
-These thoughts mean STOP--you're rationalizing:
+When instructions conflict:
 
-| Thought | Reality |
-|---------|---------|
-| "This is just a simple question" | Questions are tasks. Check for skills. |
-| "I need more context first" | Skill check comes BEFORE clarifying questions. |
-| "Let me explore the codebase first" | Skills tell you HOW to explore. Check first. |
-| "I can check git/files quickly" | Files lack conversation context. Check for skills. |
-| "Let me gather information first" | Skills tell you HOW to gather information. |
-| "This doesn't need a formal skill" | If a skill exists, use it. |
-| "I remember this skill" | Skills evolve. Read current version. |
-| "This doesn't count as a task" | Action = task. Check for skills. |
-| "The skill is overkill" | Simple things become complex. Use it. |
-| "I'll just do this one thing first" | Check BEFORE doing anything. |
-| "This feels productive" | Undisciplined action wastes time. Skills prevent this. |
-| "I know what that means" | Knowing the concept ≠ using the skill. Invoke it. |
+1. The user's direct instruction and the platform's project instructions
+   (`CLAUDE.md` or `AGENTS.md`) take precedence.
+2. Rigid safety and correctness invariants apply unless directly overridden.
+3. Flexible skill guidance adapts to the task.
 
-## Skill Priority
+Skills normally own workflow mechanics, but an explicit user instruction to
+skip or change a specific step is an override, not something to reinterpret.
 
-When multiple skills could apply, use this order:
+## Native Progress
 
-1. **Process skills first** (brainstorming, debugging) - these determine HOW to approach the task
-2. **Implementation skills second** (frontend-design, mcp-builder) - these guide execution
+For Claude Code, create the task first, capture its ID, then add dependencies
+with `TaskUpdate`:
 
-"Let's build X" -> brainstorming first, then implementation skills.
-"Fix this bug" -> debugging first, then domain-specific skills.
+```text
+TaskCreate: "Phase 1: Investigate"
+  description: "Gather evidence and identify the cause."
+  activeForm: "Investigating"
 
-## Skill Types
+TaskCreate: "Phase 2: Implement"
+  description: "Apply the verified fix."
+  activeForm: "Implementing"
 
-**Rigid** (TDD, debugging): Follow exactly. Don't adapt away discipline.
-**Flexible** (patterns): Adapt principles to context. The skill itself tells you which.
-
-## User Instructions
-
-Instructions say WHAT, not HOW. "Add X" or "Fix Y" doesn't mean skip workflows.
-
-**Priority on conflict:** When a direct instruction contradicts skill guidance, resolve using this hierarchy:
-1. **User's direct instruction** / `CLAUDE.md` (Claude) / `AGENTS.md` (Codex) — explicit overrides win.
-2. **Rigid skills** (TDD, debugging discipline) — follow exactly; they are second only to direct user authority.
-3. **Flexible skill guidance** — adapt to context when no higher-priority rule applies.
-
-The WHAT-not-HOW rule still holds: skills own the HOW *unless the user directly names a specific step to skip or change*. The hierarchy is about resolving conflicts, not about whether to invoke a skill in the first place.
-
-## Native Progress Integration
-
-Many skills use native progress tools to enforce quality gates and track execution progress. Use the implementation for the platform currently running the skill.
-
-**Claude Code pattern:** Skills with multi-phase processes create sequential, blocked tasks:
-
-```
-TaskCreate: "Phase 1: [Description]"
-  description: "[Acceptance criteria]"
-  activeForm: "[Present continuous action]"
-  # Returns task ID (e.g., "1") - capture this for dependencies
-
-TaskCreate: "Phase 2: [Description]"
-  addBlockedBy: ["1"]  # Use actual ID returned from Phase 1
+TaskUpdate: phase-2-id
+  addBlockedBy: [phase-1-id]
 ```
 
-**Note:** TaskCreate returns a task ID in its response. Capture this ID to use in `addBlockedBy` for dependent tasks. The `[phase-1-id]` placeholders in skill documentation represent where you insert the actual returned ID.
+For Codex, use `update_plan` and preserve the same evidence-based ordering.
+Progress state makes skipped or out-of-order phases visible; it does not replace
+verification or independently prevent unrelated actions.
 
-**Codex pattern:** Use `update_plan` for the same ordered progress gate. Preserve ordering manually: do not mark a later phase complete before the earlier phase has evidence.
+When Codex delegates parallel work, give each worker explicit file ownership,
+state that other agents may also be editing the repository, and keep write
+scopes disjoint.
 
-**When invoking skills with progress gates:** Use the platform's native progress mechanism. Follow the skill's instructions for when to mark phases complete.
-
-## Codex Native Tools
-
-**Codex:** use `update_plan` for progress blocks, `spawn_agent` for delegated workers, and `wait_agent` only when the next step needs the result. When spawning workers, give explicit file ownership and tell them other agents may also be editing the repo.
-
-**Beads-aware repos:** use `bd` for durable work tracking when the repo requires it. Native task/progress tools track execution phases; beads tracks the actual project work.
-
-<!-- compressed: 2026-02-11, original: 850 words, compressed: 599 words -->
+In beads-aware repositories, beads tracks durable project work while native
+progress tools track the current workflow phases.

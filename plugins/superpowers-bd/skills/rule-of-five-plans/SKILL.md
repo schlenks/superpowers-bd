@@ -20,29 +20,33 @@ TaskCreate: "Pass 1: Draft"
 TaskCreate: "Pass 2: Feasibility"
   description: "Can every step be executed? Dependencies available? Paths valid? Estimates realistic?"
   activeForm: "Checking feasibility"
+TaskUpdate: pass-2-id
   addBlockedBy: [draft-task-id]
 
 TaskCreate: "Pass 3: Completeness"
   description: "Every requirement traced to a task? Gaps? Missing rollback? Missing error handling?"
   activeForm: "Checking completeness"
+TaskUpdate: pass-3-id
   addBlockedBy: [feasibility-task-id]
 
 TaskCreate: "Pass 4: Risk"
   description: "What could go wrong? Migration risks? Data loss? Breaking changes? Parallel conflicts?"
   activeForm: "Assessing risk"
+TaskUpdate: pass-4-id
   addBlockedBy: [completeness-task-id]
 
 TaskCreate: "Pass 5: Optimality"
   description: "Simplest approach? YAGNI? Could tasks be combined? Would you defend every task to a senior colleague?"
   activeForm: "Optimizing"
+TaskUpdate: pass-5-id
   addBlockedBy: [risk-task-id]
 ```
 
-**ENFORCEMENT:**
-- Each pass is blocked until the previous completes
-- Cannot commit until all 5 tasks show `status: completed`
-- TaskList shows your progress through the passes
-- Skipping passes is visible - blocked tasks can't be marked in_progress
+**Progress contract:**
+- Record each dependency with `TaskUpdate` after creating the task.
+- TaskList makes the intended order and skipped passes visible.
+- Advance only after the prior pass has evidence; task state does not prevent
+  unrelated tool or git actions by itself.
 
 ## Cross-Model Review (Codex)
 

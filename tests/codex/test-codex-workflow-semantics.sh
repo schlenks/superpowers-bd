@@ -82,6 +82,25 @@ assert_reference_path_resolves() {
   fi
 }
 
+assert_implementer_examples_use_done() {
+  local file="$1"
+  local message="$2"
+  if python3 - "$file" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+text = Path(sys.argv[1]).read_text()
+blocks = re.findall(r"Implementer \d+ verdict:\n(?P<body>(?:  .*\n)+)", text)
+sys.exit(0 if blocks and all("VERDICT: DONE" in block for block in blocks) else 1)
+PY
+  then
+    pass "$message"
+  else
+    fail "$message"
+  fi
+}
+
 assert_section() {
   local file="$1"
   local heading="$2"
@@ -143,6 +162,9 @@ assert_not_contains "skills/subagent-driven-development/dispatch-and-conflict.md
 assert_not_contains "skills/subagent-driven-development/failure-recovery.md" "codex_model_profile|resolve_codex_model|gpt-5\\.3-codex" "SDD recovery reference avoids deprecated Codex model profile routing"
 assert_not_contains "skills/subagent-driven-development/implementer-prompt.md" "codex_model_profile|gpt-5\\.3-codex" "SDD implementer prompt avoids deprecated Codex model profile routing"
 assert_contains "skills/brainstorming/SKILL.md" "request_user_input" "brainstorming uses Codex structured question primitive when available"
+assert_not_contains "skills/using-superpowers/SKILL.md" 'addBlockedBy:.*# Use actual ID returned from Phase 1' "using-superpowers no longer puts addBlockedBy on TaskCreate"
+assert_implementer_examples_use_done "skills/subagent-driven-development/example-workflow.md" "SDD implementer examples use DONE verdicts"
+assert_contains "skills/subagent-driven-development/SKILL.md" 'wave-orchestration.md' "SDD links the wave orchestration contract"
 
 assert_not_contains "skills/plan2beads/SKILL.md" "Codex: invoke this skill.*read ../../commands" "plan2beads does not route Codex through Claude command docs"
 assert_not_contains "skills/ad-hoc-code-review/SKILL.md" "Codex: invoke this skill.*read ../../commands" "ad-hoc-code-review does not route Codex through Claude command docs"

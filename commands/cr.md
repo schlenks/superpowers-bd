@@ -185,7 +185,7 @@ Capture the output as `{RUN_TS}`. All reviewers and the Codex agent in this run 
 Dispatch the code-reviewer agent as a background task (enables true parallel dispatch with Codex in Step 6b):
 
 ```
-Task:
+Agent:
   subagent_type: "superpowers-bd:code-reviewer"
   run_in_background: true
   description: "Code review: ad-hoc"
@@ -227,10 +227,10 @@ If the reviewer task fails or times out, inform the user and offer to re-dispatc
 
 **Dispatch N reviewers in parallel:**
 
-Send a single message with N Task tool calls, each with `run_in_background: true`:
+Send a single message with N Agent calls, each with `run_in_background: true`:
 
 ```
-Task (for each i from 1 to N):
+Agent (for each i from 1 to N):
   subagent_type: "superpowers-bd:code-reviewer"
   run_in_background: true
   description: "Code review {i}/{N}: ad-hoc"
@@ -278,7 +278,7 @@ Task (for each i from 1 to N):
 - **1 succeeded:** Present that report and offer to dispatch a replacement (same SHAs, requirements, and applicable overrides; identity "Reviewer 2 of 2"). If accepted, aggregate both as N=2.
 - **2+ succeeded:** Proceed to aggregation.
 
-**Always aggregate when 2+ reviewers succeeded** — do NOT use a fast path that drops reports. The purpose of multi-review is union of findings across all reviewers. Even when all reviewers approve, their reports may contain different Minor findings, Suggestions, or "Not Checked" items. Aggregation is cheap (Haiku model) and preserves the full recall benefit.
+**Always aggregate when 2+ reviewers succeeded** — do NOT use a fast path that drops reports. The purpose of multi-review is union of findings across all reviewers. Even when all reviewers approve, their reports may contain different Minor findings, Suggestions, or "Not Checked" items. Aggregation uses the platform's low-cost synthesis model and preserves the full recall benefit.
 
 **Dispatch aggregator:**
 
@@ -296,10 +296,15 @@ Before dispatching, construct `combined_output` by joining the collected reports
 
 Then dispatch the aggregator. The aggregator loads the canonical aggregation methodology but applies ad-hoc overrides:
 
+Resolve `{low_cost_synthesis_model}` before dispatch by replacing it with the
+current platform-supported low-cost synthesis alias. If no such alias is
+available, omit the `model` line so the agent inherits the active model. Never
+send the placeholder braces literally.
+
 ```
-Task:
+Agent:
   subagent_type: "general-purpose"
-  model: "haiku"
+  model: "{low_cost_synthesis_model}"
   description: "Aggregate {N} reviews"
   prompt: |
     You are a code review aggregator for an ad-hoc /cr review (no beads integration).
@@ -335,7 +340,12 @@ If the aggregator task fails, present each reviewer's raw report individually (l
 
 If present, extract the install path from the tag (e.g., `Install path: /Users/.../.claude/plugins/cache/openai-codex/codex/1.0.2`). Use this as `{RESOLVED_CODEX_PATH}` — embed it literally in the agent prompt below. No Bash commands needed.
 
-Dispatch one additional background agent for the Codex adversarial review. **This MUST be included in the same parallel dispatch message as the Claude reviewer(s)** — not as a separate sequential step. For N=1, send a single message with both the Task (code-reviewer) and the Agent (Codex) tool calls together. For N>1, include the Agent call in the same message as the N Task calls.
+Dispatch one additional background agent for the Codex adversarial review.
+**This MUST be included in the same parallel dispatch message as the Claude
+reviewer(s)** — not as a separate sequential step. For N=1, send a single
+message with both the code-reviewer Agent call and the Codex Agent call. For
+N>1, include the Codex Agent call in the same message as the N code-reviewer
+Agent calls.
 
 ```
 Agent:

@@ -20,29 +20,33 @@ TaskCreate: "Pass 1: Draft"
 TaskCreate: "Pass 2: Coverage"
   description: "Significant code paths tested? Happy, error, boundary? Every public function covered?"
   activeForm: "Checking coverage"
+TaskUpdate: pass-2-id
   addBlockedBy: [draft-task-id]
 
 TaskCreate: "Pass 3: Independence"
   description: "Each test runs alone? Shared state? Order dependence? Test coupling?"
   activeForm: "Checking independence"
+TaskUpdate: pass-3-id
   addBlockedBy: [coverage-task-id]
 
 TaskCreate: "Pass 4: Speed"
   description: "Unnecessary waits? Heavy fixtures? Could mock I/O? Any test >1s unjustified?"
   activeForm: "Checking speed"
+TaskUpdate: pass-4-id
   addBlockedBy: [independence-task-id]
 
 TaskCreate: "Pass 5: Maintainability"
   description: "Descriptive names? Clear intent? DRY helpers? A newcomer could add tests by following patterns?"
   activeForm: "Improving maintainability"
+TaskUpdate: pass-5-id
   addBlockedBy: [speed-task-id]
 ```
 
-**ENFORCEMENT:**
-- Each pass is blocked until the previous completes
-- Cannot commit until all 5 tasks show `status: completed`
-- TaskList shows your progress through the passes
-- Skipping passes is visible - blocked tasks can't be marked in_progress
+**Progress contract:**
+- Record each dependency with `TaskUpdate` after creating the task.
+- TaskList makes the intended order and skipped passes visible.
+- Advance only after the prior pass has evidence; task state does not prevent
+  unrelated tool or git actions by itself.
 
 ## Cross-Model Review (Codex)
 

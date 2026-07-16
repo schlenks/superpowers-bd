@@ -30,13 +30,13 @@ Each agent gets: specific scope (one test file/subsystem), clear goal (make thes
 
 ### 3. Dispatch in Parallel
 ```typescript
-Task("Fix agent-tool-abort.test.ts failures")
-Task("Fix batch-completion-behavior.test.ts failures")
-Task("Fix tool-approval-race-conditions.test.ts failures")
+Agent("Fix agent-tool-abort.test.ts failures")
+Agent("Fix batch-completion-behavior.test.ts failures")
+Agent("Fix tool-approval-race-conditions.test.ts failures")
 // All three run concurrently
 ```
 
-Platform mapping: Claude uses `Task`/`run_in_background`; Codex uses `spawn_agent` and `wait_agent`. In Codex, define each worker's file ownership, tell workers they are not alone in the repo, and keep write scopes disjoint.
+Platform mapping: Claude uses `Agent`/`run_in_background`; Codex uses `spawn_agent` and `wait_agent`. In Codex, define each worker's file ownership, tell workers they are not alone in the repo, and keep write scopes disjoint.
 
 ### 4. Review and Integrate
 Read each summary, verify fixes don't conflict, run full test suite, integrate all changes.
@@ -81,6 +81,5 @@ After agents return:
 
 - `references/agent-prompt-example.md`: full annotated prompt example with test names and constraints
 - `references/real-session-example.md`: complete scenario: dispatch, results, integration, time saved
-- `references/real-world-impact.md`: stats from debugging session (2025-10-03)
 
 <!-- compressed: 2026-02-11, original: 643 words, compressed: 461 words -->

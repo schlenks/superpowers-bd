@@ -1,4 +1,8 @@
-# Wave Orchestration with Native Tasks
+# Wave Orchestration with Native Progress
+
+**Load this companion before every DISPATCH phase.** It owns the active-wave flag
+lifecycle used by PreCompact, verdict-audit, work-state, and notification hooks.
+Do not dispatch an implementer until the flag has been created.
 
 Create tasks to track orchestrator state:
 
@@ -18,9 +22,9 @@ open(f"temp/sdd-wave-active-{epic_id}.flag", "w").close()
 
 wave_task = TaskCreate(
     subject="Wave 1: hub-abc.1, hub-abc.2",
-    activeForm="Executing wave 1",
-    addBlockedBy=[conflict_task.id]
+    activeForm="Executing wave 1"
 )
+TaskUpdate(taskId=wave_task.id, addBlockedBy=[conflict_task.id])
 
 # For each implementation — review_task is a commitment device preventing review-skipping
 review_task = TaskCreate(
@@ -30,30 +34,37 @@ review_task = TaskCreate(
 
 # At wave end — aggregate metrics, then persist to disk (see metrics-tracking.md "Disk Persistence")
 wave_metrics = [v for k, v in task_metrics.items() if k.startswith(tuple(wave_issue_ids))]
-wave_tokens = sum(m["total_tokens"] for m in wave_metrics)
-wave_tool_uses = sum(m["tool_uses"] for m in wave_metrics)
-wave_duration_ms = max(m["duration_ms"] for m in wave_metrics)
-wave_cost = wave_tokens * 9 / 1_000_000
+measured = [m for m in wave_metrics if m["metrics_available"]]
+wave_metrics_missing = len(wave_metrics) - len(measured)
+wave_tokens = sum(m["total_tokens"] for m in measured)
+wave_input_tokens = sum(m["input_tokens"] for m in measured)
+wave_output_tokens = sum(m["output_tokens"] for m in measured)
+wave_tool_uses = sum(m["tool_uses"] for m in measured)
+wave_longest_agent_ms = max((m["duration_ms"] for m in measured), default=None)
 epic_tokens += wave_tokens
+epic_input_tokens += wave_input_tokens
+epic_output_tokens += wave_output_tokens
 epic_tool_uses += wave_tool_uses
-epic_cost += wave_cost
+epic_metrics_missing += wave_metrics_missing
 
 summary_task = TaskCreate(
-    subject=f"Wave 1 summary ({wave_tokens:,} tokens, ~${wave_cost:.2f})",
-    activeForm="Summarizing wave 1",
-    addBlockedBy=[all_review_task_ids]
+    subject=f"Wave 1 summary ({wave_tokens:,} known tokens, {wave_metrics_missing} metrics unavailable)",
+    activeForm="Summarizing wave 1"
 )
-TaskUpdate(taskId=summary_task.id, metadata={
+TaskUpdate(taskId=summary_task.id, addBlockedBy=all_review_task_ids, metadata={
     "total_tokens": wave_tokens,
+    "input_tokens": wave_input_tokens,
+    "output_tokens": wave_output_tokens,
     "tool_uses": wave_tool_uses,
-    "duration_ms": wave_duration_ms,
-    "estimated_cost_usd": round(wave_cost, 2)
+    "longest_agent_ms": wave_longest_agent_ms,
+    "metrics_unavailable": wave_metrics_missing
 })
 ```
 
 ## Wave Cleanup
 
-After posting the wave summary, remove temp report files: `rm -f temp/<epic-prefix>*`
+After posting the wave summary, remove the exact report files created for the
+wave. Do not use a broad prefix glob that could also delete checkpoints or flags.
 
 Also clear the wave-active flag so PreCompact stops blocking until the next wave dispatches:
 
@@ -82,8 +93,10 @@ checkpoint = {
     "closed_issues": closed_issues,       # all issues closed so far
     "escalated_tasks": escalated_tasks,
     "epic_tokens": epic_tokens,
+    "epic_input_tokens": epic_input_tokens,
+    "epic_output_tokens": epic_output_tokens,
     "epic_tool_uses": epic_tool_uses,
-    "epic_cost": round(epic_cost, 2),
+    "epic_metrics_unavailable": epic_metrics_missing,
     "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
 }
 
@@ -98,7 +111,7 @@ checkpoint_path = f"temp/sdd-checkpoint-{epic_id}.json"
 json.dump(checkpoint, open(checkpoint_path, "w"), indent=2)
 ```
 
-The `sdd-checkpoint-` prefix survives wave cleanup (`rm -f temp/<epic-prefix>*`).
+The checkpoint path is not part of the exact per-wave report-file cleanup list.
 
 ## COMPLETE Cleanup
 

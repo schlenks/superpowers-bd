@@ -12,7 +12,7 @@ After task 2 (inline checklist) completes, the main session drives this loop for
 for each pass in [draft, feasibility, completeness, risk, optimality]:
   1. TaskUpdate(task_id, status: "in_progress")
   2. Announce: "Dispatching verification sub-agent: {pass_name}..."
-  3. Task(subagent_type: "general-purpose", model: "sonnet",
+  3. Agent(subagent_type: "general-purpose", model: "sonnet",
          description: "Verify plan: {pass_name}",
          prompt: <built from template below>)
   4. Collect verdict from sub-agent response

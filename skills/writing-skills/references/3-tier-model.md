@@ -36,7 +36,7 @@ Files in `references/` directory, loaded only when the agent needs deep detail.
 
 **Contains:**
 - Detailed guides, checklists, and worked examples
-- Full rationalization tables and anti-patterns
+- Detailed failure evidence and anti-patterns
 - Testing methodology and pressure scenario design
 - API/syntax references and heavy documentation
 

@@ -8,7 +8,9 @@ effort: high
 
 Dedicated verification agent for epic completion. Runs after all implementation tasks close, before finishing-a-development-branch. Builders build, verifiers verify -- separation prevents self-certification.
 
-**REQUIRED BACKGROUND:** Read `superpowers-bd:verification-before-completion`, `superpowers-bd:rule-of-five-code`, and `superpowers-bd:rule-of-five-tests` SKILL.md files.
+**REQUIRED BACKGROUND:** Read `superpowers-bd:verification-before-completion`.
+Rule-of-five lens names are embedded in the verifier prompt so the read-only
+verifier does not invoke editing workflows.
 
 **Trigger:** All implementation tasks in epic show `status: closed`
 
@@ -24,14 +26,14 @@ Dedicated verification agent for epic completion. Runs after all implementation 
 | **Regressions** | All tests pass? | Test suite output |
 | **Documentation** | Docs updated? | Outdated locations |
 | **Security** | No vulnerabilities? | Concerns or "none" |
-| **Rule-of-Five** | >50 line files reviewed? | Per-file 5-pass results |
+| **Rule-of-Five lenses** | >50 line files reviewed read-only? | Per-file 5-lens findings |
 
 ## Dispatch
 
 Use template at `./verifier-prompt.md`:
 
 ```
-Task tool:
+Agent tool:
   subagent_type: "general-purpose"
   model: "sonnet"  # or "opus" for max-20x
   description: "Epic verification: {epic_id}"
@@ -86,7 +88,10 @@ Codex is advisory-only — the verification PASS/FAIL verdict is determined sole
 
 ## Integration
 
-Mandatory gate: all impl tasks closed -> dispatch epic-verifier -> PASS -> finishing-a-development-branch / FAIL -> fix and re-verify.
+Mandatory gate: all impl tasks closed -> dispatch epic-verifier -> PASS with
+Report Persistence PASS -> finishing-a-development-branch / FAIL or
+FAIL (CANNOT_VERIFY) -> fix and re-verify. Unconfirmed report persistence blocks
+epic completion.
 
 ## Red Flags - Verification Theater
 

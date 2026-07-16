@@ -11,7 +11,7 @@ Pass absolute paths as placeholders to all dispatches in the wave.
 ## Claude Code Dispatch
 
 ```
-Task:
+Agent:
   subagent_type: "general-purpose"
   model: "<complexity-adjusted Claude model from budget-and-wave-cap.md>"
   run_in_background: true

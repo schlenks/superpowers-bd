@@ -10,7 +10,7 @@ You run scenarios without the skill (RED - watch agent fail), write skill addres
 
 **Core principle:** If you didn't watch an agent fail without the skill, you don't know if the skill prevents the right failures.
 
-**REQUIRED BACKGROUND:** You MUST understand superpowers-bd:test-driven-development before using this skill. That skill defines the fundamental RED-GREEN-REFACTOR cycle. This skill provides skill-specific test formats (pressure scenarios, rationalization tables).
+**REQUIRED BACKGROUND:** You MUST understand superpowers-bd:test-driven-development before using this skill. That skill defines the fundamental RED-GREEN-REFACTOR cycle. This skill provides skill-specific test formats (pressure scenarios and failure evidence records).
 
 **Complete worked example:** See examples/CLAUDE_MD_TESTING.md for a full test campaign testing CLAUDE.md documentation variants.
 
@@ -139,7 +139,9 @@ Forces explicit choice.
 
 **Best tests combine 3+ pressures.**
 
-**Why this works:** See persuasion-principles.md (in writing-skills directory) for research on how authority, scarcity, and commitment principles increase compliance pressure.
+**Why combine pressures:** Multiple independent constraints expose whether the
+skill survives realistic conflict. Treat the result as evaluation evidence, not
+as proof that stronger wording is inherently better.
 
 ### Key Elements of Good Scenarios
 
@@ -173,7 +175,7 @@ Agent violated rule despite having the skill? This is like a test regression - y
 - "Keep as reference while writing tests first"
 - "I already manually tested it"
 
-**Document every excuse.** These become your rationalization table.
+Document each repeated failure pattern and the pressure that triggered it.
 
 ### Plugging Each Hole
 
@@ -199,12 +201,12 @@ Write code before test? Delete it. Start over.
 ```
 </After>
 
-### 2. Entry in Rationalization Table
+### 2. Evidence Record
 
 ```markdown
-| Excuse | Reality |
-|--------|---------|
-| "Keep as reference, write tests first" | You'll adapt it. That's testing after. Delete means delete. |
+| Observed failure | Targeted correction |
+|------------------|---------------------|
+| "Keep as reference, write tests first" | State that adapting existing code is still tests-after. |
 ```
 
 ### 3. Red Flag Entry
@@ -233,9 +235,9 @@ Agent should now:
 - Cite new sections
 - Acknowledge their previous rationalization was addressed
 
-**If agent finds NEW rationalization:** Continue REFACTOR cycle.
+**If the agent shows a new repeated failure pattern:** Continue the REFACTOR cycle.
 
-**If agent follows rule:** Success - skill is bulletproof for this scenario.
+**If the agent follows the rule across the repeated runs:** The scenario is green.
 
 ## Meta-Testing (When GREEN Isn't Working)
 
@@ -264,22 +266,22 @@ it crystal clear that Option A was the only acceptable answer?
    - Make key points more prominent
    - Add foundational principle early
 
-## When Skill is Bulletproof
+## Scenario Exit Criteria
 
-**Signs of bulletproof skill:**
+**A scenario is green when:**
 
 1. **Agent chooses correct option** under maximum pressure
 2. **Agent cites skill sections** as justification
 3. **Agent acknowledges temptation** but follows rule anyway
 4. **Meta-testing reveals** "skill was clear, I should follow it"
 
-**Not bulletproof if:**
+**Keep iterating when:**
 - Agent finds new rationalizations
 - Agent argues skill is wrong
 - Agent creates "hybrid approaches"
 - Agent asks permission but argues strongly for violation
 
-## Example: TDD Skill Bulletproofing
+## Example: TDD Skill Iteration
 
 ### Initial Test (Failed)
 ```markdown
@@ -303,7 +305,7 @@ Cited: New principle directly
 Meta-test: "Skill was clear, I should follow it"
 ```
 
-**Bulletproof achieved.**
+**Scenario green after the targeted correction.**
 
 ## Testing Checklist (TDD for Skills)
 
@@ -322,7 +324,7 @@ Before deploying skill, verify you followed RED-GREEN-REFACTOR:
 **REFACTOR Phase:**
 - [ ] Identified NEW rationalizations from testing
 - [ ] Added explicit counters for each loophole
-- [ ] Updated rationalization table
+- [ ] Updated the failure evidence record
 - [ ] Updated red flags list
 - [ ] Updated description with violation symptoms
 - [ ] Re-tested - agent still complies
@@ -352,8 +354,8 @@ Agents resist single pressure, break under multiple.
 ✅ Fix: Add explicit negations for each specific rationalization.
 
 **❌ Stopping after first pass**
-Tests pass once ≠ bulletproof.
-✅ Fix: Continue REFACTOR cycle until no new rationalizations.
+One passing run is insufficient.
+✅ Fix: Continue the REFACTOR cycle until repeated runs show no new stable failure pattern.
 
 ## Quick Reference (TDD Cycle)
 
@@ -377,7 +379,7 @@ RED-GREEN-REFACTOR for documentation works exactly like RED-GREEN-REFACTOR for c
 ## Real-World Impact
 
 From applying TDD to TDD skill itself (2025-10-03):
-- 6 RED-GREEN-REFACTOR iterations to bulletproof
+- 6 RED-GREEN-REFACTOR iterations to stabilize the tested scenarios
 - Baseline testing revealed 10+ unique rationalizations
 - Each REFACTOR closed specific loopholes
 - Final VERIFY GREEN: 100% compliance under maximum pressure

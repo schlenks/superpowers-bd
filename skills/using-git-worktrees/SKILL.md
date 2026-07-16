@@ -74,7 +74,8 @@ See `references/directory-selection.md` for full bash commands and ask-user flow
 
 See `references/safety-verification.md` for full verification protocol.
 
-**Creation Steps (Task-Tracked):** Create 4 native tasks, each blocked by the previous (non-skippable sequence):
+**Creation Steps (Task-Tracked):** Create 4 native tasks and record each as
+blocked by the previous so skipped or out-of-order setup steps are visible:
 
 1. **Select worktree directory location** -- Check existing dirs, CLAUDE.md, or ask user
 2. **Verify gitignore for project-local directory** -- Run `git check-ignore`, add to `.gitignore` if needed

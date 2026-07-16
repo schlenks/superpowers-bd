@@ -231,6 +231,15 @@ check "CLAUDE.md documents current plugin version" \
 check "AGENTS.md documents current plugin version" \
   grep -q "\\*\\*Plugin version:\\*\\* $claude_version" AGENTS.md
 
+check "AGENTS.md uses policy-controlled git handoff guidance" \
+  grep -q "Do not commit or push without clear authority" AGENTS.md
+
+check "CLAUDE.md uses policy-controlled git handoff guidance" \
+  grep -q "Do not commit or push without clear authority" CLAUDE.md
+
+check "Generated beads guidance does not mandate push" \
+  bash -c '! grep -q "Work is NOT complete until .*git push.* succeeds" AGENTS.md CLAUDE.md'
+
 check "SessionStart context uses superpowers-bd namespace" \
   grep -q "superpowers-bd:using-superpowers" hooks/session-start.sh
 

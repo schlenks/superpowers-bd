@@ -76,18 +76,11 @@ Record simplification metrics alongside other wave/epic metrics:
 
 ```python
 # Post-wave
-task_metrics[f"wave{N}.simplify"] = {
-    "total_tokens": result.usage.total_tokens,
-    "tool_uses": result.usage.tool_uses,
-    "duration_ms": result.usage.duration_ms
-}
+task_metrics[f"wave{N}.simplify"] = normalize_agent_metrics(result)
 
 # Pre-merge (not part of any wave)
-task_metrics["pre_merge.simplify"] = {
-    "total_tokens": result.usage.total_tokens,
-    "tool_uses": result.usage.tool_uses,
-    "duration_ms": result.usage.duration_ms
-}
+task_metrics["pre_merge.simplify"] = normalize_agent_metrics(result)
 ```
 
-Include in wave cost aggregation and epic accumulator.
+Include measured entries in the wave metrics aggregate. Preserve unavailable
+entries as unavailable rather than converting them to zero.

@@ -29,7 +29,10 @@ Create native tasks for each step (each blocked by previous via addBlockedBy):
 
 See `references/task-enforcement-blocks.md` for full TaskCreate blocks.
 
-**ENFORCEMENT:** VERIFY cannot be skipped (blocked until UNDERSTAND completes). IMPLEMENT blocked until EVALUATE completes. TaskList exposes skipped steps.
+**Progress contract:** Record the intended order so TaskList exposes skipped or
+out-of-order phases. Start VERIFY after UNDERSTAND has evidence, and start
+IMPLEMENT after EVALUATE has evidence; task state documents this order but does
+not independently prevent unrelated actions.
 
 ## Forbidden Responses
 

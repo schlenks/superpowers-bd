@@ -37,16 +37,19 @@ After executing, skip to Step 5 (Cleanup Worktree) if applicable.
 TaskCreate: "Present completion options"
   description: "Present 4 structured options to user: merge, PR, keep, discard."
   activeForm: "Presenting options"
+TaskUpdate: present-options-task-id
   addBlockedBy: [verify-tests-task-id, simplification-task-id]
 
 TaskCreate: "Execute chosen option"
   description: "Execute user's chosen option from the 4 presented."
   activeForm: "Executing chosen option"
+TaskUpdate: execute-option-task-id
   addBlockedBy: [present-options-task-id]
 
 TaskCreate: "Cleanup worktree (if applicable)"
   description: "Remove worktree for options 1, 2, or 4. Keep for option 3."
   activeForm: "Cleaning up worktree"
+TaskUpdate: cleanup-task-id
   addBlockedBy: [execute-option-task-id]
 ```
 

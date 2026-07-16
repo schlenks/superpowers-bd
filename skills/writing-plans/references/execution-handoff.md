@@ -2,7 +2,9 @@
 
 ## Full Workflow
 
-**Context-aware:** Check your model ID for `[1m]` suffix. `[1m]` present (default): use the 1M flow. Absent: use the 200k flow.
+**Context-aware:** Use the 1M flow when the model ID contains `[1m]` or belongs
+to a 1M-native family (`sonnet-5` or `fable-5`). Use the 200k flow only when
+neither condition applies.
 
 ### Extended context (1M) — streamlined flow
 ```

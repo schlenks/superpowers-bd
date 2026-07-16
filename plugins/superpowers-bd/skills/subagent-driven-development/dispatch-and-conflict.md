@@ -40,11 +40,11 @@ Resolve once per wave and store the result in `platform_agent_plan`:
 ```python
 platform_agent_plan = {
     "platform": platform,
-    "implementer": "Task background worker" if platform == "claude-code" else "spawn_agent default worker",
-    "spec_review": "Task general-purpose" if platform == "claude-code" else "spawn_agent agent=spec_reviewer",
-    "code_review": "Task general-purpose" if platform == "claude-code" else "spawn_agent agent=code_reviewer",
+    "implementer": "Agent background worker" if platform == "claude-code" else "spawn_agent default worker",
+    "spec_review": "Agent general-purpose" if platform == "claude-code" else "spawn_agent agent=spec_reviewer",
+    "code_review": "Agent general-purpose" if platform == "claude-code" else "spawn_agent agent=code_reviewer",
     "review_aggregation": "multi-review-aggregation" if platform == "claude-code" else "spawn_agent agent=review_aggregator",
-    "epic_verification": "Task epic verifier" if platform == "claude-code" else "spawn_agent agent=epic_verifier",
+    "epic_verification": "Agent epic verifier" if platform == "claude-code" else "spawn_agent agent=epic_verifier",
 }
 ```
 
@@ -71,7 +71,7 @@ def min_model(selected, ceiling):
 impl_model = min_model(COMPLEXITY_TO_IMPL[task_complexity], TIER_CEILING[budget_tier])
 
 # Spec reviewer: sonnet only for complex tasks on non-pro tiers; haiku otherwise
-# (used in background-execution.md on_implementer_complete, not in this Task() call)
+# (used in background-execution.md on_implementer_complete, not in this Agent() call)
 spec_model = "sonnet" if task_complexity == "complex" and budget_tier != "pro/api" else "haiku"
 
 # Sub-agents self-read from beads. Orchestrator only provides:
@@ -80,7 +80,7 @@ spec_model = "sonnet" if task_complexity == "complex" and budget_tier != "pro/ap
 # - dependency_ids (1-3 lines)
 # - wave_number (for tagging reports)
 # - code_reviewer_path (for code reviewers to self-read methodology)
-Task(
+Agent(
     subagent_type="general-purpose",  # Always general-purpose
     model=tier_verifier if prompt_type == "verifier" else impl_model,
     run_in_background=True,
@@ -205,6 +205,8 @@ Issue hub-abc.3 files: [auth.service.ts, models/index.ts]  ← CONFLICT with .1!
 Progress item: "Wave N: Dispatch [list issues]"
   description: "Dispatching: hub-abc.1, hub-abc.2. Files verified non-conflicting."
   activeForm: "Dispatching wave N"
+TaskUpdate:
+  taskId: [wave-progress-id]
   addBlockedBy: [conflict-verify-task-id]
 ```
 
@@ -241,7 +243,9 @@ PARALLEL (new):
   mark wave progress item completed  # when all in wave done
 ```
 
-**ENFORCEMENT:** Wave dispatch progress is blocked until file conflict check completes. This makes the step visible and non-skippable.
+**Progress contract:** Record the wave item as blocked by the conflict check. The
+task list then exposes ordering mistakes or skipped checks; the orchestrator still
+has to honor that state explicitly.
 
 ## Post-Wave Simplification
 
@@ -255,7 +259,7 @@ PARALLEL (new):
 ```python
 if wave_task_count >= 2 and budget_tier != "pro/api":
     wave_files = collect_modified_files_across_wave(wave_tasks)
-    Task(
+    Agent(
         subagent_type="code-simplifier:code-simplifier",
         description=f"Simplify: post-wave {wave_number}",
         prompt=f"Focus on these files modified in wave {wave_number}: "

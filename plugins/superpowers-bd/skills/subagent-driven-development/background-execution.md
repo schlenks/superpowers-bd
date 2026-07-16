@@ -4,37 +4,41 @@
 
 For 2+ tasks per wave (up to the configured wave cap, default 5 for extended context and 3 for standard context), background execution lets you monitor all tasks simultaneously and start reviews as soon as each completes.
 
-Use platform-native background dispatch. Claude Code uses `Task(..., run_in_background=True)` and notifies when each agent completes. Codex uses `spawn_agent` and `wait_agent` only when the orchestrator is blocked on a result.
+Use platform-native background dispatch. Claude Code uses `Agent(..., run_in_background=True)` and notifies when each agent completes. Codex uses `spawn_agent` and `wait_agent` only when the orchestrator is blocked on a result.
+
+Claude Code model names in this document are literal SDD dispatch-tier choices governed by the complexity and budget tables. They are intentionally distinct from the `{low_cost_synthesis_model}` placeholder used for aggregation synthesis.
 
 ## Dispatch Phase
 
 ### Claude Code
 
 ```python
-pending_tasks = {}  # task_id -> {issue_id, complexity, base_sha, ...}
+pending_tasks = {}  # agent_id -> {issue_id, complexity, base_sha, output_file, ...}
 pending_reviews = {}  # review_id -> {issue_id, phase, base_sha, head_sha, ...}
-task_ids = []
+agent_ids = []
 
 wave_base_sha = run("git rev-parse HEAD")
 
 for issue in parallelizable:
     bd update <issue.id> --status=in_progress
     impl_model = resolve_impl_model(issue.complexity, budget_tier)
-    result = Task(
+    result = Agent(
         subagent_type="general-purpose",
         model=impl_model,
         run_in_background=True,
         description=f"Implement: {issue.id} {issue.title}",
         prompt=implementer_prompt
     )
-    pending_tasks[result.task_id] = {
+    assert result.status == "async_launched"
+    pending_tasks[result.agentId] = {
         "issue_id": issue.id,
         "complexity": issue.complexity,
         "platform": "claude-code",
         "model": impl_model,
-        "base_sha": wave_base_sha
+        "base_sha": wave_base_sha,
+        "output_file": result.outputFile
     }
-    task_ids.append(result.task_id)
+    agent_ids.append(result.agentId)
 ```
 
 ### Codex
@@ -120,8 +124,8 @@ If a sub-agent returns `REPORT_PERSISTED: NO`, the full report was not saved to 
 **Claude Code:**
 
 ```python
-def dispatch_full_report_fallback(task_id, issue_id):
-    fallback = Task(
+def dispatch_full_report_fallback(agent_id, issue_id):
+    fallback = Agent(
         subagent_type="general-purpose",
         model="haiku",
         description=f"Retrieve report: {issue_id}",
@@ -198,40 +202,42 @@ on_implementer_complete(agent_id, result):
 ### Claude Code Review Dispatch
 
 ```python
-def dispatch_spec_review(task_id, base_sha, head_sha):
-    task_complexity = pending_tasks[task_id]["complexity"]
+def dispatch_spec_review(agent_id, base_sha, head_sha):
+    task_complexity = pending_tasks[agent_id]["complexity"]
     spec_model = "sonnet" if task_complexity == "complex" and budget_tier != "pro/api" else "haiku"
-    spec_task = Task(
+    spec_agent = Agent(
         subagent_type="general-purpose",
         model=spec_model,
         run_in_background=True,
-        description=f"Spec review: {task_id}",
+        description=f"Spec review: {agent_id}",
         prompt=spec_reviewer_prompt
     )
-    pending_spec_reviews.add(spec_task)
-    pending_reviews[spec_task.task_id] = {
-        "issue_id": pending_tasks[task_id]["issue_id"],
+    assert spec_agent.status == "async_launched"
+    pending_spec_reviews.add(spec_agent.agentId)
+    pending_reviews[spec_agent.agentId] = {
+        "issue_id": pending_tasks[agent_id]["issue_id"],
         "phase": "spec",
         "base_sha": base_sha,
-        "head_sha": head_sha
+        "head_sha": head_sha,
+        "output_file": spec_agent.outputFile
     }
 
-def on_spec_review_pass(task_id, result):
-    issue_id = pending_tasks[task_id]["issue_id"]
-    base_sha = pending_tasks[task_id]["base_sha"]
-    head_sha = pending_tasks[task_id]["head_sha"]
+def on_spec_review_pass(agent_id, result):
+    issue_id = pending_tasks[agent_id]["issue_id"]
+    base_sha = pending_tasks[agent_id]["base_sha"]
+    head_sha = pending_tasks[agent_id]["head_sha"]
     n_reviews = tier_n_reviews
 
     if is_trivial_diff(base_sha, head_sha) and n_reviews > 1:
         n_reviews = 1
 
-    reviewer_tasks = []
+    reviewer_agents = []
     for i in range(n_reviews):
-        code_task = Task(
+        code_agent = Agent(
             subagent_type="general-purpose",
             model=tier_code_model,
             run_in_background=True,
-            description=f"Code review {i+1}/{n_reviews}: {task_id}",
+            description=f"Code review {i+1}/{n_reviews}: {agent_id}",
             prompt=code_reviewer_prompt.format(
                 code_reviewer_path=code_reviewer_path,
                 issue_id=issue_id,
@@ -241,22 +247,24 @@ def on_spec_review_pass(task_id, result):
             ) + f"\nYou are Reviewer {i+1} of {n_reviews}. "
                 "Review independently and do not reference other reviewers."
         )
-        reviewer_tasks.append(code_task)
-        pending_reviews[code_task.task_id] = {
+        assert code_agent.status == "async_launched"
+        reviewer_agents.append(code_agent.agentId)
+        pending_reviews[code_agent.agentId] = {
             "issue_id": issue_id,
             "phase": "code",
             "base_sha": base_sha,
-            "head_sha": head_sha
+            "head_sha": head_sha,
+            "output_file": code_agent.outputFile
         }
 
     if n_reviews > 1:
-        pending_multi_reviews[task_id] = reviewer_tasks
+        pending_multi_reviews[agent_id] = reviewer_agents
 
     if checkpoint.platform == "claude-code" and checkpoint.codex_enabled and budget_tier != "pro/api":
-        codex_task = Task(
+        codex_agent = Agent(
             subagent_type="general-purpose",
             run_in_background=True,
-            description=f"Codex cross-model review: {task_id}",
+            description=f"Codex cross-model review: {agent_id}",
             prompt=f"""Run a Codex adversarial review of the changes for {issue_id}.
 
                 ```bash
@@ -266,7 +274,11 @@ def on_spec_review_pass(task_id, result):
                 Persist the full output to temp/{issue_id}-codex-wave-{wave_n}.md.
                 Output the full review as your final message."""
         )
-        pending_codex_reviews[task_id] = codex_task
+        assert codex_agent.status == "async_launched"
+        pending_codex_reviews[agent_id] = {
+            "agent_id": codex_agent.agentId,
+            "output_file": codex_agent.outputFile
+        }
 ```
 
 ### Codex Native Review Dispatch
@@ -341,7 +353,7 @@ spawn_agent(
 
 After Claude Code code reviews complete and aggregation if N > 1, check for Codex advisory results:
 
-1. If `pending_codex_reviews[task_id]` exists, wait for the Codex agent to complete.
+1. If `pending_codex_reviews[agent_id]` exists, wait for the Codex agent to complete.
 2. Read `temp/{issue_id}-codex-wave-{wave_n}.md` as primary evidence. Fall back to agent output if the file is missing.
 3. Present as a separate section in the task review summary after the Claude aggregated report:
 

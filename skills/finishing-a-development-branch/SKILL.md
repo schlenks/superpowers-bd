@@ -26,7 +26,9 @@ effort: medium
 
 Create a "Verify all tests pass" task. Run the project's full test suite.
 
-**ENFORCEMENT:** Cannot mark completed unless test command was run fresh, output shows 0 failures, and exit code was 0. If tests fail, stop. See `references/test-verification.md`.
+**Evidence gate:** Mark the task completed only after a fresh test command shows
+0 failures and exits 0. If tests fail, stop. See
+`references/test-verification.md`.
 
 ### Step 1.5: Pre-Merge Simplification (Task-Tracked, Mandatory)
 

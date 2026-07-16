@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SessionStart hook for Codex plugin-bundled Superpowers-BD usage.
+# SessionStart hook for Codex project-local Superpowers-BD usage.
 
 set -euo pipefail
 
@@ -64,13 +64,11 @@ if [ -d "$checkpoint_dir" ]; then
   fi
 fi
 
-additional_context="<EXTREMELY_IMPORTANT>
-You have superpowers-bd.
-
-Use the native Codex skill surface for bundled skills. The primary entry skill is superpowers-bd:using-superpowers.
+additional_context="<superpowers-bd-session-context>
+Below is the full content of the 'superpowers-bd:using-superpowers' routing skill. Follow it to discover and load skills for this session. Use the native Codex skill surface for all other bundled skills.
 
 ${using_superpowers_content}${checkpoint_message}
-</EXTREMELY_IMPORTANT>"
+</superpowers-bd-session-context>"
 
 context_json=$(escape_for_json "$additional_context")
 

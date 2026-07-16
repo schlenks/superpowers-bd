@@ -130,7 +130,7 @@ cat <<EOF
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "<EXTREMELY_IMPORTANT>\nYou have superpowers.\n\n**Below is the full content of your 'superpowers-bd:using-superpowers' skill - your introduction to using skills. For all other skills, use the 'Skill' tool:**\n\n${using_superpowers_escaped}\n\n${warning_escaped}${checkpoint_escaped}${codex_context_escaped}\n</EXTREMELY_IMPORTANT>"
+    "additionalContext": "<superpowers-bd-session-context>\nBelow is the full content of the 'superpowers-bd:using-superpowers' routing skill. Follow it to discover and load skills for this session; load all other skills with the 'Skill' tool.\n\n${using_superpowers_escaped}\n\n${warning_escaped}${checkpoint_escaped}${codex_context_escaped}\n</superpowers-bd-session-context>"
   }
 }
 EOF

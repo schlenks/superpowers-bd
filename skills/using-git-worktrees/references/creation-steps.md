@@ -14,20 +14,24 @@ TaskCreate: "Select worktree directory location"
 TaskCreate: "Verify gitignore for project-local directory"
   description: "If project-local, verify ignored with git check-ignore. Add to .gitignore if needed."
   activeForm: "Verifying gitignore"
+TaskUpdate: verify-gitignore-task-id
   addBlockedBy: [select-task-id]
 
 TaskCreate: "Create worktree"
   description: "Run git worktree add. Capture path."
   activeForm: "Creating worktree"
+TaskUpdate: create-task-id
   addBlockedBy: [verify-gitignore-task-id]
 
 TaskCreate: "Proceed to Step 3 (Project Setup)"
   description: "Steps 3 and 4 (project setup and baseline tests) run outside this task-tracked sequence — same work for both native and fallback paths."
   activeForm: "Transitioning to Step 3"
+TaskUpdate: proceed-task-id
   addBlockedBy: [create-task-id]
 ```
 
-**ENFORCEMENT:** Each step is blocked by the previous, making the setup process visible and non-skippable.
+**Progress contract:** Record dependencies with `TaskUpdate`. TaskList makes the
+intended setup order and any skipped step visible.
 
 ## 1. Detect Project Name
 

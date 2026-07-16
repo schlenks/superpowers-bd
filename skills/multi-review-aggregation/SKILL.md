@@ -10,7 +10,7 @@ Dispatch N independent code reviews and aggregate findings. Each reviewer catche
 
 **Research basis:** SWR-Bench (arXiv 2509.01494) -- N independent reviews: 43.67% F1 improvement, 118.83% recall improvement. Diminishing returns past N=5; N=3 captures most improvement.
 
-**Core principle:** Independence via separate Task dispatches -- same base prompt, no shared context.
+**Core principle:** Independence via separate native agent dispatches -- same base prompt, no shared context.
 
 ## N Selection by Tier
 
@@ -24,9 +24,10 @@ When N=1, skip this skill -- use standard single code review.
 
 ## Parallel Dispatch Pattern
 
-After spec review passes, dispatch N independent reviews (`run_in_background=True`, each gets "Reviewer i of N"). Always aggregate when 2+ reviewers succeed — even unanimous approval may contain different Minor findings, Suggestions, or Not Checked items. Dispatch aggregator (haiku model).
+After spec review passes, dispatch N independent reviews (`run_in_background=True`, each gets "Reviewer i of N"). Always aggregate when 2+ reviewers succeed — even unanimous approval may contain different Minor findings, Suggestions, or Not Checked items. Dispatch the aggregator with the caller-resolved low-cost synthesis model; if no supported low-cost alias is available, omit the model field so the active model is inherited.
 
-Full dispatch code: see `references/dispatch-code.md`. Aggregator prompt: see `./aggregator-prompt.md`.
+Use the platform-native parallel dispatch path documented by the calling
+workflow. Aggregator prompt: see `./aggregator-prompt.md`.
 
 ## Aggregation Algorithm
 
@@ -85,15 +86,13 @@ Full format spec: see `references/output-provenance.md`.
 **Always:**
 - Dispatch all N reviews in parallel
 - Include reviewer number in each dispatch prompt
-- Use haiku for aggregation
+- Use the platform's low-cost synthesis agent for aggregation
 - Record per-reviewer metrics separately
 
 ## Reference Files
 
-- `references/dispatch-code.md`: Full dispatch flow with on_spec_review_pass handler
 - `references/aggregation-details.md`: Deduplication, strengths merging, malformed output, timeout recovery
 - `references/output-provenance.md`: Provenance annotation rules and full output format spec
-- `references/metrics-and-cost.md`: Per-reviewer metric keys, cost impact, per-tier breakdown
-- `aggregator-prompt.md`: Aggregator Task dispatch prompt template
+- `aggregator-prompt.md`: Platform-native aggregator prompt template
 
 <!-- compressed: 2026-02-11, original: 673 words, compressed: 434 words -->

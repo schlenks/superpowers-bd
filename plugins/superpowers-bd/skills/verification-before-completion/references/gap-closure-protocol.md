@@ -19,11 +19,12 @@ TaskCreate: "Fix: [specific failure from verification]"
 TaskCreate: "Re-verify: [original claim]"
   description: "Re-run verification after fix. Evidence: [same verification command]."
   activeForm: "Re-verifying [claim]"
-  blockedBy: "[gap-fix task ID]"
   metadata:
     attempt: [2|3]
     max_attempts: 3
     original_verification: "[original task ID]"
+TaskUpdate: [re-verification task ID]
+  addBlockedBy: ["[gap-fix task ID]"]
 ```
 
 ## Step 3: Execute Fix, Then Re-Verify

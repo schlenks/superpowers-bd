@@ -1,11 +1,16 @@
 # Review Aggregator Prompt Template
 
-Model: haiku (synthesis task, not deep analysis)
+Model: platform-selected low-cost synthesis tier
+
+Resolve `{low_cost_synthesis_model}` before dispatch by replacing it with the
+current platform-supported low-cost synthesis alias. If no such alias is
+available, omit the `model` line so the agent inherits the active model. Never
+send the placeholder braces literally.
 
 ```
-Task tool:
+Agent tool:
   subagent_type: "general-purpose"
-  model: "haiku"
+  model: "{low_cost_synthesis_model}"
   description: "Aggregate reviews: [issue-id]"
   prompt: |
     You are a code review aggregator. You have received {n_reviews} independent
