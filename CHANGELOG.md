@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.10.1] - 2026-07-17
+
+### Fixed
+
+- **Cognitive-complexity linter hook is now a ratchet, not a hard block** (`hooks/run-linter.sh`): the TypeScript branch previously blocked *any* `Edit`/`Write` to a `.ts`/`.tsx` file containing a function scoring over 25 on `ccts-json` cognitive complexity — including pre-existing debt the current edit never touched, which made it impossible to open a legacy file to *reduce* its complexity (the hook blocked the very edits that would fix it). It now compares the file's over-25 functions against the file's state at `git HEAD` on three axes — count, max score, and sum of over-25 scores — and allows the edit when it leaves the file no worse on all three (down-only), while still blocking any edit that adds a new over-25 function or worsens an already-over-limit file. Files with no over-25 functions are unaffected. Non-git directories and files with no `HEAD` baseline fall back to the original block behavior. This mirrors the exact down-only rule of the CI cognitive-complexity ratchet so local edits and CI tell the same story, and fixes a correctness issue for every repo using this plugin: blocking all edits to a file with pre-existing debt was never the intended behavior.
+
 ## [5.10.0] - 2026-07-16
 
 Workflow contract calibration for modern SOTA models (Fable 5, GPT-5.x Codex): fixes verified platform-API defects, replaces fictional enforcement rhetoric with honest progress semantics, and retunes prompt pressure to calibrated contracts — without weakening the TDD, verification, or review invariants. All skill edits are mirrored into the bundled `plugins/superpowers-bd/` wrapper. Plans: `docs/plans/2026-07-16-workflow-contract-calibration.md` and `...-review-fixes.md`.

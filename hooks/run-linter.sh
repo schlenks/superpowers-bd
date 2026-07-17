@@ -46,20 +46,53 @@ case "$file_path" in
     ;;
   *.ts|*.tsx)
     if command -v ccts-json &>/dev/null; then
+      # "count<TAB>max<TAB>sum" of function scores > 25 in the given file
+      ccts_over25_stats() {
+        local target="$1" out
+        out=$(ccts-json "$target" 2>/dev/null) || true
+        if [[ -z "$out" ]]; then printf '0\t0\t0\n'; return; fi
+        echo "$out" | jq -r \
+          '[.. | objects | select(.kind == "function" and .score > 25) | .score]
+           | "\(length)\t\(if length > 0 then max else 0 end)\t\(if length > 0 then add else 0 end)"' \
+          2>/dev/null || printf '0\t0\t0\n'
+      }
       # Cognitive complexity via ccts-json
       ccts_output=$(ccts-json "$file_path" 2>/dev/null) || true
       if [[ -n "$ccts_output" ]]; then
-        # Block: cognitive complexity > 25
+        # Block: cognitive complexity > 25 — ratchet: pre-existing debt is
+        # tolerated; only edits that WORSEN the file (vs git HEAD) are blocked.
         violations_block=$(echo "$ccts_output" | jq -r \
           '.. | objects | select(.kind == "function" and .score > 25) | "\(.name)\t\(.line)\t\(.score)"' \
           2>/dev/null) || true
         if [[ -n "$violations_block" ]]; then
-          echo "COMPLEXITY ERROR: functions exceed critical cognitive complexity in $file_path" >&2
-          echo "  Functions with cognitive complexity > 25 must be decomposed:" >&2
-          while IFS=$'\t' read -r fname fline fscore; do
-            echo "  ${file_path}:${fline} — ${fname}() cognitive complexity = ${fscore}" >&2
-          done <<< "$violations_block"
-          block_with_reason "Critical cognitive complexity found in $file_path. Decompose functions scoring above 25 before continuing."
+          IFS=$'\t' read -r cur_count cur_max cur_sum <<< "$(ccts_over25_stats "$file_path")"
+          base_count=-1 base_max=0 base_sum=0
+          file_dir=$(dirname "$file_path")
+          file_base=$(basename "$file_path")
+          if git -C "$file_dir" rev-parse --is-inside-work-tree &>/dev/null; then
+            tmp_dir=$(mktemp -d)
+            if git -C "$file_dir" show "HEAD:./$file_base" > "$tmp_dir/$file_base" 2>/dev/null; then
+              IFS=$'\t' read -r base_count base_max base_sum <<< "$(ccts_over25_stats "$tmp_dir/$file_base")"
+            fi
+            rm -rf "$tmp_dir"
+          fi
+          if [[ "$base_count" -ge 1 && "$cur_count" -le "$base_count" && "$cur_max" -le "$base_max" && "$cur_sum" -le "$base_sum" ]]; then
+            echo "COMPLEXITY RATCHET: $file_path already exceeded the limit at HEAD (over-25 count ${base_count}, max ${base_max}); this edit does not worsen it (count ${cur_count}, max ${cur_max}) — allowed." >&2
+            echo "  Remaining functions with cognitive complexity > 25 (reduce when practical):" >&2
+            while IFS=$'\t' read -r fname fline fscore; do
+              echo "  ${file_path}:${fline} — ${fname}() cognitive complexity = ${fscore}" >&2
+            done <<< "$violations_block"
+          else
+            echo "COMPLEXITY ERROR: functions exceed critical cognitive complexity in $file_path" >&2
+            if [[ "$base_count" -ge 0 ]]; then
+              echo "  This edit worsens the file vs HEAD (over-25 count ${base_count} -> ${cur_count}, max ${base_max} -> ${cur_max}, sum ${base_sum} -> ${cur_sum})." >&2
+            fi
+            echo "  Functions with cognitive complexity > 25 must be decomposed:" >&2
+            while IFS=$'\t' read -r fname fline fscore; do
+              echo "  ${file_path}:${fline} — ${fname}() cognitive complexity = ${fscore}" >&2
+            done <<< "$violations_block"
+            block_with_reason "Critical cognitive complexity found in $file_path. Decompose functions scoring above 25 (or at minimum do not add to a file already over the limit) before continuing."
+          fi
         fi
         # Warn: cognitive complexity > 15
         violations_warn=$(echo "$ccts_output" | jq -r \
