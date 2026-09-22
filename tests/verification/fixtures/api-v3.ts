@@ -25,25 +25,34 @@ const taskRepo = new TaskRepository();
 
 // ─── Body Size Limit ────────────────────────────────────────────────
 
-// 10KB body size limit for DoS protection. The spec lists 413
-// PAYLOAD_TOO_LARGE in the error code table, implying body size
-// limits were anticipated. 10KB accommodates maximum valid payloads
-// (200-char title + 2000-char description is well under 10KB).
-router.use(express.json({ limit: '10kb' }));
+// Allow the largest valid 100-item bulk update, including descriptions
+// that expand when JSON-escaped. Keep a finite cap for oversized bodies.
+router.use(express.json({ limit: '2mb' }));
+router.use((
+  err: Error & { type?: string },
+  _req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  if (err.type === 'entity.too.large') {
+    res.status(413).json(errorEnvelope('PAYLOAD_TOO_LARGE', 'Request body exceeds size limit'));
+    return;
+  }
+  next(err);
+});
 
 // ─── Middleware Pipeline ────────────────────────────────────────────
 
 router.use(requestLogger);
 router.use(corsMiddleware);
-router.use(authMiddleware);
-router.use(rateLimiter);
-router.use(auditLogger);
-
-// Make task repo available to middleware
+// Make task repo available to middleware, including auth's task lookup.
 router.use((req: Request, _res: Response, next: NextFunction) => {
   (req as any).app.locals.taskRepo = taskRepo;
   next();
 });
+router.use(authMiddleware);
+router.use(rateLimiter);
+router.use(auditLogger);
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -375,6 +384,10 @@ function handleUpdateTask(req: Request, res: Response): void {
   res.json(envelope(stripInternalFields(updated)));
 }
 
+// Register literal bulk paths before parameter routes so Express does not
+// dispatch /tasks/bulk to a :id handler.
+router.patch('/tasks/bulk', handleBulkUpdate);
+router.delete('/tasks/bulk', handleBulkDelete);
 router.patch('/tasks/:id', handleUpdateTask);
 
 // ─── DELETE /tasks/:id ──────────────────────────────────────────────
@@ -508,8 +521,6 @@ function handleBulkUpdate(req: Request, res: Response): void {
   res.json(envelope({ updated: updatedCount, failed }));
 }
 
-router.patch('/tasks/bulk', handleBulkUpdate);
-
 // ─── DELETE /tasks/bulk ─────────────────────────────────────────────
 
 function handleBulkDelete(req: Request, res: Response): void {
@@ -549,8 +560,6 @@ function handleBulkDelete(req: Request, res: Response): void {
 
   res.json(envelope({ deleted: deletedCount }));
 }
-
-router.delete('/tasks/bulk', handleBulkDelete);
 
 // ─── POST /webhooks/register ────────────────────────────────────────
 

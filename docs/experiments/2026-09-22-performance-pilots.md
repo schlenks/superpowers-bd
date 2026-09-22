@@ -18,6 +18,10 @@ These are local pilots, not a token-cost benchmark. The same active Codex model 
 - The key marks the 10 KB body limit as a safe decoy, but 100 permitted 200-character titles exceed that limit; the fixture needs recalibration before precision or false-positive rates are trusted. The key's bulk-delete performance finding also overlaps a more severe atomicity failure.
 - One run has no reliable cost, wall-time, or variance estimate. Keep the current review pipeline until repeated matched runs show lower cost with preserved correctness.
 
+### Fixture revision after the pilot
+
+The V3 fixture is now version 3.1. The parser accepts valid 100-item bulk updates, oversized bodies use the specified error envelope, literal bulk routes are registered before parameter routes, and the repository is available to the seeded authentication leak. The key now describes B1's caller-dependent field order correctly and classifies B9 as an atomicity failure. These edits change the material shown to reviewers; the 11/12 and 10/12 results above belong to the earlier fixture and must not be compared directly with new runs. A local contract test checks these boundaries. The subsequent [independent audit](2026-09-22-v3-fixture-audit.md) found unsound decoys and major unkeyed defects, so the fixture is marked `failed_audit` and model experiments stop before scoring it.
+
 ## Plan review
 
 - Scratch fixture: `temp/optimization-eval/requirements.md` and `flawed-plan.md`. One reviewer repaired a copy inline; five fresh reviewers repaired another copy in Draft, Feasibility, Completeness, Risk, and Optimality order.

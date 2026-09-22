@@ -1,5 +1,7 @@
 {
-  "fixture_version": "3.0",
+  "fixture_version": "3.1",
+  "calibration_status": "failed_audit",
+  "audit_report": "docs/experiments/2026-09-22-v3-fixture-audit.md",
   "created": "2026-02-24",
   "purpose": "Scoring reference for V3 Decorrelated Specialization experiment. NOT shown to model under review.",
   "total_areas": 28,
@@ -21,13 +23,13 @@
       "is_bug": true,
       "domain": "correctness",
       "category": "state-transition ordering",
-      "summary": "Bulk update applies field updates in wrong order — priority set before status causes closed_at race",
+      "summary": "Bulk update follows caller field order, so a status-first request violates the required status-last order",
       "difficulty": "medium",
       "expected_single_reviewer_rate": 0.70,
       "location": "api-v3.ts, PATCH /tasks/bulk handler, field application loop",
       "spec_reference": "spec-v3.md Section 8.1: 'Bulk update applies status last to ensure derived fields (closed_at) are computed from final state'",
-      "code_behavior": "The bulk update loop iterates over fields in declaration order: priority first, then status. When status transitions to 'done', closed_at should be computed against the already-updated priority — but because priority is applied first in the loop, a race exists where concurrent reads between the priority write and status write observe inconsistent state. The correct order is status last.",
-      "cross_file_notes": "impl-v3.md claims 'bulk updates are atomic per task' but does not describe field application order. The race is only visible in the ordering of Map writes inside the loop.",
+      "code_behavior": "applyBulkFieldUpdates iterates Object.entries(fields), preserving the caller's JSON key order. A request with status before priority processes status first, contrary to the spec's unconditional status-last rule. A request with priority before status follows the required order. No concurrent-read race is needed to establish this violation.",
+      "cross_file_notes": "impl-v3.md explicitly says fields follow request order, which conflicts with the spec's status-last rule.",
       "adjacent_decoys": ["D3"]
     },
     "B2": {
@@ -40,7 +42,7 @@
       "expected_single_reviewer_rate": 0.35,
       "location": "api-v3.ts, deliverWebhook function, retry loop",
       "spec_reference": "spec-v3.md Section 7.3: 'Retry count increments on every failed attempt including partial success. Maximum 3 retries total.'",
-      "code_behavior": "The retry loop increments retryCount only when the HTTP response status is >= 500. If the delivery endpoint returns 206 Partial Content (a partial success), the code logs the partial delivery but resets retryCount to 0 — interpreting partial success as a signal to restart the retry window. This means a flaky endpoint returning alternating 206/500 responses never exceeds the retry limit. On a 206-persistent endpoint, retryCount never reaches maxRetries — the loop runs indefinitely (unbounded retry/infinite loop).",
+      "code_behavior": "The retry loop increments retryCount on non-2xx responses and network errors, but a 206 Partial Content resets retryCount to 0. Alternating 206 and 500 responses can therefore restart the retry window indefinitely. A persistent 206 response also prevents the loop from reaching maxRetries.",
       "cross_file_notes": "impl-v3.md states 'webhook delivery includes retry logic with exponential backoff'. D5 (fire-and-forget pattern) is nearby and looks suspicious but is correct.",
       "adjacent_decoys": ["D5"]
     },
@@ -49,12 +51,12 @@
       "is_bug": true,
       "domain": "correctness",
       "category": "pagination under concurrency",
-      "summary": "Pagination cursor based on created_at causes duplicates under concurrent inserts",
+      "summary": "Timestamp-only pagination cursor repeats or skips tasks under concurrent writes and equal timestamps",
       "difficulty": "medium",
       "expected_single_reviewer_rate": 0.65,
       "location": "api-v3.ts, GET /tasks handler, pagination cursor block",
       "spec_reference": "spec-v3.md Section 3.1: 'Pagination cursor must be stable under concurrent writes. Use opaque cursor encoding task ID, not timestamp.'",
-      "code_behavior": "The pagination implementation encodes the last item's created_at timestamp as the cursor. On the next page request, it filters tasks where created_at > cursor. Under concurrent inserts, two tasks can share the same created_at millisecond — one is included in the current page, the other is silently skipped when the next page cursor advances past both. The spec requires an ID-based opaque cursor, not a timestamp-based one.",
+      "code_behavior": "The pagination implementation encodes only the last item's created_at timestamp. The next page filters created_at > cursor even when the default sort order is descending, which can repeat newer items. Tasks sharing the cursor timestamp are skipped. The spec requires an ID-based opaque cursor stable under concurrent writes.",
       "cross_file_notes": "D14 (empty array for out-of-range page) is adjacent — returning empty for page 99 looks suspicious but is correct per spec.",
       "adjacent_decoys": ["D14"]
     },
@@ -63,12 +65,12 @@
       "is_bug": true,
       "domain": "security",
       "category": "resource exhaustion via shared pools",
-      "summary": "Rate limiter keys on raw Authorization header, not extracted user ID — shared token pools exhaust each other",
+      "summary": "Rate limiter keys on raw Authorization header, so one user can bypass a per-user quota with multiple tokens",
       "difficulty": "easy",
       "expected_single_reviewer_rate": 0.85,
       "location": "middleware-v3.ts, rateLimiter middleware, key derivation line",
       "spec_reference": "spec-v3.md Section 6.2: 'Rate limits are per-user. Key must be derived from the authenticated user identity, not the request credential.'",
-      "code_behavior": "The rate limiter uses `req.headers.authorization` as the map key. When multiple clients share a service account token (a common pattern in service-to-service auth), they exhaust a single rate limit bucket together — each client's requests count against all other clients using the same token. The key should be the authenticated user ID extracted after token validation.",
+      "code_behavior": "The rate limiter uses `req.headers.authorization` as the map key rather than the authenticated user ID. A user holding two valid tokens gets two separate 120-request buckets and can exceed the specified per-user limit.",
       "cross_file_notes": "impl-v3.md openly states 'rate limiting is keyed on the Authorization header for simplicity'. D2 (in-memory store) is adjacent and looks like a concurrency issue, but is correct.",
       "adjacent_decoys": ["D2"]
     },
@@ -131,14 +133,14 @@
     "B9": {
       "id": "B9",
       "is_bug": true,
-      "domain": "performance",
-      "category": "sequential operation without early termination",
-      "summary": "Bulk delete does N sequential Map lookups, no early termination on 404, no batch operation",
+      "domain": "correctness",
+      "category": "bulk delete atomicity",
+      "summary": "Bulk delete removes valid tasks before discovering a missing ID, violating all-or-nothing semantics",
       "difficulty": "medium",
       "expected_single_reviewer_rate": 0.70,
       "location": "api-v3.ts, DELETE /tasks/bulk handler",
       "spec_reference": "spec-v3.md Section 8.2: 'Bulk delete must validate all IDs in a single pass before deleting any. Return 404 if any ID is not found (atomic: all-or-nothing).'",
-      "code_behavior": "The bulk delete handler iterates over the ID array and calls taskRepo.delete(id) for each ID in sequence. On 404, it continues iterating rather than returning early — calling delete() on subsequent IDs even though the spec requires atomic all-or-nothing semantics. The spec-required behavior is to validate all IDs first, then delete all or none. The current implementation may partially delete tasks before encountering a 404.",
+      "code_behavior": "The bulk delete handler calls taskRepo.delete(id) while checking each ID. If a later ID is missing, it returns 404 after earlier tasks were already deleted. The spec requires validating all IDs before any deletion. Up to 100 Map lookups are not independently a demonstrated performance defect.",
       "cross_file_notes": "D11 (100-item cap) is adjacent and looks like an arbitrary limit but is correct per spec.",
       "adjacent_decoys": ["D11"]
     },
@@ -167,8 +169,8 @@
       "location": "api-v3.ts, buildWebhookPayload function",
       "spec_reference": "spec-v3.md Section 7.2: 'Webhook payload must include: task_id, event_type, timestamp, task (full task object), changed_fields (array of field names that changed)'",
       "code_behavior": "buildWebhookPayload returns `{ task_id, event_type, timestamp }` — omitting both the full `task` object and the `changed_fields` array that the spec requires. Webhook consumers relying on the spec cannot determine what changed without fetching the full task separately. The impl-v3.md mentions 'webhook payloads include event details' which is technically true but obscures the missing fields.",
-      "cross_file_notes": "D7 (body size limit) is in the same webhook section and looks like an unrequested constraint but is spec-compliant.",
-      "adjacent_decoys": ["D7"]
+      "cross_file_notes": "D7 (body size limit) is a separate request parsing concern; the cap must accommodate valid bulk requests.",
+      "adjacent_decoys": []
     },
     "B12": {
       "id": "B12",
@@ -250,10 +252,10 @@
       "is_bug": false,
       "domain": "architecture",
       "category": "correct implementation (body size limit)",
-      "summary": "Body size limit of 10KB — not explicitly in spec, but spec implies it via 413 error code",
-      "adjacent_to_bug": "B11",
-      "why_it_looks_suspicious": "The spec does not explicitly mention a 10KB limit. A reviewer might flag this as scope creep similar to how they'd flag unrequested features. Adjacent to B11's missing changed_fields, a reviewer scrutinizing the webhook section may over-extend.",
-      "why_its_correct": "spec-v3.md Section 5 lists 413 PAYLOAD_TOO_LARGE in the error code table, implying body size limits were anticipated. The 10KB limit accommodates maximum valid payload (200-char title + 2000-char description = well under 10KB). This is defensive hardening, not scope creep."
+      "summary": "Body size limit of 2 MB permits maximum valid bulk requests while rejecting oversized bodies",
+      "adjacent_to_bug": null,
+      "why_it_looks_suspicious": "The spec lists 413 PAYLOAD_TOO_LARGE but does not prescribe a byte cap. A reviewer may flag any limit as an extra restriction.",
+      "why_its_correct": "A 100-item bulk update with maximum 200-character titles and 2000-character descriptions, including JSON escaping, fits below 2 MB. The cap preserves the documented request sizes while limiting oversized bodies."
     },
     "D8": {
       "id": "D8",
@@ -358,9 +360,9 @@
   },
 
   "domain_distribution": {
-    "correctness": ["B1", "B2", "B3"],
+    "correctness": ["B1", "B2", "B3", "B9"],
     "security": ["B4", "B5", "B6"],
-    "performance": ["B7", "B8", "B9"],
+    "performance": ["B7", "B8"],
     "architecture": ["B10", "B11", "B12"]
   },
 
@@ -375,19 +377,19 @@
     "B8": { "adjacent_decoys": ["D10", "D15"], "notes": "D10 (timestamp format) and D15 (user agent logging) are in the same audit log function" },
     "B9": { "adjacent_decoys": ["D11"], "notes": "D11 (100-item cap) is enforced at the top of the same bulk delete handler" },
     "B10": { "adjacent_decoys": ["D9"], "notes": "D9 (Map storage) is in the same repository class as the encapsulation violation" },
-    "B11": { "adjacent_decoys": ["D7"], "notes": "D7 (body size limit) is in the same webhook registration/delivery section" },
+    "B11": { "adjacent_decoys": [], "notes": "D7 is a request parser concern rather than adjacent to webhook payload construction" },
     "B12": { "adjacent_decoys": ["D13"], "notes": "D13 (mock clock) is in the same test file that has zero webhook tests" }
   },
 
   "validation_checklist": {
     "total_is_bug_true": 12,
     "total_is_bug_false": 16,
-    "decoys_with_adjacent_to_bug": 14,
+    "decoys_with_adjacent_to_bug": 13,
     "minimum_adjacent_decoys_required": 6,
-    "domains_with_exactly_3_bugs": {
-      "correctness": 3,
+    "bugs_by_domain": {
+      "correctness": 4,
       "security": 3,
-      "performance": 3,
+      "performance": 2,
       "architecture": 3
     },
     "files_containing_bugs": [

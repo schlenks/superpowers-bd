@@ -9,7 +9,7 @@ test-decorrelated-v3.sh. Computes:
   - Bootstrap 95% CI on mean aggregate delta_score
   - CONFIRMED / PARTIAL / DENIED / INCONCLUSIVE verdict
   - VERIFIED / OBSERVED / INCONCLUSIVE decision class
-  - Per-domain recall analysis (descriptive only — 3 bugs per domain)
+  - Per-domain recall analysis (descriptive only — 2 to 4 bugs per domain)
   - Individual reviewer in-domain recall analysis
   - JSON summary output to <aggregates_dir>/aggregates-summary.json
 
@@ -138,9 +138,9 @@ else:
 # ---------------------------------------------------------------------------
 
 REAL_BUGS = frozenset({
-    "B1", "B2", "B3",       # Correctness
+    "B1", "B2", "B3", "B9", # Correctness
     "B4", "B5", "B6",       # Security
-    "B7", "B8", "B9",       # Performance
+    "B7", "B8",             # Performance
     "B10", "B11", "B12",    # Architecture
 })
 DECOYS = frozenset({
@@ -151,9 +151,9 @@ AREA_IDS = sorted(REAL_BUGS | DECOYS)
 TOTAL_BUGS = 12
 
 DOMAINS = {
-    "correctness":  ["B1", "B2", "B3"],
+    "correctness":  ["B1", "B2", "B3", "B9"],
     "security":     ["B4", "B5", "B6"],
-    "performance":  ["B7", "B8", "B9"],
+    "performance":  ["B7", "B8"],
     "architecture": ["B10", "B11", "B12"],
 }
 
@@ -402,7 +402,7 @@ def analyze_primary(aggregates_rows, scores_rows):
 
 
 # ---------------------------------------------------------------------------
-# Per-domain analysis (descriptive — 3 bugs per domain)
+# Per-domain analysis (descriptive — 2 to 4 bugs per domain)
 # ---------------------------------------------------------------------------
 
 def _domain_union_recalls(by_cycle_cond, bug_ids):
@@ -430,7 +430,7 @@ def _domain_union_recalls(by_cycle_cond, bug_ids):
 def analyze_per_domain(scores_rows):
     """Compute per-domain recall for specialist vs generalist (union rule).
 
-    Descriptive stats only — 3 bugs per domain is too few for formal testing.
+    Descriptive stats only — each domain has too few bugs for formal testing.
 
     Returns:
         dict: {domain: {recall_specialist, recall_generalist, delta_recall, ...}}
@@ -458,7 +458,7 @@ def analyze_per_domain(scores_rows):
                              if len(spec_arr) > 1 else bootstrap_ci([]),
             "generalist_ci": bootstrap_ci(gen_arr, stat_fn=np.mean)
                              if len(gen_arr) > 1 else bootstrap_ci([]),
-            "note": "Descriptive only — 3 bugs too few for formal test",
+            "note": f"Descriptive only — {len(bug_ids)} bugs too few for formal test",
         }
     return results
 
@@ -623,7 +623,7 @@ def _print_primary_section(primary):
 def _print_domain_section(domain):
     """Print per-domain recall table."""
     print("\n" + "─" * 65)
-    print(" PER-DOMAIN RECALL (descriptive — 3 bugs per domain)")
+    print(" PER-DOMAIN RECALL (descriptive — 2 to 4 bugs per domain)")
     print("─" * 65)
     print(f"{'Domain':<14} {'Gen':>7} {'Spec':>7} {'Delta':>7}  {'Bugs'}")
     print("-" * 55)

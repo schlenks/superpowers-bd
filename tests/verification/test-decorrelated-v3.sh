@@ -12,7 +12,7 @@
 #   B6:  CORS wildcard origin + credentials (security, medium)
 #   B7:  Status filter bypasses index, full scan (performance, medium)
 #   B8:  Synchronous audit log blocks requests (performance, very hard)
-#   B9:  Bulk delete non-atomic, no early termination (performance, medium)
+#   B9:  Bulk delete non-atomic (correctness, medium)
 #   B10: Repository returns raw references (architecture, hard)
 #   B11: Webhook payload missing changed_fields (architecture, easy)
 #   B12: Zero webhook tests in test suite (architecture, very hard)
@@ -44,6 +44,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FIXTURES_DIR="$SCRIPT_DIR/fixtures"
 # shellcheck source=test-helpers.sh
 source "$SCRIPT_DIR/test-helpers.sh"
+python3 "$SCRIPT_DIR/check_fixture_calibration.py" "$FIXTURES_DIR/ground-truth-v3.json"
 
 echo "========================================"
 echo " Verification: Decorrelated V3"
