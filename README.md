@@ -173,7 +173,7 @@ Then install the plugin from this marketplace:
 /plugin install superpowers-bd@schlenks/superpowers-bd
 ```
 
-Newer models, including Opus 5, omit the native `TaskCreate`/`TaskUpdate`
+Newer models, including Opus 5.5, omit the native `TaskCreate`/`TaskUpdate`
 progress tools in ordinary local Claude Code sessions by default.
 Superpowers-BD uses them to show execution phases and quality gates. Enable
 them for sessions where you want that native progress display:

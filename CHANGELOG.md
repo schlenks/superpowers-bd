@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.11.1] - 2026-09-22
+
+### Changed
+
+- **Codex review effort:** `spec_reviewer`, `code_reviewer`, and `epic_verifier` now run at `high` instead of `xhigh`. `high` is sufficient for the current GPT-5.6 and GPT-6 Sol/Luna Codex models; `review_aggregator` stays at `medium`. The `.codex/agents` configs and the SDD policy tables agree again: the code and spec reviewer configs had been `high` while the tables said `xhigh`.
+- **Current-model references:** example model IDs, Task-tool notes, and effort-policy text now name Opus 5.5 instead of Opus 4.6/4.8. The Claude effort policy states that its `medium ≈ high ≈ xhigh` evidence came from Opus 4.8 and has not been re-measured on Opus 5/5.5. SDD context-tier guidance notes that current Codex models report a 272k window (standard tier).
+
 ## [5.11.0] - 2026-09-22
 
 ### Added

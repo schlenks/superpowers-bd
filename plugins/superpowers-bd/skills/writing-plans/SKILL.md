@@ -25,7 +25,7 @@ Create these 7 native tasks at plan start. After each task is created, use
 the sequence before leaving plan mode; TaskList makes unfinished passes visible:
 
 1. **Write draft plan** -- Initial structure with all tasks, dependencies, file lists
-   - **After saving plan — context check:** Look at your model ID in the system prompt (e.g., `claude-opus-4-6[1m]`).
+   - **After saving plan — context check:** Look at your model ID in the system prompt (e.g., `claude-opus-5-5[1m]`).
      - **Extended context:** The model ID contains `[1m]`, or belongs to a 1M-native family (`sonnet-5`, `fable-5`). Skip compact. Announce "Plan written to {path}. Proceeding to verification." and continue to task 2.
      - **Standard context (~200k):** Show the copy-pasteable `/compact` command (see `references/announcements-protocol.md`) and wait for the user's follow-up before proceeding to task 2.
 2. **Plan Verification Checklist** -- Complete/Accurate/Commands valid/YAGNI/Minimal/Not over-engineered

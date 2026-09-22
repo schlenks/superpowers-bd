@@ -1,5 +1,15 @@
 # Superpowers Release Notes
 
+## v5.11.1 (2026-09-22) - Current Models and Codex Effort
+
+The Codex reviewer and verifier agents (`spec_reviewer`, `code_reviewer`, `epic_verifier`) now run at `high` reasoning effort instead of `xhigh`. `high` is sufficient for the current GPT-5.6 and GPT-6 Sol/Luna models, and the change removes a mismatch: the code and spec reviewer configs were already `high` while the SDD tables said `xhigh`. `review_aggregator` stays at `medium`.
+
+Model references are updated for Opus 5.5. Opus 5.5 keeps the `[1m]` suffix in Claude Code, so SDD and writing-plans still detect the 1M context tier without new rules. The Claude effort policy now states that its plateau evidence came from Opus 4.8 and has not been re-measured on Opus 5/5.5; the skill and agent frontmatter levels are unchanged.
+
+### Validation
+
+- Workflow contract audit: 33/33; fast Claude skill suite passed; Codex suite: 5/5.
+
 ## v5.11.0 (2026-09-22) - Plan Import and Claude Compatibility
 
 New plans now include a short Review Focus for behaviors implied by the requirements, with a named test in the owning task. Both Claude and Codex plan import carry each item to the matching Beads child and keep the full list on the epic. Existing plans without that section still import. A local plan with no H3 `### Task N:` headings now stops before creating an empty epic.

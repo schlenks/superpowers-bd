@@ -5,7 +5,7 @@ Announce each verification phase explicitly. This creates a visible audit trail.
 ## After Draft Plan Saved
 
 Check your model ID in the system prompt. Treat context as extended when the
-ID contains the `[1m]` suffix (for example, `claude-opus-4-6[1m]`) **or**
+ID contains the `[1m]` suffix (for example, `claude-opus-5-5[1m]`) **or**
 belongs to a 1M-native family (`sonnet-5` or `fable-5`).
 
 ### Extended context — skip compact, proceed directly

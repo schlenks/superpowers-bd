@@ -38,9 +38,9 @@ Route strength by `model_reasoning_effort`, not by Claude Opus/Sonnet/Haiku name
 
 ### Model and Effort Policy
 
-Preferred model: **Opus** — it is the Claude Code default and the model the skill/agent frontmatter effort is tuned for. Frontmatter tops out at `high` (review/analysis gates at `effort: high`, workflow/orchestration skills at `effort: medium`); `xhigh` is retired because on Opus it costs roughly 2× `high` for a gain that sits inside the benchmark error bars (`medium ≈ high ≈ xhigh`; only `max` shows a real, distinguishable gain). Do not switch models automatically.
+Preferred model: **Opus** — it is the Claude Code default and the model the skill/agent frontmatter effort is tuned for. Frontmatter tops out at `high` (review/analysis gates at `effort: high`, workflow/orchestration skills at `effort: medium`); `xhigh` is retired because on Opus it costs roughly 2× `high` for a gain that sits inside the benchmark error bars (`medium ≈ high ≈ xhigh`; only `max` shows a real, distinguishable gain). That plateau was measured on Opus 4.8; it has not yet been re-measured on Opus 5/5.5, so treat it as the working policy until the reviewer-effort experiments in `docs/experiments/` land. Opus 5.5 defaults to `medium` effort when none is set; the frontmatter levels are explicit, so skills and agents are unaffected. Do not switch models automatically.
 
-**Fable effort ceiling:** when the active model is a Fable family model (ID contains `fable`), cap every reasoning-effort selection at `high`. Never request `xhigh` or `max` on Fable. The static skill/agent frontmatter tops out at `high`, so the Claude Code path satisfies this ceiling by construction — no static-frontmatter effort can exceed the Fable cap. (The Codex reviewer/verifier tables below do use `xhigh`, but they run on GPT-family models via Codex, never Fable, so that `xhigh` never reaches a Fable session.) The rule remains as a guard against escalation (failure-recovery) or a manual `/effort xhigh|max` on a Fable session: clamp back to `high`.
+**Fable effort ceiling:** when the active model is a Fable family model (ID contains `fable`), cap every reasoning-effort selection at `high`. Never request `xhigh` or `max` on Fable. The static skill/agent frontmatter tops out at `high`, so the Claude Code path satisfies this ceiling by construction — no static-frontmatter effort can exceed the Fable cap. The rule remains as a guard against escalation (failure-recovery) or a manual `/effort xhigh|max` on a Fable session: clamp back to `high`.
 
 ### Implementer Reasoning Effort
 
@@ -56,12 +56,12 @@ Implementers may use the default Codex worker with the active profile model and 
 
 | Role | Codex agent | Model | Reasoning effort | Use |
 |------|-------------|-------|------------------|-----|
-| Spec compliance | `spec_reviewer` | inherit active Codex model | xhigh | After implementer reports `DONE` or `DONE_WITH_CONCERNS` |
-| Code quality | `code_reviewer` | inherit active Codex model | xhigh | N independent reviews by budget tier |
+| Spec compliance | `spec_reviewer` | inherit active Codex model | high | After implementer reports `DONE` or `DONE_WITH_CONCERNS` |
+| Code quality | `code_reviewer` | inherit active Codex model | high | N independent reviews by budget tier |
 | Review aggregation | `review_aggregator` | inherit active Codex model | medium | Required when N > 1 |
-| Epic verification | `epic_verifier` | inherit active Codex model | xhigh | After all implementation tasks close |
+| Epic verification | `epic_verifier` | inherit active Codex model | high | After all implementation tasks close |
 
-`spec_reviewer`, `code_reviewer`, and `epic_verifier` run at `xhigh` — they are no-feedback review gates where reasoning depth is recall, and GPT-family Codex models (unlike Opus) show a real `high`→`xhigh` gain rather than a plateau. `review_aggregator` stays at `medium`: it consolidates existing findings rather than finding new defects. These tables run on Codex GPT-family models, never Fable, so `xhigh` here never reaches a Fable session and does not touch the Fable ceiling.
+`spec_reviewer`, `code_reviewer`, and `epic_verifier` run at `high` — current GPT-family Codex models (GPT-5.6, GPT-6 Sol/Luna) are sufficient at `high` for review gates, so `xhigh`, `max`, and `ultra` are not used by default. `review_aggregator` stays at `medium`: it consolidates existing findings rather than finding new defects.
 
 | Tier | N Code Reviews | Aggregator | Simplify |
 |------|----------------|------------|----------|
@@ -77,7 +77,7 @@ Detect the active model's context window by family, not by suffix alone. Since C
 
 - Extended context (1M): the model ID contains `[1m]`, OR it is a 1M-native family — `sonnet-5` or `fable-5` (extend this allowlist as new 1M-default families ship). Default wave cap 5; budget per wave 15.
 - Standard context (~200k): none of the above — e.g. Haiku, or an Opus/Sonnet variant without `[1m]`. Default wave cap 3; budget per wave 9.
-- Codex: use visible context info if available; otherwise standard.
+- Codex: use visible context info if available; otherwise standard. Current GPT-5.5/5.6/6 Codex models report a 272k window, so standard is correct for them.
 
 Store `context_tier`, `platform`, `platform_agent_plan`, and Codex-only `codex_model_policy: "inherit_active_model"` in the checkpoint. In Claude Code only, also store `codex_enabled` and `codex_install_path` when a separate Codex advisory integration is detected.
 

@@ -99,9 +99,9 @@ Budget tier selects implementer/reviewer strength and review count. Exact model 
 
 | Tier | Implementer effort | Spec reviewer | Code reviews | Aggregator | Verifier | Simplify |
 |------|--------------------|---------------|--------------|------------|----------|----------|
-| max-20x | inherit the active Codex model with `model_reasoning_effort=high` | `spec_reviewer` (`xhigh`) | 3 x `code_reviewer` (`xhigh`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
-| max-5x | inherit the active Codex model with `model_reasoning_effort=high` | `spec_reviewer` (`xhigh`) | 3 x `code_reviewer` (`xhigh`) | `review_aggregator` (`medium`) | `epic_verifier` (`xhigh`) | yes |
-| pro/api | inherit the active Codex model with `model_reasoning_effort=medium` or `high` for complex | `spec_reviewer` (`xhigh`) | 1 x `code_reviewer` (`xhigh`) | skip | `epic_verifier` (`xhigh`) | no |
+| max-20x | inherit the active Codex model with `model_reasoning_effort=high` | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`high`) | yes |
+| max-5x | inherit the active Codex model with `model_reasoning_effort=high` | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`high`) | yes |
+| pro/api | inherit the active Codex model with `model_reasoning_effort=medium` or `high` for complex | `spec_reviewer` (`high`) | 1 x `code_reviewer` (`high`) | skip | `epic_verifier` (`high`) | no |
 
 The Codex table is this repository's effort policy from the current Codex agent layer, not an external guarantee about model availability. On the Claude Code path, the Fable effort ceiling in `budget-and-wave-cap.md` (Model and Effort Policy) still applies: never escalate above `high` (to `xhigh`/`max`) when the active model is Fable.
 
