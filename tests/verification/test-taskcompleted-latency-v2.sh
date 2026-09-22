@@ -237,6 +237,11 @@ run_latency_session() {
     local cycle_num="$2"
     local is_warmup="${3:-false}"
 
+    if [ "$ACTION" = "a1" ]; then
+        # Local export affects only this call, preserving the Beads arm.
+        local -x CLAUDE_CODE_ENABLE_TODO_TOOLS=1
+    fi
+
     local label="${variant}-c${cycle_num}"
     if [ "$is_warmup" = "true" ]; then
         label="${variant}-warmup${cycle_num}"

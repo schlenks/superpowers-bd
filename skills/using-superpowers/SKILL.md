@@ -62,6 +62,14 @@ skip or change a specific step is an override, not something to reinterpret.
 
 ## Native Progress
 
+On newer Claude models, check that `TaskCreate` and `TaskUpdate` are available
+before using them. If absent, follow the same phase order, report evidence in
+session updates, and keep Beads as the durable issue record; do not claim
+`TaskList` exposed the gates. Tell the user once that
+`CLAUDE_CODE_ENABLE_TODO_TOOLS=1 claude` enables native progress for a new
+terminal session, or that they can add the variable to their Claude Code
+settings `env` for persistent use.
+
 For Claude Code, create the task first, capture its ID, then add dependencies
 with `TaskUpdate`:
 

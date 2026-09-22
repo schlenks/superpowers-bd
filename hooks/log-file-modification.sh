@@ -5,8 +5,8 @@
 # Always exits 0 (never blocks the agent).
 #
 # Workaround context: This hook is defined in agent frontmatter.
-# Plugin frontmatter hooks are broken (#17688), so link-plugin-components.sh
-# copies hooked agents to .claude/agents/ where hooks fire correctly.
+# Plugin agent frontmatter PostToolUse did not fire in a Claude Code 2.1.275
+# probe, so link-plugin-components.sh copies hooked agents to .claude/agents/.
 
 set -euo pipefail
 

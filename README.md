@@ -173,6 +173,37 @@ Then install the plugin from this marketplace:
 /plugin install superpowers-bd@schlenks/superpowers-bd
 ```
 
+Newer models, including Opus 5, omit the native `TaskCreate`/`TaskUpdate`
+progress tools in ordinary local Claude Code sessions by default.
+Superpowers-BD uses them to show execution phases and quality gates. Enable
+them for sessions where you want that native progress display:
+
+```bash
+CLAUDE_CODE_ENABLE_TODO_TOOLS=1 claude
+```
+
+For a personal setting in one repository, add the key below to the `env`
+object in `.claude/settings.local.json`, preserving any existing settings.
+To enable it across every repository instead, use your **user-level**
+`~/.claude/settings.json` (on Windows,
+`%USERPROFILE%\.claude\settings.json`). Start a new Claude Code session
+after changing either file:
+
+```json
+{
+  "env": {
+    "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1"
+  }
+}
+```
+
+Claude Code also accepts `claude --allowedTools TaskCreate` as a session-level
+opt-in. The plugin cannot add tools to an already-running Claude session.
+Without the opt-in, the routing skill instructs agents to preserve phase order
+and use Beads for durable work, but the native task list cannot expose their
+progress dependencies. See
+[Claude Code's Task tool availability](https://code.claude.com/docs/en/tools-reference#task-tool-availability).
+
 ### Verify Installation
 
 Check that commands appear:

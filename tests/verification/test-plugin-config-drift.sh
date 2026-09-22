@@ -166,7 +166,6 @@ if (fs.existsSync(hooksPath)) {
     SubagentStop: { command: command("codex-verdict-audit.sh") },
     Stop: { command: command("codex-stop-gate.sh") },
     PreCompact: { matcher: "manual|auto", command: command("codex-pre-compact.sh") },
-    PostCompact: { matcher: "manual|auto", command: command("codex-session-start.sh") },
   };
   for (const [event, expectation] of Object.entries(expectedHooks)) {
     const entry = hooksConfig.hooks?.[event]?.[0];
@@ -177,6 +176,9 @@ if (fs.existsSync(hooksPath)) {
     if (expectation.matcher && entry?.matcher !== expectation.matcher) {
       errors.push(`${hooksPath}: unexpected ${event} matcher`);
     }
+  }
+  if (hooksConfig.hooks?.PostCompact) {
+    errors.push(`${hooksPath}: PostCompact must not duplicate SessionStart(source=compact)`);
   }
   if (/CLAUDE_|git rev-parse/.test(JSON.stringify(hooksConfig))) {
     errors.push(`${hooksPath}: plugin-bundled Codex hooks must not rely on Claude env or project git root`);

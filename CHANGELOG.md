@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.11.0] - 2026-09-22
+
+### Added
+
+- **Plan Review Focus:** new plans record up to five implied behaviors with task-owned tests. Claude and Codex plan import preserve the full list on the epic and route each item only to its owning child; older plans import unchanged.
+
+### Changed
+
+- **Safer plan import:** local implementation plans with no `### Task N:` headings stop before creating an empty epic. Shortcut story import retains its separate behavior.
+- **Codex bootstrap efficiency:** project-local startup and prompt hooks defer to a trusted installed-plugin hook, and the installed plugin no longer registers `PostCompact` context injection. The legacy project-local `PostCompact` registration currently exits without context.
+- **Review benchmark guard:** the uncalibrated V3 fixture fails its calibration gate, so its pilot scores cannot select a cheaper reviewer pipeline.
+
+### Fixed
+
+- **Claude Task progress on newer models:** documented session, project, and user-level `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` opt-in for installed-plugin sessions, added an honest phase-order fallback when Task tools are absent, and made headless harnesses that assert `TaskCreate`/`TaskUpdate` request those tools explicitly.
+- **Codex packaging check:** the drift test now requires the installed-plugin `PostCompact` hook to remain absent, matching the current bootstrap contract.
+
+### Documentation
+
+- **Plugin frontmatter hooks:** Claude Code 2.1.275 fired a plugin skill hook but not a plugin agent hook in a live probe; the local-copy workaround remains until both paths pass.
+
 ## [5.10.1] - 2026-07-17
 
 ### Fixed

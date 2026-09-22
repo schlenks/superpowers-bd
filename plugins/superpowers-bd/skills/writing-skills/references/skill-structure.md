@@ -100,7 +100,7 @@ Claude Code plugins have three component types:
 | `permissionMode` | no | `default`, `plan`, `bypassPermissions` |
 | `skills` | no | Skills to load into agent context |
 | `mcpServers` | no | MCP servers available to this agent |
-| `hooks` | no | PostToolUse/PreToolUse hooks (requires #17688 workaround) |
+| `hooks` | no | PostToolUse/PreToolUse hooks; plugin agent hooks still need the local-copy workaround |
 
 ### Commands (`commands/*.md`)
 

@@ -114,6 +114,9 @@ set +e
         if [ -n "${CLAUDE_INTEGRATION_CONFIG_DIR:-}" ]; then
             export CLAUDE_CONFIG_DIR="$CLAUDE_INTEGRATION_CONFIG_DIR"
         fi
+        # Newer Claude models omit TaskCreate/TaskUpdate unless opted in.
+        # This test asserts both tool calls, independent of the user's settings.
+        export CLAUDE_CODE_ENABLE_TODO_TOOLS=1
         timeout 1800 claude -p "$PROMPT" \
             --allowed-tools=all \
             --add-dir "$TEST_PROJECT" \

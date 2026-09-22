@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Copy plugin agents/skills WITH hooks to project's .claude/ directory.
-# Workaround for https://github.com/anthropics/claude-code/issues/17688
-# where frontmatter hooks in plugin-loaded components don't fire.
+# Workaround for plugin agent frontmatter hooks not firing in a live
+# Claude Code 2.1.275 probe. Plugin skill hooks did fire; project-local
+# agent hooks also fired. See AGENTS.md for the release verification rule.
 #
 # Project-local .claude/ components' hooks DO fire, so we copy there.
 #
@@ -10,7 +11,7 @@
 #   With arg: processes that directory
 #
 # Adapted from tenzir/claude-plugins link-plugin-components.sh.
-# Remove this script when upstream fixes #17688.
+# Remove this script only after both plugin skill and agent hooks pass live.
 
 set -euo pipefail
 

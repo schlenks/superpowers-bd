@@ -56,7 +56,7 @@ Tracked to prevent re-raising. Revisit only when the blocking condition changes.
 | 28 | 100-line file chunks | Mostly native now |
 | 10 | Structured agent IDs with validation | Ephemeral subagents have no persistent identity to structure (#16126) |
 | 7 | Checkpoint classification — binary flag | Conflicts with full-automation goal |
-| 3 | File ownership via PreToolUse hooks | Both blockers (#16126, #21460) open 6+ months; prompt-based approach has 4 defense layers |
+| 3 | File ownership via PreToolUse hooks | Upstream issues #16126 and #21460 are closed, but hook identity and subagent enforcement need local revalidation; prompt-based approach has 4 defense layers |
 | 12 | Template rendering for prompts | No code execution layer; LLM interpolation works with 15 stable variables |
 | 17 | DAG visualization | `bd graph` already provides tree view + tier identification; only critical path analysis missing |
 | 18 | Complexity scoring (0-1 scale) | 3-level system already captures actionable value; LLM duration estimation unreliable |
@@ -121,13 +121,13 @@ Known behaviors confirmed through testing. These inform design, not block it.
 | `Task(agent_type)` is a no-op for subagents | Official docs |
 | `addBlockedBy` is soft/prompt-based enforcement only | By design |
 
-## Open Blockers
+## Platform-Dependent Limitations
 
 | Issue | Impact |
 |-------|--------|
-| [#21460](https://github.com/anthropics/claude-code/issues/21460) PreToolUse/PostToolUse don't fire for subagents | File ownership via hooks blocked |
-| [#16126](https://github.com/anthropics/claude-code/issues/16126) `$AGENT_NAME` unavailable for subagents | Can't identify agent in hooks |
-| [#17688](https://github.com/anthropics/claude-code/issues/17688) Plugin frontmatter hooks don't fire | Workaround: `link-plugin-components.sh` copies to `.claude/` |
+| [#21460](https://github.com/anthropics/claude-code/issues/21460) closed as completed | Revalidate inherited subagent hooks before using them for file ownership |
+| [#16126](https://github.com/anthropics/claude-code/issues/16126) closed as not planned | No supported per-agent name variable has been verified here |
+| [#17688](https://github.com/anthropics/claude-code/issues/17688) closed as completed for skill hooks | On Claude Code 2.1.275, a plugin skill hook fired but a plugin agent hook did not; `link-plugin-components.sh` remains necessary |
 
 ## Removed Items
 
@@ -139,7 +139,7 @@ Rejected, merged, or made obsolete. Completed items move to the [archive](docs/I
 - **#29** (chunked file reads) — Redundant with native Read + Grep tools
 - **#38** (add `memory: project` to agent definitions) — Done (2026-02-08)
 - **#41** (expose native Task metrics for cost tracking) — Done (2026-02-08). Per-task/wave/epic metrics in SDD skill, wave summary costs, epic completion report.
-- **#42** (add hooks in agent/skill frontmatter) — Done (2026-02-08). PostToolUse audit hook on code-reviewer. Plugin hooks workaround via `link-plugin-components.sh` (#17688).
+- **#42** (add hooks in agent/skill frontmatter) — Done (2026-02-08). PostToolUse audit hook on code-reviewer. Plugin agent hook workaround remains via `link-plugin-components.sh`.
 - **#15** (file ownership in task definitions) — Done (2026-02-08). Wave file map (`{wave_file_map}`) serialized into each implementer prompt, showing all agents' file assignments. No file I/O needed — eliminates permission prompts and cleanup.
 - **#25** (linter guards) — Done (2026-02-08). PostToolUse hooks run shellcheck (.sh) and jq (.json) after Write/Edit. Main thread via hooks.json, subagents via code-reviewer frontmatter. Graceful degradation if tools missing.
 - **#46** (multi-review aggregation) — Done (2026-02-08). N=3 independent reviews for max-20x/max-5x tiers with union+severity consensus aggregation. New skill + SDD integration.

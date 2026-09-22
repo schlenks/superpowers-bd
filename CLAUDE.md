@@ -6,8 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Superpowers-BD is a multi-agent-tool plugin providing workflow skills for TDD, debugging, code review, and beads-based collaboration patterns. This file documents the Claude Code platform layer: Claude plugin metadata, slash commands, Claude Code agents, Claude hooks, and Claude-specific version requirements. Codex has its own first-class project instructions in `AGENTS.md` and native Codex plugin docs in `docs/README.codex.md`.
 
-**Plugin version:** 5.10.1
+**Plugin version:** 5.11.0
 **Minimum Claude Code:** 2.1.144 (2.1.141–143 shipped a Skill-tool headless-permission regression fixed in 2.1.144 — the exact subagent skill discovery SDD depends on; also `effort.level` in hook input JSON; `effort` frontmatter on review agents from 2.1.78; `claude plugin tag` from 2.1.118; PostToolUse `duration_ms` from 2.1.119; PostToolUse `continueOnBlock` from 2.1.139). Optional newer features degrade gracefully on older builds: `disallowed-tools` skill frontmatter (2.1.152), Notification stall hook (2.1.198).
+
+Claude Code 2.1.233+ omits native Task progress tools in ordinary local
+sessions by default on Opus 4.8, Sonnet 5, Fable 5, Mythos 5, and newer models.
+Set `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` in the launch environment, a project's
+`.claude/settings.local.json`, or user-level Claude Code settings to retain
+TaskList visibility in this checkout and in
+repositories using the installed plugin; see `README.md`.
 
 ## Development Commands
 
@@ -133,7 +140,7 @@ See `skills/writing-skills/SKILL.md` for complete guide.
 - **Audit logging**: `hooks/log-file-modification.sh` (PostToolUse hook via code-reviewer agent frontmatter); `hooks/verdict-audit.sh` also appends every subagent verdict to `temp/verdict-audit.log`
 - **Wave observability**: `hooks/notification.sh` (Notification hook — during an active SDD wave, logs `agent_needs_input`/`agent_completed` notifications to `temp/sdd-notifications.log`; silent no-op otherwise, never blocks). Whether the 2.1.198 `agent_needs_input`/`agent_completed` payloads fire for SDD's in-session Agent-tool subagents (vs only `claude agents` background sessions) is UNVERIFIED — this hook gathers the evidence before any reactive-MONITOR gate is built on top of it.
 - **Beads config**: `.beads/metadata.json`
-- **Note**: Plugin frontmatter hook behavior has changed across Claude Code releases. Keep `link-plugin-components.sh` until this repo's integration test proves plugin-installed agent and skill hooks fire natively.
+- **Note**: Claude Code 2.1.275 fired a plugin skill frontmatter hook but not a plugin agent frontmatter hook in a live probe; the same project-local agent hook fired. Keep `link-plugin-components.sh` until both plugin-installed paths pass a live test.
 
 ## Releasing
 

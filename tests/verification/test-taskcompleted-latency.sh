@@ -42,6 +42,8 @@ NUM_RUNS=5
 
 # The identical prompt used for every run
 TASK_PROMPT="Create a task using TaskCreate with subject 'Latency test' and description 'Measuring hook latency'. Then immediately mark it as completed using TaskUpdate. Say only 'Done' when finished."
+# This experiment measures native Task tools; newer Claude models require opt-in.
+export CLAUDE_CODE_ENABLE_TODO_TOOLS=1
 
 # Hook configurations — each variant uses ONLY its own type.
 # No companion command hooks that would contaminate overhead measurement.

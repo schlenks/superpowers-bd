@@ -35,6 +35,7 @@ for cmd in python3 claude; do
 done
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/test-helpers.sh"
 
 echo "========================================"
@@ -154,6 +155,9 @@ PROMPT_A2_TEMPLATE="Run these commands: first 'bd create --title trigger-test --
 run_cell_m1() {
     local action="$1"   # a1 or a2
     local run_num="$2"
+    if [ "$action" = "a1" ]; then
+        local -x CLAUDE_CODE_ENABLE_TODO_TOOLS=1
+    fi
     local cell_label="${action}_m1"
 
     local project_dir="$TEST_DIR/project-${cell_label}-${run_num}"
@@ -191,6 +195,7 @@ run_cell_m1() {
     local saved_results="$RESULTS_FILE"
     export RESULTS_FILE="$INTERNAL_CSV"
 
+    # shellcheck disable=SC2016
     PRE_ATTEMPT_CLEANUP="rm -f $tc_marker $ctrl_marker" \
         CLAUDE_PROMPT="$prompt" CLAUDE_DIR="$project_dir" \
         run_claude_session "$cell_label" "$run_num" "$MAX_RETRIES" "$TIMEOUT_SECS" \
@@ -251,6 +256,9 @@ run_cell_m1() {
 run_cell_m2() {
     local action="$1"   # a1 or a2
     local run_num="$2"
+    if [ "$action" = "a1" ]; then
+        local -x CLAUDE_CODE_ENABLE_TODO_TOOLS=1
+    fi
     local cell_label="${action}_m2"
 
     local project_dir="$TEST_DIR/project-${cell_label}-${run_num}"

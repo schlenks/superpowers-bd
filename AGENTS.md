@@ -6,7 +6,7 @@ This file provides guidance to agent tools when working with code in this reposi
 
 Superpowers-BD is a multi-agent-tool plugin providing workflow skills for TDD, debugging, and collaboration patterns. It has first-class Claude Code, Codex, and OpenCode support, and integrates with **beads** (git-backed issue tracker) for persistent task management and wave-based parallel execution across sessions.
 
-**Plugin version:** 5.10.1
+**Plugin version:** 5.11.0
 
 Codex reads this file as the project instruction source. Keep Claude Code minimum-version and release-tagging details in `CLAUDE.md`; keep Codex-native install, agent, hook, and `$skill` details in `docs/README.codex.md`.
 
@@ -166,10 +166,9 @@ See `skills/writing-skills/SKILL.md` for complete guide.
 
 ### Plugin Frontmatter Hooks (#17688)
 
-Plugin-loaded frontmatter hook behavior has changed across Claude Code releases. The upstream changelog says plugin skill frontmatter hooks were fixed, but [#17688](https://github.com/anthropics/claude-code/issues/17688) remains open.
-`hooks/link-plugin-components.sh` still copies hooked components to `.claude/` on SessionStart until this repo's integration test proves plugin-installed agent and skill hooks fire natively.
+Anthropic closed [#17688](https://github.com/anthropics/claude-code/issues/17688) after fixing plugin skill hooks. A live Claude Code 2.1.275 probe in this repo confirmed a plugin skill `PostToolUse` hook fired, but a plugin agent `PostToolUse` hook did not; the same project-local agent hook fired. `hooks/link-plugin-components.sh` therefore still copies hooked components to `.claude/` on SessionStart.
 
-**When working on this codebase, check if #17688 has been resolved.** If fixed:
+**Before removing the workaround, verify both plugin-installed skill and agent hooks in a live session.** If both fire natively:
 1. Remove the `link-plugin-components.sh` SessionStart entry from `hooks/hooks.json`
 2. Delete `hooks/link-plugin-components.sh`
 3. Keep `hooks:` blocks in agent/skill frontmatter (they'll fire natively)

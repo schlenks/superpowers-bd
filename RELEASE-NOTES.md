@@ -1,5 +1,24 @@
 # Superpowers Release Notes
 
+## v5.11.0 (draft, 2026-09-22) - Plan Import and Claude Compatibility
+
+New plans now include a short Review Focus for behaviors implied by the requirements, with a named test in the owning task. Both Claude and Codex plan import carry each item to the matching Beads child and keep the full list on the epic. Existing plans without that section still import. A local plan with no H3 `### Task N:` headings now stops before creating an empty epic.
+
+On newer Claude models, including Opus 5, the native Task tools are absent by default. Superpowers-BD documents session, project, and user-level `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` opt-in. Without those tools, its routing guidance instructs agents to preserve phase order and Beads state while reporting that native TaskList gates are unavailable. Headless tests that require Task calls now opt in explicitly.
+
+The Codex installed plugin no longer registers `PostCompact` context injection. Project-local startup and prompt hooks defer to a trusted installed-plugin hook to avoid duplicate routing context; the remaining project-local `PostCompact` registration is a no-op until its protected config can be edited. This optimization has simulated hook coverage, but no fresh Codex session measurement yet.
+
+Anthropic closed Claude Code issue #17688 after fixing plugin skill hooks. A live 2.1.275 probe confirmed skill hooks fire natively, while a plugin agent `PostToolUse` hook still did not fire. The same project-local agent hook did fire, so the agent-copy workaround remains.
+
+The V3 reviewer fixture is guarded as uncalibrated. Historical pilots do not justify changing the review fanout or five-pass plan review in this release.
+
+### Pre-tag validation
+
+- Fast Claude skill suite: 3/3; Codex suite: 5/5.
+- Plugin config drift: 30/30; local-copy hook tests: 26/26; shell lint: 24 files, no warnings.
+- Claude plugin validation, mirrored skills, and `git diff --check` passed.
+- Still required: authenticated writable installed-plugin TaskCreate/TaskUpdate test; live fresh-session Codex bootstrap check. Full Claude workflow integration was not run in this sandbox.
+
 ## v5.9.0 (2026-07-07) - Changelog Audit Adoption & Effort Retune
 
 Superpowers-BD 5.9.0 adopts the 2026-07-07 changelog audit (Claude Code 2.1.108–202) and retunes model-effort policy across both the Claude Code and Codex surfaces. All skill edits are mirrored into the bundled `plugins/superpowers-bd/skills/` wrapper.
