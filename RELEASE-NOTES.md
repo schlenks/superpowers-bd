@@ -1,6 +1,6 @@
 # Superpowers Release Notes
 
-## v5.11.0 (draft, 2026-09-22) - Plan Import and Claude Compatibility
+## v5.11.0 (2026-09-22) - Plan Import and Claude Compatibility
 
 New plans now include a short Review Focus for behaviors implied by the requirements, with a named test in the owning task. Both Claude and Codex plan import carry each item to the matching Beads child and keep the full list on the epic. Existing plans without that section still import. A local plan with no H3 `### Task N:` headings now stops before creating an empty epic.
 
@@ -12,12 +12,12 @@ Anthropic closed Claude Code issue #17688 after fixing plugin skill hooks. A liv
 
 The V3 reviewer fixture is guarded as uncalibrated. Historical pilots do not justify changing the review fanout or five-pass plan review in this release.
 
-### Pre-tag validation
+### Validation
 
 - Fast Claude skill suite: 3/3; Codex suite: 5/5.
 - Plugin config drift: 30/30; local-copy hook tests: 26/26; shell lint: 24 files, no warnings.
 - Claude plugin validation, mirrored skills, and `git diff --check` passed.
-- Still required: authenticated writable installed-plugin TaskCreate/TaskUpdate test; live fresh-session Codex bootstrap check. Full Claude workflow integration was not run in this sandbox.
+- Runtime validation limits: this sandbox could not write Claude's authenticated task storage, so successful installed-plugin `TaskCreate`/`TaskUpdate` calls remain unverified. Codex could not initialize its app server here, so the single-bootstrap result is based on simulated hook tests rather than a fresh session. Full Claude workflow integration was not run in this sandbox. These checks remain tracked for a writable consumer environment.
 
 ## v5.9.0 (2026-07-07) - Changelog Audit Adoption & Effort Retune
 
