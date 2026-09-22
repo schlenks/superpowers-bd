@@ -16,6 +16,10 @@
 - All new functions ship with a unit test in the same task.
 - No new runtime dependencies.
 
+## Review Focus
+
+- **Task 2:** An empty name should render a useful greeting instead of crashing. Test: `node --test tests/render.test.js` covers the empty-name case.
+
 ## File Structure
 
 | File | Responsibility | Action |
@@ -63,6 +67,7 @@ Expected: PASS
 
 **Step 1: Write the failing test**
 Run: `node --test tests/render.test.js`
+Include the empty-name case from Review Focus.
 Expected: FAIL
 **Step 2: Implement `render(name)` using `format(name)`**
 **Step 3: Run test to verify it passes**

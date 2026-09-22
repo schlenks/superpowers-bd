@@ -119,6 +119,7 @@ Announce: "Applying rule-of-five-plans to [artifact]. Starting 5-pass review."
 
 **Completeness pass:**
 - `## Global Constraints` block present when the plan has cross-task constraints/invariants (plan2beads threads it into every child task; omitting it means constraints won't propagate)
+- `## Review Focus` names the spec's most consequential implied inputs (up to five), and each nonempty item points to a test in its owning task; do not accept an edge-case list that never becomes a test
 
 ## Common Mistakes
 

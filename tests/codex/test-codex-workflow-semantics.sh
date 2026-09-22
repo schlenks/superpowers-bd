@@ -129,6 +129,7 @@ for ref in "${codex_refs[@]}"; do
 done
 
 assert_contains "skills/writing-plans/SKILL.md" "codex-plan-verification.md" "writing-plans links Codex verification reference"
+assert_contains "skills/writing-plans/references/codex-plan-verification.md" '### Task N:' "Codex plan verification checks importable task headings"
 assert_contains "skills/executing-plans/SKILL.md" "codex-execution-checkpoints.md" "executing-plans links Codex checkpoint reference"
 assert_contains "skills/plan2beads/SKILL.md" "codex-plan2beads-flow.md" "plan2beads links Codex flow reference"
 assert_contains "skills/ad-hoc-code-review/SKILL.md" "codex-review-flow.md" "ad-hoc-code-review links Codex review reference"

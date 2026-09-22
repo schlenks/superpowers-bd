@@ -7,6 +7,7 @@ cd "$REPO_ROOT"
 
 TEST_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_DIR"' EXIT
+export CODEX_HOME="$TEST_DIR/no-plugin"
 
 pass=0
 fail=0
@@ -70,7 +71,6 @@ check_node "plugin Codex hooks config has expanded lifecycle command hooks" '
     SubagentStop: { command: command("codex-verdict-audit.sh") },
     Stop: { command: command("codex-stop-gate.sh") },
     PreCompact: { matcher: "manual|auto", command: command("codex-pre-compact.sh") },
-    PostCompact: { matcher: "manual|auto", command: command("codex-session-start.sh") },
   };
   for (const [event, expectation] of Object.entries(expected)) {
     const entry = hooks[event]?.[0];
@@ -93,7 +93,7 @@ check_node "plugin Codex hooks config resolves to existing executable wrappers" 
     if (!match) process.exit(1);
     return path.join("plugins/superpowers-bd/hooks", match[1]);
   });
-  if (wrappers.length !== 7) process.exit(1);
+  if (wrappers.length !== 6) process.exit(1);
   for (const wrapper of wrappers) {
     fs.accessSync(wrapper, fs.constants.X_OK);
   }
@@ -156,6 +156,67 @@ check_node "Plugin-bundled SessionStart wrapper emits Codex hook context JSON" "
   const context = out.additionalContext || '';
   if (!context.includes('superpowers-bd:using-superpowers')) process.exit(1);
   if (!context.includes('sdd-checkpoint-demo.json')) process.exit(1);
+"
+
+for source in resume compact; do
+  local_output="$TEST_DIR/local-${source}-session.json"
+  plugin_output="$TEST_DIR/plugin-${source}-session.json"
+  printf '{"hook_event_name":"SessionStart","source":"%s","cwd":"%s"}\n' "$source" "$TEST_DIR" \
+    | bash hooks/codex-session-start.sh > "$local_output"
+  printf '{"hook_event_name":"SessionStart","source":"%s","cwd":"%s"}\n' "$source" "$TEST_DIR" \
+    | bash plugins/superpowers-bd/hooks/codex-session-start.sh > "$plugin_output"
+  check_node "Both hook layers support SessionStart source=$source independently" "
+    const fs = require('fs');
+    for (const file of ['$local_output', '$plugin_output']) {
+      const context = JSON.parse(fs.readFileSync(file, 'utf8')).hookSpecificOutput?.additionalContext || '';
+      if (!context.includes('superpowers-bd:using-superpowers')) process.exit(1);
+    }
+  "
+done
+
+# Both sources are loaded when developing this repository with the plugin installed.
+mkdir -p "$TEST_DIR/codex-home"
+cat > "$TEST_DIR/codex-home/config.toml" <<'EOF'
+[plugins."superpowers-bd@test-marketplace"]
+enabled = true
+
+[hooks.state."superpowers-bd@test-marketplace:hooks/hooks.json:session_start:0:0"]
+trusted_hash = "sha256:test"
+
+[hooks.state."superpowers-bd@test-marketplace:hooks/hooks.json:user_prompt_submit:0:0"]
+trusted_hash = "sha256:test"
+EOF
+
+plugin_enabled_local_stdout="$TEST_DIR/plugin-enabled-local-session.json"
+printf '{"hook_event_name":"SessionStart","source":"startup","cwd":"%s"}\n' "$TEST_DIR" \
+  | CODEX_HOME="$TEST_DIR/codex-home" bash hooks/codex-session-start.sh > "$plugin_enabled_local_stdout"
+check_node "Project-local SessionStart defers to a trusted installed plugin" "
+  const fs = require('fs');
+  const output = fs.readFileSync('$plugin_enabled_local_stdout', 'utf8').trim();
+  if (output) process.exit(1);
+"
+
+plugin_enabled_compact_stdout="$TEST_DIR/plugin-enabled-local-compact.json"
+printf '{"hook_event_name":"SessionStart","source":"compact","cwd":"%s"}\n' "$TEST_DIR" \
+  | CODEX_HOME="$TEST_DIR/codex-home" bash hooks/codex-session-start.sh > "$plugin_enabled_compact_stdout"
+check_node "Project-local compact SessionStart defers to a trusted installed plugin" "
+  const fs = require('fs');
+  const output = fs.readFileSync('$plugin_enabled_compact_stdout', 'utf8').trim();
+  if (output) process.exit(1);
+"
+
+mkdir -p "$TEST_DIR/untrusted-home"
+cat > "$TEST_DIR/untrusted-home/config.toml" <<'EOF'
+[plugins."superpowers-bd@test-marketplace"]
+enabled = true
+EOF
+untrusted_stdout="$TEST_DIR/untrusted-local-session.json"
+printf '{"hook_event_name":"SessionStart","source":"startup","cwd":"%s"}\n' "$TEST_DIR" \
+  | CODEX_HOME="$TEST_DIR/untrusted-home" bash hooks/codex-session-start.sh > "$untrusted_stdout"
+check_node "Project-local SessionStart remains active when plugin hook is untrusted" "
+  const fs = require('fs');
+  const payload = JSON.parse(fs.readFileSync('$untrusted_stdout', 'utf8'));
+  if (!payload.hookSpecificOutput?.additionalContext?.includes('superpowers-bd:using-superpowers')) process.exit(1);
 "
 
 mkdir -p "$TEST_DIR/stale/temp"
@@ -278,6 +339,14 @@ check_node "UserPromptSubmit wrapper injects active work-state context" "
   if (!String(out.additionalContext || '').includes('SDD wave in flight: epic demo')) process.exit(1);
 "
 
+plugin_enabled_anchor_stdout="$TEST_DIR/plugin-enabled-local-anchor.json"
+printf '{"hook_event_name":"UserPromptSubmit","cwd":"%s"}\n' "$TEST_DIR/active" \
+  | CODEX_HOME="$TEST_DIR/codex-home" bash hooks/codex-work-state-anchor.sh > "$plugin_enabled_anchor_stdout"
+check_node "Project-local work-state anchor defers to a trusted installed plugin" "
+  const fs = require('fs');
+  if (fs.readFileSync('$plugin_enabled_anchor_stdout', 'utf8').trim()) process.exit(1);
+"
+
 precompact_stdout="$TEST_DIR/precompact-stdout.json"
 printf '{"hook_event_name":"PreCompact","trigger":"auto","cwd":"%s"}\n' "$TEST_DIR/active" \
   | bash hooks/codex-pre-compact.sh > "$precompact_stdout"
@@ -329,16 +398,24 @@ printf '{"hook_event_name":"Stop","cwd":"%s","session_id":"s3","last_assistant_m
 check "Stop wrapper allows explicit verification evidence" \
   test ! -s "$stop_evidence_stdout"
 
+compact_stdout="$TEST_DIR/compact-stdout.json"
+printf '{"hook_event_name":"SessionStart","source":"compact","cwd":"%s"}\n' "$TEST_DIR/active" \
+  | bash hooks/codex-session-start.sh > "$compact_stdout"
+
+check_node "SessionStart restores context after compaction" "
+  const fs = require('fs');
+  const payload = JSON.parse(fs.readFileSync('$compact_stdout', 'utf8'));
+  const out = payload.hookSpecificOutput;
+  if (out?.hookEventName !== 'SessionStart') process.exit(1);
+  if (!String(out.additionalContext || '').includes('superpowers-bd:using-superpowers')) process.exit(1);
+"
+
 postcompact_stdout="$TEST_DIR/postcompact-stdout.json"
 printf '{"hook_event_name":"PostCompact","trigger":"manual","cwd":"%s"}\n' "$TEST_DIR/active" \
   | bash hooks/codex-session-start.sh > "$postcompact_stdout"
-
-check_node "PostCompact reuses SessionStart wrapper to restore context after compaction" "
+check_node "Legacy project-local PostCompact emits no unsupported context" "
   const fs = require('fs');
-  const payload = JSON.parse(fs.readFileSync('$postcompact_stdout', 'utf8'));
-  const out = payload.hookSpecificOutput;
-  if (out?.hookEventName !== 'PostCompact') process.exit(1);
-  if (!String(out.additionalContext || '').includes('superpowers-bd:using-superpowers')) process.exit(1);
+  if (fs.readFileSync('$postcompact_stdout', 'utf8').trim()) process.exit(1);
 "
 
 check_node "Codex plugin manifest describes hooks without manifest-level hook declarations" '

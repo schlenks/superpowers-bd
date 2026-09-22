@@ -30,6 +30,7 @@ Check the saved plan before applying rule-of-five-plans:
 - Existing paths and referenced commands have been verified.
 - New files are placed in directories that match repository conventions.
 - Each task only touches files declared in the file structure table.
+- Every implementation task uses an H3 `### Task N:` heading; a local plan with zero such headings is not ready for plan2beads.
 - Dependencies describe real ordering constraints, not just narrative order.
 - The plan avoids speculative infrastructure, broad refactors, and unrelated cleanup.
 - Verification commands are feasible in the current repository.

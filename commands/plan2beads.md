@@ -43,6 +43,7 @@ TaskCreate: "Final validation gate" [blockedBy: verify] → Epic exists, childre
 - Success Criteria: H2 with `- [ ]` -> epic acceptance criteria
 - Key Decisions: `## Key Decisions` -> epic description (placed first)
 - Global Constraints (OPTIONAL): `## Global Constraints` -> epic-wide rules; thread the block text into EVERY child task body and keep it on the epic (absent = no constraints, every task body unchanged)
+- Review Focus (OPTIONAL for legacy plans): `## Review Focus` -> keep the full list on the epic; copy each `**Task N:**` item into its owning child task, alongside the task's test step
 
 **Parsing Rules:**
 - H2s NOT matching phases/stages/success-metrics are context
@@ -53,7 +54,10 @@ TaskCreate: "Final validation gate" [blockedBy: verify] → Epic exists, childre
 - Extract and preserve `Files:` section in task description
 - **Global Constraints (OPTIONAL, backward-compatible):** If a `## Global Constraints` H2 exists, copy its text into each child task body (so every implementer carries the epic-wide rules) and retain it in the epic description. If absent, parse exactly as before — no constraints block, no change to any task body.
 - **Interfaces (OPTIONAL, backward-compatible):** If a task has a `**Interfaces:**` line (with `Consumes:` / `Produces:`), preserve it verbatim in that task's description. If absent, the task body is unchanged. Regex: `\*\*Interfaces:\*\*` then capture the following `Consumes:` / `Produces:` lines.
+- **Review Focus (OPTIONAL, backward-compatible):** If a `## Review Focus` H2 exists, retain the whole block in the epic description. For each bullet beginning `- **Task N:**`, copy that bullet verbatim under `Review Focus:` in the owning child task body only; verify the named test is present in that task's steps. A `None identified` bullet adds no child text. If a task number is missing or its test is absent, stop and correct the plan before creating issues. A legacy plan without this H2 imports unchanged.
 - A plan with NEITHER `## Global Constraints` nor any `**Interfaces:**` imports identically to prior behavior.
+
+**Local-plan gate:** Count H3 `### Task N:` headings before creating the epic. 0 H3 matches: stop before creating the epic and correct the local plan's task headings. Shortcut stories may still create an epic without implementation tasks.
 
 ### Step 1b: Ask Completion Strategy
 
@@ -85,7 +89,7 @@ Add `--external-ref "sc-1234"` for Shortcut. No H1 = use filename. Capture retur
 - Self-references: warn and skip
 - Non-existent tasks: warn and skip
 - Continue without invalid deps; report in summary
-- 0 H3 matches: warn, create epic only
+- 0 H3 matches in a local implementation plan: stop at the Step 1 local-plan gate
 
 **Create in order.** Write each description to `temp/{epic_id}-task-{n}.md`:
 ```bash
@@ -95,7 +99,7 @@ bd create --silent --parent hub-abc "Auth Service" --body-file temp/hub-abc-task
 ```
 Same pattern for all. `## Files` section CRITICAL for parallel safety — if missing, warn. Phase labels combine with complexity: `-l "complexity:standard,phase:1"` if plan uses phases.
 
-**Global Constraints + Interfaces (optional, additive):** When the plan has a `## Global Constraints` block, prepend its text to every child task body so each implementer carries the epic-wide rules. When a task carries an `**Interfaces:**` line, copy it verbatim into that task's body. Plans without these sections produce identical task bodies to before — the additions never alter the section-less path.
+**Global Constraints + Interfaces + Review Focus (optional, additive):** When the plan has a `## Global Constraints` block, prepend its text to every child task body so each implementer carries the epic-wide rules. When a task carries an `**Interfaces:**` line, copy it verbatim into that task's body. Keep the entire `## Review Focus` block on the epic and copy each focus bullet to its owning child task only. Plans without these sections produce identical task bodies to before — the additions never alter the section-less path.
 
 ### Step 3f: Epic Verification Task (Required)
 

@@ -4,7 +4,8 @@
 # Round-trip intent (what a live import MUST achieve):
 #   - A `## Global Constraints` block in the plan appears in EVERY child task body.
 #   - A per-task `**Interfaces:**` line (Consumes/Produces) appears in THAT task's body.
-#   - A plan with NEITHER section imports exactly as before (backward-compatible).
+#   - A `## Review Focus` item appears on the epic and its owning task only.
+#   - A plan without any of these sections imports exactly as before.
 #
 # This file is statically runnable in the harness: it asserts the fixture carries the
 # new sections and that BOTH parser surfaces (Claude command + Codex reference) document
@@ -59,6 +60,9 @@ assert_contains "$FIXTURE" "^## Global Constraints$" "fixture has a Global Const
 assert_contains "$FIXTURE" "\*\*Interfaces:\*\*" "fixture has a per-task Interfaces line"
 assert_contains "$FIXTURE" "Consumes:" "fixture Interfaces declares Consumes"
 assert_contains "$FIXTURE" "Produces:" "fixture Interfaces declares Produces"
+assert_contains "$FIXTURE" "^## Review Focus$" "fixture has a Review Focus block"
+assert_contains "$FIXTURE" "\*\*Task 2:\*\*.*empty name" "fixture pins an implied input to Task 2"
+assert_contains "$FIXTURE" '^### Task 1:' "fixture uses importable H3 task headings"
 
 # --- Claude parser documents recognition + propagation (round-trip contract) ---
 assert_file "$CLAUDE_PARSER"
@@ -69,6 +73,9 @@ assert_contains "$CLAUDE_PARSER" "Consumes" "Claude parser preserves Interfaces 
 assert_contains "$CLAUDE_PARSER" "Produces" "Claude parser preserves Interfaces Produces"
 assert_contains "$CLAUDE_PARSER" "OPTIONAL" "Claude parser marks the new sections optional (backward-compatible)"
 assert_contains "$CLAUDE_PARSER" "identically to prior behavior" "Claude parser guarantees section-less plans import unchanged"
+assert_contains "$CLAUDE_PARSER" "## Review Focus" "Claude parser recognizes Review Focus"
+assert_contains "$CLAUDE_PARSER" "owning child" "Claude parser threads focus items to owning child tasks"
+assert_contains "$CLAUDE_PARSER" '0 H3 matches: stop before creating the epic' "Claude local-plan import stops before an empty epic"
 
 # --- Codex parser documents the SAME contract (both surfaces agree) ---
 assert_file "$CODEX_PARSER"
@@ -78,12 +85,18 @@ assert_contains "$CODEX_PARSER" "Interfaces" "Codex parser recognizes per-task I
 assert_contains "$CODEX_PARSER" "Consumes" "Codex parser preserves Interfaces Consumes"
 assert_contains "$CODEX_PARSER" "Produces" "Codex parser preserves Interfaces Produces"
 assert_contains "$CODEX_PARSER" "backward-compatible" "Codex parser marks the new sections backward-compatible"
+assert_contains "$CODEX_PARSER" "## Review Focus" "Codex parser recognizes Review Focus"
+assert_contains "$CODEX_PARSER" "owning child" "Codex parser threads focus items to owning child tasks"
+assert_contains "$CODEX_PARSER" '### Task N:' "Codex local-plan import requires H3 task headings"
 
 # --- Shared rules + header contract document preservation ---
 assert_contains "$PLAN2BEADS_SKILL" "Global Constraints" "plan2beads shared rules note Global Constraints preservation"
 assert_contains "$PLAN2BEADS_SKILL" "Interfaces" "plan2beads shared rules note Interfaces preservation"
+assert_contains "$PLAN2BEADS_SKILL" "Review Focus" "plan2beads shared rules note Review Focus preservation"
 assert_contains "$WRITING_PLANS_SKILL" "## Global Constraints" "writing-plans header contract documents Global Constraints"
 assert_contains "$WRITING_PLANS_SKILL" "\*\*Interfaces:\*\*" "writing-plans header contract documents Interfaces"
+assert_contains "$WRITING_PLANS_SKILL" "## Review Focus" "writing-plans header contract documents Review Focus"
+assert_contains "$WRITING_PLANS_SKILL" 'Importable task headings' "writing-plans checks task heading format before approval"
 
 # --- GUARDED: live import round-trip (orchestrator-driven, not spawned here) ---
 if [ "${RUN_LIVE_IMPORT:-0}" = "1" ]; then

@@ -60,6 +60,10 @@ Every plan MUST start with:
 **Tech Stack:** [Key technologies]
 **Key Decisions:**
 - **[Area]:** [Choice] -- [Why over alternatives]
+
+## Review Focus
+
+- **Task N:** [Input or condition implied by the spec but absent from its explicit examples] should [behavior a reasonable user expects]. Test: [test name or exact command added to Task N].
 ---
 ```
 
@@ -71,8 +75,11 @@ These sections are OPTIONAL. When a plan includes them, `plan2beads` carries the
 
 - `## Global Constraints` (epic-level): rules that apply to every task. When present, plan2beads threads this text into **every** child task body so each implementer carries it.
 - `**Interfaces:**` (per-task, with `Consumes:` / `Produces:`): the contract a task consumes and produces. When present, plan2beads preserves the line verbatim in that task's body.
-
 Both surfaces (`commands/plan2beads.md` and `skills/plan2beads/references/codex-plan2beads-flow.md`) parse these identically.
+
+## Review Focus
+
+For new plans, include `## Review Focus`. Before calling the plan ready, reread the spec or agreed requirements for inputs and failure modes they imply but do not name as task tests. Record up to five that would matter most to a user. Each item names the owning task, expected behavior, and the test added to that task's steps. The section is a prompt to find missing coverage, not a substitute for the test. If inspection finds none, write `- None identified after checking implied inputs.` instead of inventing cases. plan2beads keeps the full list on the epic and copies each item into its owning child task. Legacy plans without the section still import unchanged.
 
 ## Global Constraints
 
@@ -165,8 +172,10 @@ Before rule-of-five-plans, verify scope and accuracy:
 - **Minimal** -- Could any task be removed/combined without losing functionality?
 - **Not over-engineered** -- Simplest approach that works?
 - **Key Decisions documented** -- 3-5 decisions with rationale?
+- **Review Focus covered** -- Each nonempty focus item names an owning task and a test step that exercises the implied input or failure mode?
 - **Context sections present** -- Purpose for non-obvious tasks? Not In Scope for boundary tasks?
 - **File Structure complete** -- Every file in task `Files:` sections appears in File Structure table? No undeclared files?
+- **Importable task headings** -- Every implementation task starts with `### Task N:` (H3), so plan2beads can create its child issue?
 
 ## Remember
 
@@ -177,6 +186,7 @@ Before rule-of-five-plans, verify scope and accuracy:
 - **Every task needs `Depends on:`, `Complexity:`, and `Files:`**
 - **Include `Purpose:`, `Not In Scope:`, `Gotchas:` where needed**
 - **File Structure table before tasks — tasks reference it, never introduce undeclared files**
+- **Review Focus names task-owned tests for implied inputs, or records that none were found**
 - **Run Plan Verification Checklist before rule-of-five-plans**
 - **Announce each verification phase** (see `references/announcements-protocol.md`)
 - **Plan MUST end with Verification Record** (see `references/verification-footer.md`)

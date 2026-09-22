@@ -126,6 +126,8 @@ The portable policy is documented in `skills/subagent-driven-development/budget-
 
 The installable plugin wrapper bundles Codex lifecycle hooks in both `plugins/superpowers-bd/hooks.json` and `plugins/superpowers-bd/hooks/hooks.json`. The second path is the current default plugin lifecycle location from Codex docs; the root wrapper file stays for compatibility with older local marketplace setups.
 
+Inside this repository, project-local SessionStart and UserPromptSubmit hooks defer when the installed Superpowers-BD plugin has a trusted hook for the same event. This prevents duplicate context injection while preserving the project-local fallback when the plugin or its hook is unavailable.
+
 Review hook commands before trusting a checkout. In Codex, use `/hooks` to inspect hook sources, review new or changed hooks, trust hooks, or disable individual hooks.
 
 Current installed-plugin hook behavior:
@@ -135,7 +137,7 @@ Current installed-plugin hook behavior:
 - PostToolUse records an audit log and returns linter feedback for edited files.
 - SubagentStop blocks missing `VERDICT:` lines during active SDD waves.
 - Stop blocks completion claims without verification evidence while live work is in progress.
-- PreCompact blocks compaction during active SDD waves; PostCompact restores Superpowers-BD context after compaction.
+- PreCompact blocks compaction during active SDD waves; SessionStart with `source: compact` restores Superpowers-BD context after compaction.
 
 The root plugin manifest still avoids a manifest-level `hooks` field; hooks live in the tested plugin wrapper lifecycle files.
 

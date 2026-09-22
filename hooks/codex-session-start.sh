@@ -16,8 +16,19 @@ if [ -z "$project_dir" ]; then
   project_dir="$(pwd)"
 fi
 
+# Codex restores context through SessionStart(source=compact). PostCompact does
+# not accept additionalContext; retain a no-op for older project hook configs.
+if [ "$hook_event_name" = "PostCompact" ]; then
+  exit 0
+fi
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 plugin_root="$(cd "${script_dir}/.." && pwd)"
+
+# The installed plugin is the canonical source when both hook layers are loaded.
+if bash "${script_dir}/codex-plugin-owns-hook.sh" "$hook_event_name"; then
+  exit 0
+fi
 
 escape_for_json() {
   local raw="$1"

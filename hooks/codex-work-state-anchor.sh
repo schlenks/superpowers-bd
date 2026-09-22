@@ -5,6 +5,11 @@ set -euo pipefail
 
 input=$(cat)
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+if bash "${script_dir}/codex-plugin-owns-hook.sh" UserPromptSubmit; then
+  exit 0
+fi
+
 if ! command -v jq >/dev/null 2>&1; then
   exit 0
 fi
