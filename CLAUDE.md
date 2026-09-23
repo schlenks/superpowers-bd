@@ -35,6 +35,27 @@ repositories using the installed plugin; see `README.md`.
 ./tests/claude-code/run-skill-tests.sh --verbose
 ```
 
+### Plugin Evals (with vs. without the plugin)
+
+`evals/` holds a `claude plugin eval` suite (Claude Code 2.1.269+). Each case runs
+with the plugin and again with no plugin; `Δ` is what superpowers-bd adds.
+Graders named `outcome-*` judge the result, `process-*` judge workflow shape,
+and `skill-fired` is an unscored indicator. Cases tagged `needs-bash` run tests
+inside the eval's OS sandbox, which refuses to start when `~/.docker` contains a
+symlink.
+
+```bash
+# Cases that need no shell (cheap: ~$1-2 at 3 runs/arm)
+claude plugin eval . --tag no-bash --scaffold --allow-tools Write Edit --no-publish
+
+# Full suite
+claude plugin eval . --scaffold --allow-tools Bash Write Edit --no-publish --max-cost-usd 20
+```
+
+Pass `--model` to pin the agent model when comparing runs over time. Results go
+to `evals/results/` (gitignored). The multi-wave SDD integration tests above stay
+in `tests/claude-code/`; eval runs are single-session and non-interactive.
+
 ### Token Usage Analysis
 
 ```bash

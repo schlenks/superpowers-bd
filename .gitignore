@@ -8,3 +8,6 @@ __pycache__/
 .dolt/
 *.db
 .beads-credential-key
+
+# claude plugin eval run output
+evals/results/
