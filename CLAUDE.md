@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Superpowers-BD is a multi-agent-tool plugin providing workflow skills for TDD, debugging, code review, and beads-based collaboration patterns. This file documents the Claude Code platform layer: Claude plugin metadata, slash commands, Claude Code agents, Claude hooks, and Claude-specific version requirements. Codex has its own first-class project instructions in `AGENTS.md` and native Codex plugin docs in `docs/README.codex.md`.
 
-**Plugin version:** 5.11.1
+**Plugin version:** 5.12.0
 **Minimum Claude Code:** 2.1.144 (2.1.141–143 shipped a Skill-tool headless-permission regression fixed in 2.1.144 — the exact subagent skill discovery SDD depends on; also `effort.level` in hook input JSON; `effort` frontmatter on review agents from 2.1.78; `claude plugin tag` from 2.1.118; PostToolUse `duration_ms` from 2.1.119; PostToolUse `continueOnBlock` from 2.1.139). Optional newer features degrade gracefully on older builds: `disallowed-tools` skill frontmatter (2.1.152), Notification stall hook (2.1.198).
 
 Claude Code 2.1.233+ omits native Task progress tools in ordinary local

@@ -1,5 +1,19 @@
 # Superpowers Release Notes
 
+## v5.12.0 (2026-09-23) - Maintainability Checks and Bundled Simplifier
+
+SDD's post-wave and pre-merge simplification steps now use a simplifier agent bundled with the plugin. They previously dispatched the external `code-simplifier` plugin, which was never declared as a dependency, so for users without it those steps did nothing. The bundled agent reads the repository's own conventions rather than hardcoded TypeScript/React rules, edits only the files it is given, runs tests before and after, and never commits. On a fixture with three copy-pasted exporters it extracted a shared formatter (lizard duplicate rate 68% to 0%, average CCN 6.0 to 2.2) with all tests passing.
+
+The post-edit linter's complexity warnings were never visible to the model: a PostToolUse hook's stderr is not shown on exit 0. Warnings are now also emitted as `additionalContext`, and a new advisory flags edits that add duplicated code blocks relative to git HEAD. Epic verification adds a non-gating Maintainability row backed by `quality-delta.sh`, which compares complexity and duplication of the changed files at base versus head.
+
+A `claude plugin eval` suite (`evals/`, nine cases) compares outcomes with and without the plugin. On Claude Code 2.1.280 the plugin changed outcomes only for brainstorming (raising cache invalidation before coding) and enforced test-first ordering; bare Claude matched it on root-cause debugging, review pushback, edge cases, and maintainability-aware review, including with the plugin's own `/cr` reviewer. These fixtures are small by construction, so the suite is a regression and triggering check, not a measure of long multi-session work.
+
+### Validation
+
+- Linter hook tests: 23/23 (5 new); quality-delta tests: 6/6; plugin config drift: 30/30; workflow contract audit: 33/33; Codex agent, semantics, and manifest tests passed; fast Claude skill suite passed; shell lint: 24 files clean; `claude plugin validate .` passed.
+- Live smoke test of `superpowers-bd:code-simplifier` via `claude -p --plugin-dir`.
+- Follow-ups: lizard-language linter branch still lacks the HEAD ratchet the TypeScript branch has (`superpowers_bd-a28`); Codex-native simplifier agent (`superpowers_bd-axl`).
+
 ## v5.11.1 (2026-09-22) - Current Models and Codex Effort
 
 The Codex reviewer and verifier agents (`spec_reviewer`, `code_reviewer`, `epic_verifier`) now run at `high` reasoning effort instead of `xhigh`. `high` is sufficient for the current GPT-5.6 and GPT-6 Sol/Luna models, and the change removes a mismatch: the code and spec reviewer configs were already `high` while the SDD tables said `xhigh`. `review_aggregator` stays at `medium`.

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.12.0] - 2026-09-23
+
+### Added
+
+- **Bundled code simplifier:** `agents/code-simplifier.md` ships with the plugin. SDD post-wave and pre-merge simplification now dispatch `superpowers-bd:code-simplifier` instead of the external `code-simplifier:code-simplifier` plugin, which `plugin.json` never declared, so those steps silently did nothing without it. The agent edits only the listed files, follows the repository's own conventions, runs tests before and after, never commits, and ends with a structured report.
+- **Epic maintainability delta:** `skills/epic-verifier/scripts/quality-delta.sh` compares lizard complexity and duplicated blocks of changed code files at base versus head. epic-verifier (Claude and Codex) reports a non-gating Maintainability row (PASS/WARN/N/A); WARN lists follow-ups without failing the verdict.
+- **Duplication advisory:** `hooks/run-linter.sh` warns when an edit adds duplicated code blocks within a file compared to git HEAD (test files exempt).
+- **Plugin eval suite:** `evals/` holds nine `claude plugin eval` cases with outcome graders scored with and without the plugin (development only; see CLAUDE.md).
+
+### Fixed
+
+- **Linter advisories reach the model:** complexity warnings and ratchet notes from `run-linter.sh` were written to stderr with exit 0, which Claude Code does not show the model. They are now also emitted as PostToolUse `additionalContext`.
+
 ## [5.11.1] - 2026-09-22
 
 ### Changed
