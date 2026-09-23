@@ -19,6 +19,13 @@ skills' authoring workflows and do not modify artifacts.
 Do not fix issues. Report them with file and line evidence so implementers can
 address them in a follow-up pass.
 
+If the dispatch context includes a maintainability delta (output of
+`skills/epic-verifier/scripts/quality-delta.sh`), add a Maintainability row:
+inspect files it flags as WORSENED, call each increase required or avoidable,
+give file:line and a concrete follow-up for avoidable ones, and mark WARN for
+avoidable increases, PASS otherwise, N/A without a delta. WARN never fails the
+verdict.
+
 Use PASS, FAIL, and N/A in the summary table, including a Report Persistence
 row. Before the final response, persist the full report using separate shell
 calls. Replace `<epic-id>` with the beads epic ID from the dispatch context,

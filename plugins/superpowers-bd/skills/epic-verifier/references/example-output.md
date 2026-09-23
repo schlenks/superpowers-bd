@@ -15,6 +15,7 @@ Full annotated example of epic-verifier output showing engineering checklist, Ru
 | Regressions | PASS | 234 passing, 0 failing |
 | Docs | PASS | README updated |
 | Security | PASS | No secrets, validation present |
+| Maintainability | WARN | auth.service.ts max CCN 6 → 12: login() inlines three token checks; extract validateToken() (non-blocking follow-up) |
 
 ### Rule-of-Five: auth.service.ts (87 lines)
 - Draft: PASS Clean structure

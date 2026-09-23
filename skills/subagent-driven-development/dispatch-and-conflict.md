@@ -143,7 +143,7 @@ else:
     )
 ```
 
-**Verification prompt:** Use template at `skills/epic-verifier/verifier-prompt.md`. Claude Code model selection follows the Claude verifier row in `budget-and-wave-cap.md`; Codex uses `spawn_agent(agent="epic_verifier")`.
+**Verification prompt:** Use template at `skills/epic-verifier/verifier-prompt.md`. Before dispatch, run `skills/epic-verifier/scripts/quality-delta.sh <base-sha> <head-sha>` (plugin path, from the repository root) and pass its output as `{quality-delta}`; see the epic-verifier skill's Dispatch section. Claude Code model selection follows the Claude verifier row in `budget-and-wave-cap.md`; Codex uses `spawn_agent(agent="epic_verifier")`.
 
 ## File Conflict Detection (Native-Progress-Tracked)
 
@@ -260,7 +260,7 @@ has to honor that state explicitly.
 if wave_task_count >= 2 and budget_tier != "pro/api":
     wave_files = collect_modified_files_across_wave(wave_tasks)
     Agent(
-        subagent_type="code-simplifier:code-simplifier",
+        subagent_type="superpowers-bd:code-simplifier",
         description=f"Simplify: post-wave {wave_number}",
         prompt=f"Focus on these files modified in wave {wave_number}: "
                f"{wave_files}. "

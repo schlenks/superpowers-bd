@@ -26,6 +26,7 @@ verifier does not invoke editing workflows.
 | **Regressions** | All tests pass? | Test suite output |
 | **Documentation** | Docs updated? | Outdated locations |
 | **Security** | No vulnerabilities? | Concerns or "none" |
+| **Maintainability** | Complexity/duplication worse than base? | `quality-delta.sh` table (WARN, non-gating) |
 | **Rule-of-Five lenses** | >50 line files reviewed read-only? | Per-file 5-lens findings |
 
 ## Dispatch
@@ -40,7 +41,9 @@ Agent tool:
   prompt: [use template]
 ```
 
-Required context: `{epic_id}` (verifier self-reads from beads), base SHA, head SHA, test command.
+Required context: `{epic_id}` (verifier self-reads from beads), base SHA, head SHA, test command, and `{quality-delta}`.
+
+**Before dispatch**, run `scripts/quality-delta.sh <base-sha> <head-sha>` from this skill's base directory, in the repository root, and pass its full output as `{quality-delta}`. It compares complexity (lizard CCN) and duplicated blocks of the changed code files at base versus head. The orchestrator runs it because the verifier cannot locate plugin files; if the script is unavailable, pass `Unavailable: <reason>`.
 
 ## Model Selection
 

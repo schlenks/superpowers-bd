@@ -34,6 +34,8 @@ For EACH item, provide EVIDENCE (not just yes/no):
 
 **1.6 Security** — Scan for hardcoded secrets, injection risks, improper validation. List concerns with file:line. If clean: "No security issues identified"
 
+**1.7 Maintainability** — Use the maintainability delta the dispatcher supplied (complexity and duplicated blocks at base vs head). If WORSENED, inspect each flagged file and say whether the increase is required by the feature or avoidable (copy-pasted logic, a function that should be split); give file:line and a concrete follow-up for avoidable ones. WARN for avoidable increases, PASS otherwise, N/A if no delta was supplied. WARN does not fail the verdict.
+
 ### Part 2: Rule-of-Five Review
 
 For files with >50 lines changed, apply five read-only review lenses. Do not
@@ -86,6 +88,7 @@ Summary table:
 | Regressions | PASS/FAIL | [one-line] |
 | Docs | PASS/FAIL | [one-line] |
 | Security | PASS/FAIL | [one-line] |
+| Maintainability | PASS/WARN/N/A | [avoidable complexity/duplication increases] |
 | Rule-of-Five | PASS/FAIL/N/A | [files reviewed, issues found] |
 | Report Persistence | PASS/FAIL | [confirmed marker or persistence error] |
 

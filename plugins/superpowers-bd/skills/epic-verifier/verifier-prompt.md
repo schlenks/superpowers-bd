@@ -1,6 +1,6 @@
 # Epic Verifier Prompt Template
 
-Placeholders: `{epic_id}` (beads epic ID), `{base-sha}` (git commit before epic), `{head-sha}` (current HEAD), `{test-command}` (project test command)
+Placeholders: `{epic_id}` (beads epic ID), `{base-sha}` (git commit before epic), `{head-sha}` (current HEAD), `{test-command}` (project test command), `{quality-delta}` (output of `scripts/quality-delta.sh`)
 
 ```
 Agent tool:
@@ -69,6 +69,22 @@ Agent tool:
     Scan for: hardcoded secrets, SQL injection, XSS, improper input validation.
     - Evidence: List concerns with file:line
     - If clean: "No security issues identified"
+
+    ### 1.7 Maintainability - Complexity and Duplication Trend
+
+    The orchestrator measured the changed code files at base and head:
+
+    {quality-delta}
+
+    - If the result is WORSENED, inspect each flagged file and the duplicated
+      blocks. Say whether each increase is justified by the requirement (for
+      example, inherent branching) or is avoidable (copy-pasted logic, a
+      function that should be split).
+    - Evidence: file:line of avoidable increases, each with a concrete
+      follow-up (extract helper X, split function Y)
+    - Status is WARN for avoidable increases and PASS otherwise. WARN does not
+      fail the verdict; list its follow-ups under the verdict.
+    - If the delta is unavailable, status is N/A with the stated reason.
 
     ## Part 2: Rule-of-Five Review
 
@@ -144,6 +160,7 @@ EPIC_VERIFICATION_EOF
     | Regressions | PASS/FAIL | [summary] |
     | Docs | PASS/FAIL | [summary] |
     | Security | PASS/FAIL | [summary] |
+    | Maintainability | PASS/WARN/N/A | [avoidable complexity/duplication increases] |
     | Rule-of-Five | PASS/FAIL/N/A | [files reviewed, issues] |
     | Report Persistence | PASS/FAIL | [confirmed marker or persistence error] |
 
@@ -151,6 +168,7 @@ EPIC_VERIFICATION_EOF
 
     **If PASS:**
     All checks passed. Epic ready for finishing-a-development-branch.
+    If Maintainability is WARN, list its follow-ups here as non-blocking items.
 
     **If FAIL:**
     Issues MUST be fixed:

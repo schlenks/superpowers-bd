@@ -23,6 +23,50 @@ block_with_reason() {
   exit 0
 }
 
+# Non-blocking findings. stderr from an exit-0 PostToolUse hook never reaches
+# the model, so advisories are also collected and emitted as additionalContext.
+ADVISORY=""
+advise() {
+  echo "$1" >&2
+  ADVISORY+="$1"$'\n'
+}
+
+emit_advisory() {
+  [[ -z "$ADVISORY" ]] && return 0
+  jq -nc --arg ctx "$ADVISORY" \
+    '{hookSpecificOutput:{hookEventName:"PostToolUse", additionalContext:$ctx}}'
+}
+
+# Count lizard duplicate blocks in one file (0 when lizard finds none).
+dup_block_count() {
+  lizard -Eduplicate "$1" 2>/dev/null | grep -c '^Duplicate block:' || true
+}
+
+# Advise when an edit adds duplicated code blocks within the file, compared to
+# git HEAD. Advisory only: duplicate detection has false positives, and test
+# files legitimately repeat setup, so they are skipped.
+check_duplication() {
+  local target="$1"
+  command -v lizard &>/dev/null || return 0
+  case "$(basename "$target")" in
+    test_*|*_test.*|*.test.*|*.spec.*) return 0 ;;
+  esac
+  local cur base=0 dir name tmp
+  cur=$(dup_block_count "$target")
+  [[ "$cur" -eq 0 ]] && return 0
+  dir=$(dirname "$target")
+  name=$(basename "$target")
+  if git -C "$dir" rev-parse --is-inside-work-tree &>/dev/null; then
+    tmp=$(mktemp -d)
+    if git -C "$dir" show "HEAD:./$name" > "$tmp/$name" 2>/dev/null; then
+      base=$(dup_block_count "$tmp/$name")
+    fi
+    rm -rf "$tmp"
+  fi
+  [[ "$cur" -le "$base" ]] && return 0
+  advise "DUPLICATION WARNING: $target now has $cur duplicated code block(s) (was $base at HEAD). Extract the repeated logic into a shared helper instead of copying it; run \`lizard -Eduplicate $target\` to see the blocks."
+}
+
 file_path=$(echo "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 [ -z "$file_path" ] && exit 0
 
@@ -77,10 +121,10 @@ case "$file_path" in
             rm -rf "$tmp_dir"
           fi
           if [[ "$base_count" -ge 1 && "$cur_count" -le "$base_count" && "$cur_max" -le "$base_max" && "$cur_sum" -le "$base_sum" ]]; then
-            echo "COMPLEXITY RATCHET: $file_path already exceeded the limit at HEAD (over-25 count ${base_count}, max ${base_max}); this edit does not worsen it (count ${cur_count}, max ${cur_max}) — allowed." >&2
-            echo "  Remaining functions with cognitive complexity > 25 (reduce when practical):" >&2
+            advise "COMPLEXITY RATCHET: $file_path already exceeded the limit at HEAD (over-25 count ${base_count}, max ${base_max}); this edit does not worsen it (count ${cur_count}, max ${cur_max}) — allowed."
+            advise "  Remaining functions with cognitive complexity > 25 (reduce when practical):"
             while IFS=$'\t' read -r fname fline fscore; do
-              echo "  ${file_path}:${fline} — ${fname}() cognitive complexity = ${fscore}" >&2
+              advise "  ${file_path}:${fline} — ${fname}() cognitive complexity = ${fscore}"
             done <<< "$violations_block"
           else
             echo "COMPLEXITY ERROR: functions exceed critical cognitive complexity in $file_path" >&2
@@ -99,11 +143,11 @@ case "$file_path" in
           '.. | objects | select(.kind == "function" and .score > 15) | "\(.name)\t\(.line)\t\(.score)"' \
           2>/dev/null) || true
         if [[ -n "$violations_warn" ]]; then
-          echo "COMPLEXITY WARNING: functions exceed advisory cognitive complexity in $file_path" >&2
+          advise "COMPLEXITY WARNING: functions exceed advisory cognitive complexity in $file_path"
           while IFS=$'\t' read -r fname fline fscore; do
-            echo "  ${file_path}:${fline} — ${fname}() cognitive complexity = ${fscore}" >&2
+            advise "  ${file_path}:${fline} — ${fname}() cognitive complexity = ${fscore}"
           done <<< "$violations_warn"
-          echo "  Consider extracting nested logic into helper functions." >&2
+          advise "  Consider extracting nested logic into helper functions."
         fi
       fi
     else
@@ -118,9 +162,9 @@ case "$file_path" in
         fi
         warn_output=$(lizard -C 10 -L 50 -w "$file_path" 2>/dev/null || true)
         if [[ -n "$warn_output" ]]; then
-          echo "COMPLEXITY WARNING: functions exceed advisory thresholds in $file_path" >&2
-          echo "$warn_output" >&2
-          echo "Consider extracting branches into helper functions or splitting long functions." >&2
+          advise "COMPLEXITY WARNING: functions exceed advisory thresholds in $file_path"
+          advise "$warn_output"
+          advise "Consider extracting branches into helper functions or splitting long functions."
         fi
       else
         echo "Tip: install cognitive-complexity-ts for TS complexity checking: npm install -g cognitive-complexity-ts" >&2
@@ -143,11 +187,18 @@ case "$file_path" in
     # Pass 2: warn on CC>10 or length>50
     warn_output=$(lizard -C 10 -L 50 -w "$file_path" 2>/dev/null || true)
     if [[ -n "$warn_output" ]]; then
-      echo "COMPLEXITY WARNING: functions exceed advisory thresholds in $file_path" >&2
-      echo "$warn_output" >&2
-      echo "Consider extracting branches into helper functions or splitting long functions." >&2
+      advise "COMPLEXITY WARNING: functions exceed advisory thresholds in $file_path"
+      advise "$warn_output"
+      advise "Consider extracting branches into helper functions or splitting long functions."
     fi
     ;;
 esac
 
+case "$file_path" in
+  *.ts|*.tsx|*.py|*.js|*.jsx|*.go|*.java|*.c|*.cpp|*.h|*.hpp|*.rb|*.swift|*.rs)
+    [[ -f "$file_path" ]] && check_duplication "$file_path"
+    ;;
+esac
+
+emit_advisory
 exit 0

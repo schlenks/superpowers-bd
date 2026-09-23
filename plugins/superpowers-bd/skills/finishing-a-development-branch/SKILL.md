@@ -32,7 +32,7 @@ Create a "Verify all tests pass" task. Run the project's full test suite.
 
 ### Step 1.5: Pre-Merge Simplification (Task-Tracked, Mandatory)
 
-Create a "Pre-merge simplification" task blocked by test verification. Get changed files: first run `git merge-base HEAD main` to get the base SHA, then `git diff --name-only <base-sha>..HEAD`. Dispatch `code-simplifier:code-simplifier` on the full changeset. If changes made, re-run tests -- revert if they fail, commit if they pass. See `references/pre-merge-simplification.md`.
+Create a "Pre-merge simplification" task blocked by test verification. Get changed files: first run `git merge-base HEAD main` to get the base SHA, then `git diff --name-only <base-sha>..HEAD`. Dispatch `superpowers-bd:code-simplifier` on the full changeset. If changes made, re-run tests -- revert if they fail, commit if they pass. See `references/pre-merge-simplification.md`.
 
 ### Step 1.7: Detect Environment
 

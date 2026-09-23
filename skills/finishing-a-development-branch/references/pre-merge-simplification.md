@@ -29,7 +29,7 @@ git diff --name-only <merge-base-sha>..HEAD
 
 ```python
 Agent(
-    subagent_type="code-simplifier:code-simplifier",
+    subagent_type="superpowers-bd:code-simplifier",
     description="Simplify: pre-merge",
     prompt=f"Focus on these files from the branch: {changed_files}. "
            "This is the final simplification before merge. Check: "

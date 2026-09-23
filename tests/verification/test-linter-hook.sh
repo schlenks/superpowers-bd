@@ -536,6 +536,89 @@ _test_ts_fallback() {
 }
 _test_ts_fallback
 
+# --- Advisory output (additionalContext) and duplication tests ---
+
+# Asserts whether stdout carries a PostToolUse additionalContext JSON payload
+# containing a pattern. present=1 expects it; present=0 expects no match.
+run_advisory_test() {
+  local name="$1" file="$2" pattern="$3" present="$4"
+  local stdout_file="$TEST_DIR/adv_stdout" actual_exit=0 found=0
+  echo "{\"tool_input\":{\"file_path\":\"$file\"}}" \
+    | "$HOOK" >"$stdout_file" 2>/dev/null || actual_exit=$?
+  if [[ -s "$stdout_file" ]] && jq -e --arg p "$pattern" \
+      '.hookSpecificOutput.hookEventName == "PostToolUse" and (.hookSpecificOutput.additionalContext | contains($p))' \
+      "$stdout_file" >/dev/null 2>&1; then
+    found=1
+  fi
+  if [[ "$actual_exit" -eq 0 && "$found" -eq "$present" ]]; then
+    echo "PASS: $name"
+    pass=$((pass + 1))
+  else
+    echo "FAIL: $name — exit $actual_exit, expected pattern '$pattern' present=$present, found=$found"
+    echo "  stdout: $(cat "$stdout_file")"
+    fail=$((fail + 1))
+  fi
+}
+
+write_duplicated_py() {
+  local out="$1" fn
+  : > "$out"
+  for fn in export_csv export_tsv export_psv; do
+    cat >> "$out" << PY
+def ${fn}(rows, path):
+    headers = list(rows[0].keys()) if rows else []
+    lines = [",".join(headers)]
+    for row in rows:
+        values = []
+        for h in headers:
+            v = row.get(h)
+            if v is None:
+                v = ""
+            elif isinstance(v, float):
+                v = f"{v:.2f}"
+            else:
+                v = str(v)
+            values.append(v)
+        lines.append(",".join(values))
+    with open(path, "w") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+PY
+  done
+}
+
+# 19. Advisory warnings reach the model via additionalContext, not only stderr
+run_advisory_test ".py file — warning emitted as additionalContext" \
+  "$TEST_DIR/cc_warn.py" "COMPLEXITY WARNING" 1
+
+# 20. Clean file emits no advisory payload
+run_advisory_test ".py file — clean file emits no additionalContext" \
+  "$TEST_DIR/cc_low.py" "WARNING" 0
+
+if command -v lizard &>/dev/null; then
+  # 21. New (untracked) file with copy-pasted blocks gets a duplication advisory
+  write_duplicated_py "$TEST_DIR/dup_new.py"
+  run_advisory_test ".py file — new duplicated blocks advised" \
+    "$TEST_DIR/dup_new.py" "DUPLICATION WARNING" 1
+
+  # 22. Ratchet: duplication already present at HEAD and not worsened is quiet
+  mkdir -p "$TEST_DIR/duprepo"
+  write_duplicated_py "$TEST_DIR/duprepo/report.py"
+  git -C "$TEST_DIR/duprepo" init -q
+  git -C "$TEST_DIR/duprepo" add report.py
+  git -C "$TEST_DIR/duprepo" -c user.name=t -c user.email=t@example.com commit -qm init
+  run_advisory_test ".py file — pre-existing duplication not worsened is quiet" \
+    "$TEST_DIR/duprepo/report.py" "DUPLICATION WARNING" 0
+
+  # 23. Test files are exempt from duplication advisories
+  write_duplicated_py "$TEST_DIR/test_dup.py"
+  run_advisory_test ".py test file — duplication advisory skipped" \
+    "$TEST_DIR/test_dup.py" "DUPLICATION WARNING" 0
+else
+  echo "SKIP: duplication tests (lizard not installed)"
+fi
+
 # --- Summary ---
 echo ""
 echo "=== Results: $pass passed, $fail failed ($(( pass + fail )) total) ==="

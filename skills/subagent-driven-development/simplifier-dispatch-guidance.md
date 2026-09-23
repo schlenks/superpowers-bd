@@ -1,6 +1,8 @@
 # Code Simplifier Dispatch Guidance
 
-Reference for the SDD orchestrator on invoking `code-simplifier:code-simplifier` at post-wave and pre-merge points.
+Reference for the SDD orchestrator on invoking `superpowers-bd:code-simplifier` at post-wave and pre-merge points.
+
+The simplifier ships with this plugin (`agents/code-simplifier.md`), so no separate plugin is required. It edits only the listed files, runs the tests before and after, never commits, and ends with a `Simplification report`; the orchestrator commits or restores based on the test result.
 
 ## Post-Wave Simplification
 
