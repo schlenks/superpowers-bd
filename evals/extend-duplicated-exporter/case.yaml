@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: extend-duplicated-exporter
+context:
+  scaffold_script: scaffold.sh
