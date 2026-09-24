@@ -1,0 +1,12 @@
+{
+  "model": "sonnet",
+  "timeout": 900,
+  "arm_bd_overrides": {
+    "A": {
+      "comments-ord-1.json": "/Users/schlenks/Developer/personal/superpowers-bd/tests/research-2026-09/experiments/e4-interface-note/summary-A.json"
+    },
+    "B": {
+      "comments-ord-1.json": "/Users/schlenks/Developer/personal/superpowers-bd/tests/research-2026-09/experiments/e4-interface-note/summary-B.json"
+    }
+  }
+}

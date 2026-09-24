@@ -1,0 +1,19 @@
+{
+  "source": "skills/subagent-driven-development/implementer-prompt.md",
+  "heading": "## Shared Implementer Prompt",
+  "arms": {
+    "B": "worktree"
+  },
+  "vars": {
+    "issue_id": "ord-2",
+    "epic_id": "ord-1",
+    "file_ownership_list": "catalog/prices.py, tests/test_prices.py",
+    "wave_file_map": "| Issue | Files |\n|---|---|\n| ord-2 | catalog/prices.py, tests/test_prices.py |\n| ord-3 | orders/total.py, tests/test_total.py (next wave, uses unit_price) |",
+    "dependency_ids": "ord-1.1 (closed)",
+    "rule_of_five_code_path": "/Users/schlenks/Developer/personal/superpowers-bd/skills/rule-of-five-code/SKILL.md",
+    "rule_of_five_tests_path": "/Users/schlenks/Developer/personal/superpowers-bd/skills/rule-of-five-tests/SKILL.md",
+    "rule_of_five_plans_path": "/Users/schlenks/Developer/personal/superpowers-bd/skills/rule-of-five-plans/SKILL.md",
+    "working_directory": "the current directory (a git repo)",
+    "wave_number": 1
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "source": "skills/subagent-driven-development/implementer-prompt.md",
+  "heading": "## Shared Implementer Prompt",
+  "arms": {
+    "A": "git:HEAD",
+    "B": "worktree"
+  },
+  "vars": {
+    "issue_id": "num-2",
+    "epic_id": "num-1",
+    "file_ownership_list": "numerals/roman.py, tests/test_roman.py",
+    "wave_file_map": "| Issue | Files |\n|---|---|\n| num-2 | numerals/roman.py, tests/test_roman.py |",
+    "dependency_ids": "num-1.1 (closed)",
+    "rule_of_five_code_path": "/Users/schlenks/Developer/personal/superpowers-bd/skills/rule-of-five-code/SKILL.md",
+    "rule_of_five_tests_path": "/Users/schlenks/Developer/personal/superpowers-bd/skills/rule-of-five-tests/SKILL.md",
+    "rule_of_five_plans_path": "/Users/schlenks/Developer/personal/superpowers-bd/skills/rule-of-five-plans/SKILL.md",
+    "working_directory": "the current directory (a git repo)",
+    "wave_number": 1
+  }
+}

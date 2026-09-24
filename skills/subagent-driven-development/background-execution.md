@@ -79,7 +79,8 @@ Claude Code background agents notify automatically on completion; when notified,
 on_agent_complete(agent_id, output):
     issue_id = pending_tasks[agent_id]["issue_id"]
     verdict = parse_verdict(output)
-    # DONE/DONE_WITH_CONCERNS: VERDICT, COMMIT, FILES, TESTS, SCOPE, REPORT_PERSISTED, [CONCERNS]
+    # DONE/DONE_WITH_CONCERNS: VERDICT, COMMIT, FILES, TESTS, SCOPE, INTERFACES, REPORT_PERSISTED, [CONCERNS]
+    # Carry non-"none" INTERFACES into the next [WAVE-SUMMARY] (metrics-tracking.md).
     # BLOCKED/NEEDS_CONTEXT: VERDICT, BLOCKER, REPORT_PERSISTED
 
     if verdict.report_persisted == "NO":

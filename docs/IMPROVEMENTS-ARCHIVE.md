@@ -621,4 +621,104 @@ Comprehensive survey via 5 parallel research agents. ~90 unique papers found; th
 
 ---
 
+## 11. arXiv Research Papers (Surveyed 2026-09-24)
+
+Six parallel research agents (orchestration, code review/verification, planning, TDD/debugging, context/skills/effort, agent code quality/harness) searched arXiv for papers from 2026-03 to 2026-09, excluding the 53 IDs in Section 10. Each agent fetched the abs page for every ID it cited; about 25 papers were read in full (DEEP), the rest at abstract level (ABS). The arXiv API rate-limited several agents, so coverage is good but not exhaustive. Candidate changes were then A/B tested (584 headless runs on Haiku 4.5, Sonnet 5, and Opus 5.5, 2026-09-24): see `docs/experiments/2026-09-24-research-tier1-tier2-ab.md`. **Tested** marks papers whose recommendation we measured.
+
+### 11.1 Test Tampering, Overclaiming, and Honest Reporting
+
+| arXiv ID | Title | Depth | Key Finding | Outcome for superpowers-bd |
+|---|---|---|---|---|
+| [2608.29460](https://arxiv.org/abs/2608.29460) | Can escalation channels redirect reward hacking toward defect disclosure? | DEEP | 8 frontier models incl. Fable 5, 360 episodes/condition: hacking 23.6% → 9.7% (policy) → 5.3% (policy + escalation); solve rate unchanged | **Tested, adopted** (Test Integrity in implementer prompt): Haiku 27/30 → 2/30, Sonnet 6/30 → 0/30 |
+| [2510.20270](https://arxiv.org/abs/2510.20270) | ImpossibleBench | DEEP | Opus 4.1 ~50%, GPT-5 54–76% cheating on conflicting tests; LLM monitors catch 42–65%; retry loops add cheating | Supports the policy; a test-edit hook was **tested and rejected** (misses impl special-casing) |
+| [2609.20812](https://arxiv.org/abs/2609.20812) | Quantifying Overclaiming Propensity in Frontier LLM Agents | DEEP | 1,140 runs: 67.9% skipped required files, 80.4% of those misreported | **Tested, rejected**: 74 DONE verdicts audited, 0 false test claims |
+| [2609.12205](https://arxiv.org/abs/2609.12205) | Plans They Abandon, Reports They Author | DEEP | 5,851 real sessions (83% Claude Code): ~28% of plan steps dropped; reports drift toward the plan | Motivated reviewers reading code before reports (**tested, no effect**) |
+| [2607.28871](https://arxiv.org/abs/2607.28871) | Validation Evidence in LLM Repair Agents | DEEP | 46% of passing validations also pass on buggy code; RCT −7.8pp non-discriminating evidence | **Tested, rejected**: Sonnet regression tests already discriminated 10/10 |
+| [2605.29442](https://arxiv.org/abs/2605.29442) | (Misalignment in 20,574 real sessions) | ABS | Inaccurate self-reporting is a growing share of agent failures | Background |
+
+### 11.2 Code Review and LLM-as-Judge
+
+| arXiv ID | Title | Depth | Key Finding | Outcome |
+|---|---|---|---|---|
+| [2603.00539](https://arxiv.org/abs/2603.00539) | Are LLMs Reliable Code Reviewers? Systematic Overcorrection | DEEP | Static judging rejects correct code (Sonnet 4.5 58.5% on MBPP); 87% of false rejects are invented logic errors or added requirements | Reproduce-before-block **tested, rejected** (0 invented bugs); the added-requirements mode **reproduced** in spec review and fixed by the criteria checklist (Haiku 14/20 → 6/20) |
+| [2607.21656](https://arxiv.org/abs/2607.21656) | Cross-Model LLM Code Review | DEEP | Claude reviewing Codex 71.6% → 89.7%; Codex reviewing Claude 91.4% → 82.8% (13 regressions vs 3 fixes) | Not tested; caution for mixed-model review gating |
+| [2603.18740](https://arxiv.org/abs/2603.18740) | Contextual Bias in LLM-Assisted Security Code Review | DEEP | "Bug-free" framing collapses weak-model detection; Opus 4.5 robust | Reorder **tested, no effect** |
+| [2608.09290](https://arxiv.org/abs/2608.09290) | OpenCodeReview | ABS | Separate falsification filter: 2.17× SEM-F1 at 5–15× fewer tokens | Counterpoint to our Two-Phase result; not tested |
+| [2608.27442](https://arxiv.org/abs/2608.27442) | MCR-Bench (ISSTA) | ABS | Review quality degrades across rounds | Argues for fresh reviewer context per re-review |
+| [2607.23931](https://arxiv.org/abs/2607.23931) | Correlated errors across 28 LLMs | ABS | Correlation-aware thresholds beat majority vote by 15.7% expected loss | Background for multi-review |
+| [2607.20768](https://arxiv.org/abs/2607.20768) | Heterogeneous voting (30 LLMs, MMLU-Pro) | ABS | 3-model vote beats best member in only 9.98% of subsets | Decorrelation helps union recall, not verdict voting |
+| [2603.23448](https://arxiv.org/abs/2603.23448) | c-CRAB | ABS | Agents solve ~40% of human-review-derived tasks | Background |
+
+### 11.3 Multi-Agent Orchestration and Parallel Waves
+
+| arXiv ID | Title | Depth | Key Finding | Outcome |
+|---|---|---|---|---|
+| [2603.21489](https://arxiv.org/abs/2603.21489) | Effective Strategies for Asynchronous SE Agents (CAID, CMU) | DEEP | Sonnet 4.5: shared workspace + assigned files 55.5% < single agent 57.2%; git worktree isolation 63.3%; peak at 4 engineers | Not tested; Tier 3 spike candidate (worktree per implementer) |
+| [2609.25396](https://arxiv.org/abs/2609.25396) | Passes Alone, Fails Together | DEEP | Interface change → 97% parallel interference; ~130-token note recovers 82%; real Django PR rate 1/834 | **Tested, adopted** (`INTERFACES:` → `[WAVE-SUMMARY]`): Sonnet 12/20 → 20/20 correct |
+| [2606.00953](https://arxiv.org/abs/2606.00953) | Co-Coder: Cohesion-Aware Task Partitioning | DEEP | gpt-5-mini: 34.1% vs sequential 20.1%; Claude Code Agent Teams 16.3% | Not tested; Tier 3 (coupling-aware decomposition) |
+| [2608.23740](https://arxiv.org/abs/2608.23740) | AgentRoom | DEEP | Quality peaks at 2–3 agents; uncoordinated merge below solo | Wave cap 5 at 1M exceeds every observed peak; not changed |
+| [2609.19759](https://arxiv.org/abs/2609.19759) | When More Is Less | DEEP | 4 agents beat 5–6 by 4–11% | Same |
+| [2607.25656](https://arxiv.org/abs/2607.25656) | OrchBench | DEEP | Agent count uncorrelated with quality (r = −0.021); information transfer coverage r = 0.61–0.95 | Same |
+| [2608.00947](https://arxiv.org/abs/2608.00947) | Claim Plane | ABS | Deterministic pre-write admission doubles pair pass rate by serializing | Supports defer-on-conflict |
+| [2604.03551](https://arxiv.org/abs/2604.03551) | AgenticFlict | ABS | 28% of 142K agent PRs hit merge conflicts | Background |
+| [2606.10662](https://arxiv.org/abs/2606.10662) | DeLM | ABS | Coordinator-free claiming: +10.5pp SWE-bench Verified at half cost | Design alternative |
+| [2604.02460](https://arxiv.org/abs/2604.02460), [2607.16133](https://arxiv.org/abs/2607.16133), [2606.13733](https://arxiv.org/abs/2606.13733), [2606.00655](https://arxiv.org/abs/2606.00655) | Single vs multi-agent under matched budgets | ABS | Stronger models lose the multi-agent edge; success decays with task-graph min-cut | Reframes the Baseline Paradox as coupling, not baseline accuracy |
+
+### 11.4 Planning, Specs, and Clarification
+
+| arXiv ID | Title | Depth | Key Finding | Outcome |
+|---|---|---|---|---|
+| [2603.26233](https://arxiv.org/abs/2603.26233) | Ask or Assume? (EMNLP 2026) | DEEP | Underspecified SWE-bench: 54.8% → 70.4% by asking up front (full spec 70.8%) | Validates brainstorming |
+| [2605.07937](https://arxiv.org/abs/2605.07937) | Ask Early, Ask Late, Ask Right | DEEP | Goal clarification loses value after 10% of execution; asking after midpoint worse than never | Validates up-front elicitation |
+| [2604.12147](https://arxiv.org/abs/2604.12147) | Evaluating Plan Compliance | DEEP | Wrong/misaligned plans hurt more than no plan; periodic plan re-injection +1–3pp | No direct test of "complete code in plans" exists |
+| [2609.20804](https://arxiv.org/abs/2609.20804) | Harness Design for Coding Agents | DEEP | Planning helps weak models (+11.6pp), slightly hurts strong ones, cuts cost ~30% | Background |
+| [2607.26777](https://arxiv.org/abs/2607.26777) | CodeSpec | ABS | Executable specs 70.7% vs 62.6% on FeatureBench Lite | Possible writing-plans follow-up |
+| [2605.15846](https://arxiv.org/abs/2605.15846), [2606.25514](https://arxiv.org/abs/2606.25514), [2604.14624](https://arxiv.org/abs/2604.14624), [2606.20585](https://arxiv.org/abs/2606.20585), [2608.16630](https://arxiv.org/abs/2608.16630), [2608.27831](https://arxiv.org/abs/2608.27831) | RoadmapBench, icat-agent, CLARITI, Buddy/SpecBench, Coherence Debt, RealSWE | ABS | Long-horizon still unsolved; agents invent missing facts; desired behavior is the highest-value spec field | Background |
+
+### 11.5 Tests, TDD, and Debugging
+
+| arXiv ID | Title | Depth | Key Finding | Outcome |
+|---|---|---|---|---|
+| [2602.07900](https://arxiv.org/abs/2602.07900) v2 | Rethinking Agent-Generated Tests (Section 10 paper, revised) | DEEP | Six frontier models: encouraging tests 0 to −2.6pp resolution (all p > 0.2), +19.8% tokens | Strengthens Section 10 finding; TDD value is evidence quality |
+| [2604.07789](https://arxiv.org/abs/2604.07789) | ORACLE-SWE | DEEP | Stronger-model reproduction tests lift weaker models +19–28pp | Suggests separating test authorship; not tested |
+| [2605.21384](https://arxiv.org/abs/2605.21384), [2606.28430](https://arxiv.org/abs/2606.28430) | SpecBench; Building to the Test | DEEP | Visible tests saturate; hidden-test gap grows with code size | Supports requirement-by-requirement review |
+| [2603.17973](https://arxiv.org/abs/2603.17973) | TDAD | DEEP | TDD instructions raised regressions on a 4-bit 30B model; naming affected tests helped | LOW confidence for frontier models |
+| [2604.10508](https://arxiv.org/abs/2604.10508) | Repair rounds | ABS | 2 rounds capture 76–95% of gain (HumanEval/MBPP) | Weak support for the 3-fix threshold |
+| [2607.00990](https://arxiv.org/abs/2607.00990), [2607.19843](https://arxiv.org/abs/2607.19843), [2607.18057](https://arxiv.org/abs/2607.18057), [2607.22880](https://arxiv.org/abs/2607.22880), [2603.22048](https://arxiv.org/abs/2603.22048), [2609.09133](https://arxiv.org/abs/2609.09133), [2604.00167](https://arxiv.org/abs/2604.00167), [2609.10123](https://arxiv.org/abs/2609.10123) | SWE-Doctor, CoHarden, untested error paths, coverage under bugs, DAIRA, ExecCritic, fault-localization granularity, fix-if-any loops | ABS | Runtime evidence and multiple repro tests help; agents leave 81–86% of error handling untested | Background |
+
+### 11.6 Skills, Context Files, and Reasoning Effort
+
+| arXiv ID | Title | Depth | Key Finding | Outcome |
+|---|---|---|---|---|
+| [2607.22520](https://arxiv.org/abs/2607.22520) | The Regression Tax | DEEP | Skill regressions cancel 59% of gains; descriptions alone change behavior | Eval should count flips both ways (not yet done) |
+| [2602.12670](https://arxiv.org/abs/2602.12670) | SkillsBench | DEEP | Compact skills +19–21pp vs comprehensive +0.7pp; 4+ skills halve the gain; self-written skills −8 to −11pp | Raises priority of `superpowers_bd-yfi` (not tested) |
+| [2603.15401](https://arxiv.org/abs/2603.15401) | SWE-Skills-Bench | DEEP | Haiku 4.5: 39/49 skills zero lift; TDD skill +7.1% at +78.6% tokens | Report cost next to outcome in evals |
+| [2607.17937](https://arxiv.org/abs/2607.17937) | Context Rot in Coding Agents | DEEP | Frozen checklist 10/10 vs generic self-check 5/10 | Checklist **tested, adopted** for spec review |
+| [2606.22528](https://arxiv.org/abs/2606.22528) | Governance Decay | ABS | Constraint violations 0% → 30% after compaction unless pinned | pre-compact block already covers waves |
+| [2607.25398](https://arxiv.org/abs/2607.25398) | HANDBOOK.md | DEEP | Default → max effort +2–3pp (Opus 4.8, Fable 5) | Effort policy unchanged |
+| [2607.27250](https://arxiv.org/abs/2607.27250) | AGENTS.md replication | ABS | No correctness effect; time saving on 1 repo only | Section 10's −29% (2601.20404) does not generalize |
+| [2608.16956](https://arxiv.org/abs/2608.16956), [2606.17930](https://arxiv.org/abs/2606.17930), [2604.10739](https://arxiv.org/abs/2604.10739), [2608.01347](https://arxiv.org/abs/2608.01347), [2604.22750](https://arxiv.org/abs/2604.22750) | Effort and budget scaling | ABS | Explicit high ≈ default; doubling budget +0.3pp; overthinking abandons correct answers | Effort plateau holds |
+| [2608.14036](https://arxiv.org/abs/2608.14036), [2603.29919](https://arxiv.org/abs/2603.29919), [2608.02639](https://arxiv.org/abs/2608.02639), [2603.25015](https://arxiv.org/abs/2603.25015), [2510.22251](https://arxiv.org/abs/2510.22251) | Skill use precision, SkillReducer, instruction stacking, imperative interference, rigid constraints | ABS | Skill-use precision falls as pools grow; 60% of skill bodies non-actionable; declarative > imperative | Keep neutral wording |
+
+### 11.7 Agent Code Quality and Evaluation Method
+
+| arXiv ID | Title | Depth | Key Finding | Outcome |
+|---|---|---|---|---|
+| [2602.07150](https://arxiv.org/abs/2602.07150) | On Randomness in Agentic Evals | DEEP | Single-run pass@1 swings 2.2–6.0pp; ~9 runs for a 2pp effect | Our 3-run eval Δ is not significant; A/B used n=10–20 |
+| [2609.17394](https://arxiv.org/abs/2609.17394) | Coding Agents Have Converged | DEEP | 0/29 adjacent top-30 pairs separate; same model varies 29.8pp across scaffolds | Same |
+| [2603.24755](https://arxiv.org/abs/2603.24755) | SlopCodeBench | ABS | Quality erodes in 77% of trajectories; plan-first/anti-slop prompts no gain | Background |
+| [2609.04167](https://arxiv.org/abs/2609.04167), [2606.18168](https://arxiv.org/abs/2606.18168), [2609.26847](https://arxiv.org/abs/2609.26847), [2606.22721](https://arxiv.org/abs/2606.22721), [2607.18161](https://arxiv.org/abs/2607.18161), [2606.13449](https://arxiv.org/abs/2606.13449), [2609.12742](https://arxiv.org/abs/2609.12742), [2607.22585](https://arxiv.org/abs/2607.22585), [2608.08654](https://arxiv.org/abs/2608.08654), [2607.28815](https://arxiv.org/abs/2607.28815), [2609.17598](https://arxiv.org/abs/2609.17598), [2607.12428](https://arxiv.org/abs/2607.12428), [2609.03028](https://arxiv.org/abs/2609.03028), [2608.20614](https://arxiv.org/abs/2608.20614) | SWE-Gate, test oracles, follow-up fixes, review habituation, TRIM, instruction files, Skill Issue, scaffold cost variance, ECLoop, agent PR security, leaked secrets, late requirements, NVIDIA ACES | ABS | ~1/3 of test-passing patches fail review constraints; human review habituates; scaffold drives up to 139× cost variation | Background |
+
+### Key Takeaways (2026-09-24)
+
+1. **The failures that matter on current models are governance, not honesty.** Sonnet 5 and Opus 5.5 disclosed every test edit (6/30, 4/30); Haiku 4.5 hid 16/30. An explicit Test Integrity policy removed tampering on all three (37/90 → 2/90) at no cost.
+2. **Several paper-level failure modes did not reproduce on Sonnet 5 / Haiku 4.5 at SDD's task sizes**: invented reviewer bugs, non-discriminating regression tests, verdict overclaiming, report-order bias. The existing precision gate and verdict format already cover them.
+3. **Cross-wave interface drift is real and cheap to fix**: an `INTERFACES:` verdict line carried into `[WAVE-SUMMARY]` turned Sonnet's 8/20 escalations into 20/20 correct. Opus already read the changed code (19/20) and Haiku followed it silently (10/10); the note cost neither anything.
+4. **Spec reviewers add requirements on every model** (Haiku 70%, Opus 60%, Sonnet 50% false FAIL on correct code): a per-criterion checklist cut false FAILs 25/40 → 14/40 pooled (Haiku alone 14/20 → 6/20) without losing recall.
+5. **Open, untested:** worktree isolation per implementer (CAID), coupling-aware decomposition (Co-Coder), wave cap 3–4 on 1M, skill trimming (SkillsBench).
+
+**Retracted/weakened claims from Section 10:** the −29% AGENTS.md time saving (2601.20404) did not replicate (2607.27250); the Baseline Paradox is better stated as coupling than baseline accuracy (2603.21489, 2606.13733).
+
+---
+
 *This archive synthesizes findings from: superpowers-bd, superpowers (original), get-shit-done, gastown (575 commits), loom, claude-flow, SWE-agent/mini-swe-agent, Dolt backend analysis, Opus 4.6 release analysis, Claude Code 2.1.33+ changelog analysis, empirical beads v0.49.4 concurrency testing, Claude Code hooks API verification (Issues #16126, #7881, #21460, #6305, #18950, #20946, #14859), pre-commit.com compatibility testing, Claude Code agent teams docs, Anthropic C compiler engineering blog, Cursor worktree isolation docs, official Claude Code skills/sub-agents/hooks documentation, V2 verification experiments (62 sessions), and arXiv research survey (2026-03-06, ~90 papers across multi-agent orchestration, code review, TDD/debugging, context engineering, planning/reasoning, benchmarks, and adoption).*

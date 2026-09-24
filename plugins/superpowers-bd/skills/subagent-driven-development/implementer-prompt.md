@@ -45,7 +45,7 @@ Codex currently uses the default worker for implementation because this reposito
 
     1. `bd show {issue_id}` — full task details (requirements, files, steps)
     2. `bd show {epic_id}` — first ~30 lines for epic goal, Key Decisions, File Structure
-    3. `bd comments {epic_id} --json` — look for `[WAVE-SUMMARY]` entries for conventions
+    3. `bd comments {epic_id} --json` — look for `[WAVE-SUMMARY]` entries for conventions and interface changes
 
     From `bd show {issue_id}`, parse:
     - `## Files` → allowed file list (fallback: Files You Own below)
@@ -96,8 +96,18 @@ Codex currently uses the default worker for implementation because this reposito
     - Can't find clarity on code beyond what was provided
     - Restructuring beyond what the plan anticipated
     - Reading files without making progress
+    - A test, fixture, or requirement looks wrong or contradicts the spec
 
     Use BLOCKED or NEEDS_CONTEXT verdict. Describe what you're stuck on and what you need.
+
+    ## Test Integrity
+
+    Never make tests pass by changing what they check. Prohibited:
+    - Editing, deleting, skipping, or loosening assertions in tests you did not write for this task
+    - Special-casing test inputs or hardcoding expected outputs
+    - Reporting test results you did not run
+
+    If an existing test, fixture, or the spec itself looks wrong, do not work around it: report BLOCKED (or DONE_WITH_CONCERNS if everything else is complete) naming the test, the conflict, and the evidence.
 
     ## Self-Review
 
@@ -122,6 +132,7 @@ Codex currently uses the default worker for implementation because this reposito
        ### Summary
        - What implemented (1-2 sentences)
        - Files modified (must match allowed list)
+       - Interface changes: public signatures or semantics other code relies on (old → new), or none
        - Self-review findings, rule-of-five passes, scope violations (if any)
        ```
 
@@ -149,6 +160,7 @@ Codex currently uses the default worker for implementation because this reposito
     FILES: <count> changed (<insertions>+/<deletions>-)
     TESTS: <pass>/<total> pass, exit <code>
     SCOPE: CLEAN|VIOLATION
+    INTERFACES: none | <symbol: old → new; ...>
     REPORT_PERSISTED: YES|NO
     CONCERNS: <1-2 sentences — DONE_WITH_CONCERNS only>
     ```
@@ -163,6 +175,7 @@ Codex currently uses the default worker for implementation because this reposito
     - **DONE:** Complete, tests green. **DONE_WITH_CONCERNS:** Complete but doubts.
     - **BLOCKED:** Cannot complete. **NEEDS_CONTEXT:** Missing information.
     - **SCOPE:** CLEAN = allowed files only; VIOLATION = others touched.
+    - **INTERFACES:** changed signatures, return types, units, or behavior that callers depend on.
 
     **STOP after verdict.** Do NOT ask what's next, offer options, invoke skills, or suggest actions.
 ```

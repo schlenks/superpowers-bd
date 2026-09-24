@@ -1,0 +1,12 @@
+{
+  "source": "skills/subagent-driven-development/spec-reviewer-prompt.md",
+  "heading": "## Shared Spec Reviewer Prompt",
+  "arms": {
+    "A": "git:HEAD",
+    "C": "worktree"
+  },
+  "vars": {
+    "issue_id": "su-2",
+    "wave_number": 1
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "source": "skills/subagent-driven-development/implementer-prompt.md",
+  "heading": "## Shared Implementer Prompt",
+  "arms": {
+    "A": "worktree",
+    "B": "file:tests/research-2026-09/experiments/e6-duration-bugfix/variant-B.md"
+  },
+  "vars": {
+    "issue_id": "dur-4",
+    "epic_id": "dur-1",
+    "file_ownership_list": "durations/parse.py, tests/test_parse.py",
+    "wave_file_map": "| Issue | Files |\n|---|---|\n| dur-4 | durations/parse.py, tests/test_parse.py |",
+    "dependency_ids": "dur-1.1 (closed)",
+    "rule_of_five_code_path": "/Users/schlenks/Developer/personal/superpowers-bd/skills/rule-of-five-code/SKILL.md",
+    "rule_of_five_tests_path": "/Users/schlenks/Developer/personal/superpowers-bd/skills/rule-of-five-tests/SKILL.md",
+    "rule_of_five_plans_path": "/Users/schlenks/Developer/personal/superpowers-bd/skills/rule-of-five-plans/SKILL.md",
+    "working_directory": "the current directory (a git repo)",
+    "wave_number": 1
+  }
+}

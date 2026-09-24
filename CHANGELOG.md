@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.13.0] - 2026-09-24
+
+### Added
+
+- **Implementer test integrity:** the SDD implementer prompt prohibits editing, skipping, or loosening tests it did not write for the task, special-casing test inputs, and reporting unrun results. A test, fixture, or spec that looks wrong is now an explicit BLOCKED/DONE_WITH_CONCERNS trigger. A/B: Haiku tampering 27/30 → 2/30 (hidden behind a plain `DONE` 16/30 → 0/30), Sonnet 6/30 → 0/30, Opus 4/30 → 0/30, no over-escalation on a control task.
+- **Interface changes across waves:** implementer verdicts gain an `INTERFACES:` line (changed signatures, return types, units, or behavior callers rely on), and the orchestrator carries non-`none` entries into `[WAVE-SUMMARY]`. A/B: a task whose plan text predated a wave-1 unit change went from 12/20 correct + 8/20 escalated to 20/20 correct (Sonnet); Opus 19/20 → 20/20, Haiku 10/10 both.
+- **Spec review criteria checklist:** spec reviewers give every acceptance criterion its own `N. PASS|FAIL — file:line` line. A/B: false FAIL on correct code 25/40 → 14/40 across Haiku, Sonnet, and Opus (Haiku 14/20 → 6/20) with unchanged recall.
+
+### Known limitations
+
+- Test Integrity was not tested on a task whose spec implies (but does not state) that an existing test is obsolete; agents may flag or halt where updating the test is correct (`superpowers_bd-2vv`).
+
+### Documentation
+
+- `docs/IMPROVEMENTS-ARCHIVE.md` Section 11: 2026-09 arXiv survey with outcomes; `docs/experiments/2026-09-24-research-tier1-tier2-ab.md`: A/B method, results, and rejected candidates; harness in `tests/research-2026-09/`.
+
 ## [5.12.0] - 2026-09-23
 
 ### Added

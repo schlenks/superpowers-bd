@@ -103,6 +103,8 @@ bd comments add <epic-id> "[WAVE-SUMMARY] Wave N complete:
   - Longest measured agent: [duration]s
 - Conventions established:
   - [Pattern/convention implementers chose]
+- Interface changes (callers must adapt):
+  - [symbol: old → new, from each INTERFACES verdict line; omit when all are none]
 - Notes for future waves:
   - [Anything Wave N+1 should know]"
 ```

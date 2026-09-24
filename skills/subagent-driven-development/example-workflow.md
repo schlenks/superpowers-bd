@@ -43,6 +43,7 @@ Implementer 2 verdict:
   FILES: 2 changed (87+/0-)
   TESTS: 8/8 pass, exit 0
   SCOPE: CLEAN
+  INTERFACES: none
   REPORT_PERSISTED: YES
 
 [Dispatch spec reviewer for hub-abc.2]

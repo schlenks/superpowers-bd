@@ -47,6 +47,8 @@ spawn_agent:
 
     Read the implementation code and verify:
 
+    **Criteria checklist:** number every acceptance criterion from `bd show` and give each its own line in your Findings — `N. PASS|FAIL — file:line evidence` — before concluding. A criterion with no located evidence is FAIL.
+
     **Missing requirements:**
     - Everything requested implemented? Requirements skipped? Claims without implementation?
 

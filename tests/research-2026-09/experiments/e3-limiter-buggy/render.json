@@ -1,0 +1,32 @@
+{
+  "source": "skills/subagent-driven-development/code-quality-reviewer-prompt.md",
+  "heading": "## Shared Code Reviewer Prompt",
+  "append_headings": [
+    "**Append to the prompt:**",
+    "**Architecture checks",
+    "**Rule-of-five skill application"
+  ],
+  "arms": {
+    "A": "worktree",
+    "B": "worktree"
+  },
+  "vars": {
+    "base_sha": "HEAD~1",
+    "head_sha": "HEAD",
+    "issue_id": "rl-2",
+    "reviewer_number": 1,
+    "n_reviews": 1,
+    "wave_number": 1,
+    "rule_of_five_code_path": "/Users/schlenks/Developer/personal/superpowers-bd/skills/rule-of-five-code/SKILL.md",
+    "rule_of_five_tests_path": "/Users/schlenks/Developer/personal/superpowers-bd/skills/rule-of-five-tests/SKILL.md",
+    "rule_of_five_plans_path": "/Users/schlenks/Developer/personal/superpowers-bd/skills/rule-of-five-plans/SKILL.md"
+  },
+  "arm_vars": {
+    "A": {
+      "code_reviewer_path": "/Users/schlenks/Developer/personal/superpowers-bd/tests/research-2026-09/experiments/e3-limiter-buggy/methodology-A.md"
+    },
+    "B": {
+      "code_reviewer_path": "/Users/schlenks/Developer/personal/superpowers-bd/skills/requesting-code-review/code-reviewer.md"
+    }
+  }
+}

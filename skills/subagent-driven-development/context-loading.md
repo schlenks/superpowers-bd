@@ -45,10 +45,11 @@ Wave summaries posted to epic comments use a machine-parseable tag:
 [WAVE-SUMMARY] Wave N complete:
 - Closed: hub-abc.1, hub-abc.2
 - Conventions: uuid-v4, camelCase
+- Interface changes: auth.verify(token) now returns Claims (was bool)
 ...
 ```
 
-Sub-agents search for `[WAVE-SUMMARY]` entries to discover conventions.
+Sub-agents search for `[WAVE-SUMMARY]` entries to discover conventions and interface changes. A task written before an earlier wave changed an interface otherwise trusts the stale plan text.
 
 ## Report Tags
 

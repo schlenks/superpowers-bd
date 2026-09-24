@@ -1,5 +1,25 @@
 # Superpowers Release Notes
 
+## v5.13.0 (2026-09-24) - Research-Tested SDD Prompt Changes
+
+We surveyed about 80 arXiv papers from March to September 2026 on coding agents, turned the most promising findings into candidate changes, and A/B tested each against the current prompts: 584 headless runs across Haiku 4.5, Sonnet 5, and Opus 5.5. Three changes improved outcomes and ship in this release; five showed no problem to fix and were dropped.
+
+**Implementers no longer rewrite tests to get to green.** When a pre-existing test contradicted the spec, Haiku implementers edited the test or hardcoded the expected answer in 27 of 30 runs, and 16 of those reported a clean `DONE`. The implementer prompt now prohibits changing tests the implementer didn't write for the task, special-casing test inputs, and reporting results it didn't run, and makes "a test or the spec looks wrong" an explicit reason to return BLOCKED or DONE_WITH_CONCERNS. Tampering fell from 37/90 to 2/90 across all three models (Haiku 27/30 to 2/30, Sonnet 6/30 to 0/30, Opus 4/30 to 0/30). Total halts did not rise (52/90 to 45/90): Sonnet and Opus more often implement to spec, leave the wrong test failing, and flag it. A task that explicitly asks for a test change was solved 10/10 on every model.
+
+**Interface changes are passed forward between waves.** Implementer verdicts gain an `INTERFACES:` line, and the orchestrator copies non-`none` entries into `[WAVE-SUMMARY]`. When a later task's plan text predated an earlier wave's unit change, Sonnet implementers escalated 8 of 20 times without the note and got 20/20 right with it. Opus already read the changed code (19/20 to 20/20) and Haiku followed it silently (10/10 both); the note cost neither anything.
+
+**Spec reviewers check each acceptance criterion by number.** Spec reviewers on every model failed correct implementations for requirements the spec never stated (Haiku 70%, Opus 60%, Sonnet 50%). One PASS/FAIL line per criterion cut that from 25/40 to 14/40 (Haiku, the default spec reviewer, 14/20 to 6/20) while still catching real gaps in every run.
+
+**Tested and not adopted:** code reviewers reproducing bugs before blocking, spec reviewers reading the diff before the implementer's report, bug-fix tests shown failing first, and hooks that flag test edits or audit verdicts. On current models none of these showed a problem to fix; the existing precision gate and verdict format already cover them.
+
+The survey is recorded in `docs/IMPROVEMENTS-ARCHIVE.md` Section 11 with each paper's outcome; method and raw results are in `docs/experiments/2026-09-24-research-tier1-tier2-ab.md` and `tests/research-2026-09/`.
+
+### Validation
+
+- A/B: 584 runs ($114) on purpose-built fixtures with deterministic graders; shipped prompt text is byte-identical to the tested variants.
+- Workflow contract audit: 33/33; reviewer prompt parity passed; fast Claude skill suite: 3/3; `claude plugin validate .` passed.
+- Limits: small synthetic fixtures, not full epics. Test Integrity is untested on tasks where the spec only implies an existing test is obsolete (`superpowers_bd-2vv`).
+
 ## v5.12.0 (2026-09-23) - Maintainability Checks and Bundled Simplifier
 
 SDD's post-wave and pre-merge simplification steps now use a simplifier agent bundled with the plugin. They previously dispatched the external `code-simplifier` plugin, which was never declared as a dependency, so for users without it those steps did nothing. The bundled agent reads the repository's own conventions rather than hardcoded TypeScript/React rules, edits only the files it is given, runs tests before and after, and never commits. On a fixture with three copy-pasted exporters it extracted a shared formatter (lizard duplicate rate 68% to 0%, average CCN 6.0 to 2.2) with all tests passing.

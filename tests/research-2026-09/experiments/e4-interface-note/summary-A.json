@@ -1,0 +1,1 @@
+[{"id": 7, "text": "[WAVE-SUMMARY] ord-1 wave-1\nConventions:\n- Python 3.12, pytest, no new dependencies\n- One module per concern; tests mirror package paths under tests/\nClosed this wave: ord-2 (catalog prices stored as integer cents)\n"}]
