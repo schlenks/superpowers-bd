@@ -1,5 +1,27 @@
 # Superpowers Release Notes
 
+## v5.13.1 (2026-10-10) - Faster Per-Turn Hooks
+
+The work-state anchor and the stop gate each called `bd list` on every prompt and every turn end. With bd 1.3's embedded Dolt, each call opens the database, about 700ms, so an ordinary turn paid roughly 1.4 seconds in these two hooks. The in_progress count is now cached against the database's state, the Dolt manifest plus the journal size, and is re-read only after a bd write. The stop gate also checks the message first and consults bd only when the turn ends on an unevidenced completion claim. Both changes apply to the Codex hooks too.
+
+The post-edit linter no longer scores an over-limit TypeScript file twice, and runs its duplication check in parallel with the complexity checks.
+
+| Hook (hub repo, 6 in_progress of 333 issues) | Before | After |
+|---|---|---|
+| work-state-anchor, cache hit | 721ms | 33ms |
+| work-state-anchor, after a bd write | 721ms | ~700ms (one `bd list`) |
+| stop-gate, ordinary turn | 743ms | 34ms |
+| Codex anchor (plugin copy) | 730ms | 47ms |
+| run-linter, over-limit .ts | 747ms | 382ms |
+| run-linter, 1,678-line .ts | 390ms | 250ms |
+
+The first call from a new directory also runs `bd where` once (~190ms) to find the database. The cache lives in `$TMPDIR`; server mode, `BEADS_DB`, and databases without a chunk journal skip it.
+
+### Validation
+
+- New `test-bd-in-progress-count.sh`: 16/16. Stop gate: 19/19 (5 new bd-call cases, 4 of which fail on v5.13.0). Linter: 27/27 (4 new; the ccts-call case fails on v5.13.0). Codex hooks: 40/40. Work-state anchor 3/3, plugin config drift 30/30, workflow contract audit 33/33, shell lint 26 files clean, `claude plugin validate .` passed.
+- End to end against real bd 1.3.1: after each of 10 steps (create, status changes, close, batch-mode uncommitted writes, `bd dolt commit`, a write from a subdirectory) the anchor's cached count matched a fresh `bd list`.
+
 ## v5.13.0 (2026-09-24) - Research-Tested SDD Prompt Changes
 
 We surveyed about 80 arXiv papers from March to September 2026 on coding agents, turned the most promising findings into candidate changes, and A/B tested each against the current prompts: 584 headless runs across Haiku 4.5, Sonnet 5, and Opus 5.5. Three changes improved outcomes and ship in this release; five showed no problem to fix and were dropped.
