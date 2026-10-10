@@ -1,0 +1,370 @@
+{
+  "cases": {
+    "docs": {
+      "arm_order": [
+        "dual",
+        "baseline"
+      ],
+      "calls": {
+        "aggregate-response.jsonl": {
+          "cache_creation_input_tokens": 7238,
+          "cache_read_input_tokens": 0,
+          "cost_usd": 0.035341,
+          "duration_ms": 34709,
+          "input_tokens": 9,
+          "models": {
+            "claude-haiku-4-5-20251001": {
+              "canonical_model": "claude-haiku-4-5",
+              "cost_usd": 0.035341
+            }
+          },
+          "output_tokens": 3367,
+          "sha256": "6bee1a19459903aef18611b714fce2b66fdab215adf2e7c03a32c94eb214a3e7",
+          "tool_calls": 0,
+          "turns": 1,
+          "verdict": {}
+        },
+        "code-response-1.jsonl": {
+          "cache_creation_input_tokens": 34886,
+          "cache_read_input_tokens": 99215,
+          "cost_usd": 0.5133325000000001,
+          "duration_ms": 40018,
+          "input_tokens": 10,
+          "models": {
+            "claude-haiku-4-5-20251001": {
+              "canonical_model": "claude-haiku-4-5",
+              "cost_usd": 0.00704
+            },
+            "claude-opus-5": {
+              "canonical_model": "claude-opus-5",
+              "cost_usd": 0.5062925
+            }
+          },
+          "output_tokens": 4311,
+          "sha256": "c77f0c9eca7eec863fb4477a2ccfc6d893a4ea99460d2b2661faed2ca1e545e4",
+          "tool_calls": 13,
+          "turns": 14,
+          "verdict": {
+            "closure_decision": "KEEP_OPEN",
+            "finding_count": 3,
+            "quality_verdict": "WITH_FIXES"
+          }
+        },
+        "code-response-2.jsonl": {
+          "cache_creation_input_tokens": 40853,
+          "cache_read_input_tokens": 102663,
+          "cost_usd": 0.5579265000000001,
+          "duration_ms": 31450,
+          "input_tokens": 10,
+          "models": {
+            "claude-haiku-4-5-20251001": {
+              "canonical_model": "claude-haiku-4-5",
+              "cost_usd": 0.00704
+            },
+            "claude-opus-5": {
+              "canonical_model": "claude-opus-5",
+              "cost_usd": 0.5508865000000001
+            }
+          },
+          "output_tokens": 3639,
+          "sha256": "d84afbf8250ac463064e1f7ae9007325b598378c1d2e83773698719a83a9290c",
+          "tool_calls": 14,
+          "turns": 15,
+          "verdict": {
+            "closure_decision": "KEEP_OPEN",
+            "finding_count": 2,
+            "quality_verdict": "WITH_FIXES"
+          }
+        },
+        "code-response-3.jsonl": {
+          "cache_creation_input_tokens": 35782,
+          "cache_read_input_tokens": 143638,
+          "cost_usd": 0.554664,
+          "duration_ms": 41877,
+          "input_tokens": 12,
+          "models": {
+            "claude-haiku-4-5-20251001": {
+              "canonical_model": "claude-haiku-4-5",
+              "cost_usd": 0.007065
+            },
+            "claude-opus-5": {
+              "canonical_model": "claude-opus-5",
+              "cost_usd": 0.5475990000000001
+            }
+          },
+          "output_tokens": 4716,
+          "sha256": "636a11f8851e5e23dab22f6df3d60b449f6ee899be0989a44d9a78770031a3b6",
+          "tool_calls": 15,
+          "turns": 16,
+          "verdict": {
+            "closure_decision": "KEEP_OPEN",
+            "finding_count": 3,
+            "quality_verdict": "WITH_FIXES"
+          }
+        },
+        "dual-response.jsonl": {
+          "cache_creation_input_tokens": 49145,
+          "cache_read_input_tokens": 117207,
+          "cost_usd": 0.6679045000000001,
+          "duration_ms": 37719,
+          "input_tokens": 10,
+          "models": {
+            "claude-haiku-4-5-20251001": {
+              "canonical_model": "claude-haiku-4-5",
+              "cost_usd": 0.0071010000000000005
+            },
+            "claude-opus-5": {
+              "canonical_model": "claude-opus-5",
+              "cost_usd": 0.6608035000000001
+            }
+          },
+          "output_tokens": 4428,
+          "sha256": "223baee014d2cb4f42caecadd4b58e68e3b109795021316a2776e7f35ce3677a",
+          "tool_calls": 15,
+          "turns": 16,
+          "verdict": {
+            "closure_decision": "KEEP_OPEN",
+            "finding_count": 2,
+            "quality_verdict": "WITH_FIXES",
+            "spec_verdict": "FAIL"
+          }
+        },
+        "spec-response.jsonl": {
+          "cache_creation_input_tokens": 32056,
+          "cache_read_input_tokens": 91959,
+          "cost_usd": 0.4318715000000001,
+          "duration_ms": 20932,
+          "input_tokens": 10,
+          "models": {
+            "claude-haiku-4-5-20251001": {
+              "canonical_model": "claude-haiku-4-5",
+              "cost_usd": 0.007057
+            },
+            "claude-opus-5": {
+              "canonical_model": "claude-opus-5",
+              "cost_usd": 0.4248145
+            }
+          },
+          "output_tokens": 2329,
+          "sha256": "4c63fa158f16b5524977b93378566bd6bdc877cd4510e354076bd0752752ed19",
+          "tool_calls": 11,
+          "turns": 12,
+          "verdict": {
+            "closure_decision": "CLOSE",
+            "finding_count": 0,
+            "spec_verdict": "PASS"
+          }
+        }
+      },
+      "change_diff_sha256": "c56582108317ee8bc3ef4e6eb0a34c00927f7b1346163678bfac1c2daf983556",
+      "manifest": {
+        "base": "329532a^",
+        "files": [
+          "README.md",
+          "docs/README.codex.md",
+          "CLAUDE.md",
+          "AGENTS.md",
+          "CHANGELOG.md",
+          "RELEASE-NOTES.md"
+        ],
+        "head": "ccdb1e6",
+        "issue": "superpowers_bd-3rz.7",
+        "prompt_sha256": {
+          "code": "f74a9117fdd52a17480a84b0a9e4c6c5eb1d30a91010362e5237dff3da154d7e",
+          "dual": "ace69591df976cc40f1f30ad1c9879f211c6ebac3e96d62f91cd405a8f32da02",
+          "spec": "05743f913eb4801d95e4d157282c3450d31c327c22c7839f0da58a04b289d11a"
+        }
+      }
+    },
+    "hooks": {
+      "manifest_scope_note": "The preserved manifest describes the initial tool-disabled attempt. The scored *-response-full.jsonl calls use full-snapshot prompts with Read access.",
+      "arm_order": [
+        "baseline",
+        "dual"
+      ],
+      "calls": {
+        "dual-response-full.jsonl": {
+          "cache_creation_input_tokens": 20882,
+          "cache_read_input_tokens": 34746,
+          "cost_usd": 0.34519700000000003,
+          "duration_ms": 47004,
+          "input_tokens": 6,
+          "models": {
+            "claude-haiku-4-5-20251001": {
+              "canonical_model": "claude-haiku-4-5",
+              "cost_usd": 0.0073739999999999995
+            },
+            "claude-opus-5": {
+              "canonical_model": "claude-opus-5",
+              "cost_usd": 0.33782300000000004
+            }
+          },
+          "output_tokens": 4464,
+          "sha256": "994f3daf680b1183d7f9df0599eabe36bd4848ce600bbadf8af24425194f5ba4",
+          "tool_calls": 4,
+          "turns": 5,
+          "verdict": {
+            "closure_decision": "KEEP_OPEN",
+            "finding_count": 6,
+            "quality_verdict": "WITH_FIXES",
+            "spec_verdict": "PASS"
+          }
+        },
+        "spec-response-full.jsonl": {
+          "cache_creation_input_tokens": 20863,
+          "cache_read_input_tokens": 32321,
+          "cost_usd": 0.2819755,
+          "duration_ms": 26509,
+          "input_tokens": 6,
+          "models": {
+            "claude-haiku-4-5-20251001": {
+              "canonical_model": "claude-haiku-4-5",
+              "cost_usd": 0.00733
+            },
+            "claude-opus-5": {
+              "canonical_model": "claude-opus-5",
+              "cost_usd": 0.2746455
+            }
+          },
+          "output_tokens": 1993,
+          "sha256": "8934adc9a9e5f78f5f360ef592b4331c49f3f5b1ad485d22a5cd8a0ae12a77c9",
+          "tool_calls": 5,
+          "turns": 6,
+          "verdict": {
+            "closure_decision": "KEEP_OPEN",
+            "finding_count": 1,
+            "spec_verdict": "FAIL"
+          }
+        }
+      },
+      "change_diff_sha256": "017913ea81016118e9cb2b2914dec149bb4597437f07e9a34e8bf4ef4ff9c15b",
+      "manifest": {
+        "base_commit": "0a262201248bf0b5b11df2dd940d32803c145516",
+        "effort": "high",
+        "files": {
+          "change.diff": "017913ea81016118e9cb2b2914dec149bb4597437f07e9a34e8bf4ef4ff9c15b",
+          "code-prompt.txt": "ca8adc3736b4205457c297a5a1534057b3c75c3fb6a4c5b164024f6b1a5f863c",
+          "dual-prompt.txt": "71a7185e6bd721cf820c43c7b58d8125351aa78c8a4d724ad3a3cf5f76203759",
+          "spec-prompt.txt": "fe760dc95d2a6701ec6d4584f8b624c1298c3a203555dbf5fd3b3bf66ce1b716"
+        },
+        "full_prompt_hashes": {
+          "code": "2bd5dc65b95a8cc83d80c0ea36091d28a49c7e2a725925b01406715b48a697fc",
+          "dual": "a977912d0b0f3b70afe6715c0eb34fd8ae7131447f1922ce2fcd8de494a1ddc9",
+          "spec": "80324618637c39529a3a61d4275b45aeb1389e3dcc032614cf92535617cca92c"
+        },
+        "full_snapshot": "c932e1d git archive, extracted under project/",
+        "head_commit": "c932e1d7d8d6d2f244b23f7e924ae1e14b1a7a4e",
+        "model": "claude-opus-5",
+        "source_issue": "superpowers_bd-3rz.5",
+        "tools": "disabled for isolated replay"
+      }
+    },
+    "parity": {
+      "arm_order": [
+        "dual",
+        "baseline"
+      ],
+      "calls": {
+        "code-response-diagnostic.jsonl": {
+          "cache_creation_input_tokens": 38972,
+          "cache_read_input_tokens": 107762,
+          "cost_usd": 0.5881,
+          "duration_ms": 48329,
+          "input_tokens": 10,
+          "models": {
+            "claude-haiku-4-5-20251001": {
+              "canonical_model": "claude-haiku-4-5",
+              "cost_usd": 0.008874
+            },
+            "claude-opus-5": {
+              "canonical_model": "claude-opus-5",
+              "cost_usd": 0.579226
+            }
+          },
+          "output_tokens": 5423,
+          "sha256": "b7887805f2e536bf6289746ab43f29123c430adbf1e115cbeefb2987bc47a9f2",
+          "tool_calls": 12,
+          "turns": 13,
+          "verdict": {
+            "closure_decision": "KEEP_OPEN",
+            "finding_count": 4,
+            "quality_verdict": "WITH_FIXES"
+          }
+        },
+        "dual-response.jsonl": {
+          "cache_creation_input_tokens": 45066,
+          "cache_read_input_tokens": 154190,
+          "cost_usd": 0.7145000000000001,
+          "duration_ms": 69084,
+          "input_tokens": 12,
+          "models": {
+            "claude-haiku-4-5-20251001": {
+              "canonical_model": "claude-haiku-4-5",
+              "cost_usd": 0.008935
+            },
+            "claude-opus-5": {
+              "canonical_model": "claude-opus-5",
+              "cost_usd": 0.7055650000000002
+            }
+          },
+          "output_tokens": 7110,
+          "sha256": "fdbdcd2e06e609dca2fb9403cde72e48a5a683fff3bba1d07d6732a7547d39c8",
+          "tool_calls": 16,
+          "turns": 17,
+          "verdict": {
+            "closure_decision": "KEEP_OPEN",
+            "finding_count": 5,
+            "quality_verdict": "WITH_FIXES",
+            "spec_verdict": "FAIL"
+          }
+        },
+        "spec-response.jsonl": {
+          "cache_creation_input_tokens": 41928,
+          "cache_read_input_tokens": 112990,
+          "cost_usd": 0.6140410000000001,
+          "duration_ms": 44796,
+          "input_tokens": 10,
+          "models": {
+            "claude-haiku-4-5-20251001": {
+              "canonical_model": "claude-haiku-4-5",
+              "cost_usd": 0.008891
+            },
+            "claude-opus-5": {
+              "canonical_model": "claude-opus-5",
+              "cost_usd": 0.6051500000000001
+            }
+          },
+          "output_tokens": 5173,
+          "sha256": "c91071757ca6a52b61f40b10e1cda4e8e74b01c352e188b89557225781549e29",
+          "tool_calls": 17,
+          "turns": 18,
+          "verdict": {
+            "closure_decision": "KEEP_OPEN",
+            "finding_count": 1,
+            "spec_verdict": "FAIL"
+          }
+        }
+      },
+      "change_diff_sha256": "fb51d42f3ce4059d04b9739750a4abfabb8e04fa9d32285ecdd08ebe42d49a04",
+      "manifest": {
+        "base": "22e8b37^",
+        "files": [
+          "tests/codex/run-tests.sh",
+          "tests/codex/test-codex-agents.sh",
+          "tests/codex/test-codex-hooks.sh",
+          "tests/codex/test-codex-workflow-semantics.sh",
+          "tests/verification/test-plugin-config-drift.sh"
+        ],
+        "head": "22e8b37",
+        "issue": "superpowers_bd-3rz.6",
+        "prompt_sha256": {
+          "code": "1d27023779847ea35db98c22de9d6640c2bdc9ad98393ee1e5727d97c27c2292",
+          "dual": "dce2fae4e7a6585bd9d857306c9077f5ee06955771503b23eaf86b8f93369c7b",
+          "spec": "718959cb79018ca70ca73a5ad406684b1394d1ae8d20c9381a7917619ef8f380"
+        }
+      }
+    }
+  },
+  "date": "2026-09-22",
+  "method": "historical source replay via Claude CLI; custom read-only prompts"
+}
