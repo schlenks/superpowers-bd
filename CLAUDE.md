@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Superpowers-BD is a multi-agent-tool plugin providing workflow skills for TDD, debugging, code review, and beads-based collaboration patterns. This file documents the Claude Code platform layer: Claude plugin metadata, slash commands, Claude Code agents, Claude hooks, and Claude-specific version requirements. Codex has its own first-class project instructions in `AGENTS.md` and native Codex plugin docs in `docs/README.codex.md`.
 
-**Plugin version:** 5.13.0
+**Plugin version:** 5.13.1
 **Minimum Claude Code:** 2.1.144 (2.1.141–143 shipped a Skill-tool headless-permission regression fixed in 2.1.144 — the exact subagent skill discovery SDD depends on; also `effort.level` in hook input JSON; `effort` frontmatter on review agents from 2.1.78; `claude plugin tag` from 2.1.118; PostToolUse `duration_ms` from 2.1.119; PostToolUse `continueOnBlock` from 2.1.139). Optional newer features degrade gracefully on older builds: `disallowed-tools` skill frontmatter (2.1.152), Notification stall hook (2.1.198).
 
 Claude Code 2.1.233+ omits native Task progress tools in ordinary local
@@ -107,6 +107,7 @@ hooks/                      # Claude Code session lifecycle hooks
   log-file-modification.sh   # PostToolUse audit logger for Write|Edit
   task-completed.sh        # Quality gate on task completion
   work-state-anchor.sh     # UserPromptSubmit: terse work-state anchor when work is live
+  bd-in-progress-count.sh  # Sourced by anchor + stop-gate: in_progress count cached on Dolt state
   verdict-audit.sh         # SubagentStop: audits + gates NO_VERDICT during active SDD waves
   notification.sh          # Notification: wave-gated observability log (agent_needs_input/agent_completed)
   stop-gate.sh             # Stop: re-asserts verification-before-completion on unevidenced claims
@@ -157,8 +158,8 @@ See `skills/writing-skills/SKILL.md` for complete guide.
 
 - **Plugin manifest**: `.claude-plugin/plugin.json`
 - **Session hooks**: `hooks/hooks.json` (runs `session-start.sh` on startup, `link-plugin-components.sh` on first start, `session-end.sh` on exit)
-- **Dynamic-context injection**: `hooks/work-state-anchor.sh` (UserPromptSubmit — injects a one-line work-state anchor only when an SDD wave flag exists or beads has in_progress work; silent when idle)
-- **Quality gates**: `hooks/task-completed.sh` (TaskCompleted hook, interactive mode only); `hooks/stop-gate.sh` (Stop hook — re-asserts verification-before-completion when a completion claim lacks evidence and work is live; guarded by `stop_hook_active`, a per-session counter, and `SDD_ALLOW_STOP=1`); `hooks/verdict-audit.sh` (SubagentStop — blocks `NO_VERDICT` during an active wave, gated by the wave flag with a 2-retry cap and `SDD_ALLOW_NO_VERDICT=1`)
+- **Dynamic-context injection**: `hooks/work-state-anchor.sh` (UserPromptSubmit — injects a one-line work-state anchor only when an SDD wave flag exists or beads has in_progress work; silent when idle). The in_progress count comes from `hooks/bd-in-progress-count.sh`, which caches `bd list` against the embedded Dolt manifest and journal size so unchanged databases skip the ~700ms open; the Codex plugin carries a byte-identical copy
+- **Quality gates**: `hooks/task-completed.sh` (TaskCompleted hook, interactive mode only); `hooks/stop-gate.sh` (Stop hook — re-asserts verification-before-completion when a completion claim lacks evidence and work is live — the message checks run first, so bd is consulted only for an unevidenced claim; guarded by `stop_hook_active`, a per-session counter, and `SDD_ALLOW_STOP=1`); `hooks/verdict-audit.sh` (SubagentStop — blocks `NO_VERDICT` during an active wave, gated by the wave flag with a 2-retry cap and `SDD_ALLOW_NO_VERDICT=1`)
 - **Audit logging**: `hooks/log-file-modification.sh` (PostToolUse hook via code-reviewer agent frontmatter); `hooks/verdict-audit.sh` also appends every subagent verdict to `temp/verdict-audit.log`
 - **Wave observability**: `hooks/notification.sh` (Notification hook — during an active SDD wave, logs `agent_needs_input`/`agent_completed` notifications to `temp/sdd-notifications.log`; silent no-op otherwise, never blocks). Whether the 2.1.198 `agent_needs_input`/`agent_completed` payloads fire for SDD's in-session Agent-tool subagents (vs only `claude agents` background sessions) is UNVERIFIED — this hook gathers the evidence before any reactive-MONITOR gate is built on top of it.
 - **Beads config**: `.beads/metadata.json`

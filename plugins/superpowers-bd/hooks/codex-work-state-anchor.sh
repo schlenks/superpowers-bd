@@ -37,7 +37,9 @@ if [ -d "$temp_dir" ]; then
 fi
 
 if command -v bd >/dev/null 2>&1; then
-  in_progress=$(bd list --status in_progress --json 2>/dev/null | jq 'length' 2>/dev/null || printf '')
+  # shellcheck source=/dev/null
+  . "$(dirname "${BASH_SOURCE[0]:-$0}")/bd-in-progress-count.sh"
+  in_progress=$(bd_in_progress_count)
   if [ -n "$in_progress" ] && [ "$in_progress" -gt 0 ] 2>/dev/null; then
     parts+=("${in_progress} in_progress")
   fi

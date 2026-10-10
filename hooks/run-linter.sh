@@ -42,9 +42,10 @@ dup_block_count() {
   lizard -Eduplicate "$1" 2>/dev/null | grep -c '^Duplicate block:' || true
 }
 
-# Advise when an edit adds duplicated code blocks within the file, compared to
-# git HEAD. Advisory only: duplicate detection has false positives, and test
-# files legitimately repeat setup, so they are skipped.
+# Print an advisory when an edit adds duplicated code blocks within the file,
+# compared to git HEAD. Advisory only: duplicate detection has false positives,
+# and test files legitimately repeat setup, so they are skipped. Prints rather
+# than calling advise() because it runs in a background subshell.
 check_duplication() {
   local target="$1"
   command -v lizard &>/dev/null || return 0
@@ -64,11 +65,30 @@ check_duplication() {
     rm -rf "$tmp"
   fi
   [[ "$cur" -le "$base" ]] && return 0
-  advise "DUPLICATION WARNING: $target now has $cur duplicated code block(s) (was $base at HEAD). Extract the repeated logic into a shared helper instead of copying it; run \`lizard -Eduplicate $target\` to see the blocks."
+  echo "DUPLICATION WARNING: $target now has $cur duplicated code block(s) (was $base at HEAD). Extract the repeated logic into a shared helper instead of copying it; run \`lizard -Eduplicate $target\` to see the blocks."
 }
 
 file_path=$(echo "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 [ -z "$file_path" ] && exit 0
+
+# The duplication check is independent of the complexity linters, so it runs
+# alongside them instead of after them. A block exits early; the trap stops it.
+dup_pid="" dup_out=""
+# shellcheck disable=SC2329  # invoked by the EXIT trap
+stop_dup_check() {
+  if [[ -n "$dup_pid" ]]; then kill "$dup_pid" 2>/dev/null || true; fi
+  if [[ -n "$dup_out" ]]; then rm -f "$dup_out"; fi
+}
+case "$file_path" in
+  *.ts|*.tsx|*.py|*.js|*.jsx|*.go|*.java|*.c|*.cpp|*.h|*.hpp|*.rb|*.swift|*.rs)
+    if [[ -f "$file_path" ]] && command -v lizard &>/dev/null; then
+      dup_out=$(mktemp)
+      trap stop_dup_check EXIT
+      check_duplication "$file_path" > "$dup_out" 2>/dev/null < /dev/null &
+      dup_pid=$!
+    fi
+    ;;
+esac
 
 case "$file_path" in
   *.sh)
@@ -90,15 +110,17 @@ case "$file_path" in
     ;;
   *.ts|*.tsx)
     if command -v ccts-json &>/dev/null; then
-      # "count<TAB>max<TAB>sum" of function scores > 25 in the given file
-      ccts_over25_stats() {
-        local target="$1" out
-        out=$(ccts-json "$target" 2>/dev/null) || true
+      # "count<TAB>max<TAB>sum" of function scores > 25 in ccts-json output
+      ccts_stats_from() {
+        local out="$1"
         if [[ -z "$out" ]]; then printf '0\t0\t0\n'; return; fi
         echo "$out" | jq -r \
           '[.. | objects | select(.kind == "function" and .score > 25) | .score]
            | "\(length)\t\(if length > 0 then max else 0 end)\t\(if length > 0 then add else 0 end)"' \
           2>/dev/null || printf '0\t0\t0\n'
+      }
+      ccts_over25_stats() {
+        ccts_stats_from "$(ccts-json "$1" 2>/dev/null || true)"
       }
       # Cognitive complexity via ccts-json
       ccts_output=$(ccts-json "$file_path" 2>/dev/null) || true
@@ -109,7 +131,7 @@ case "$file_path" in
           '.. | objects | select(.kind == "function" and .score > 25) | "\(.name)\t\(.line)\t\(.score)"' \
           2>/dev/null) || true
         if [[ -n "$violations_block" ]]; then
-          IFS=$'\t' read -r cur_count cur_max cur_sum <<< "$(ccts_over25_stats "$file_path")"
+          IFS=$'\t' read -r cur_count cur_max cur_sum <<< "$(ccts_stats_from "$ccts_output")"
           base_count=-1 base_max=0 base_sum=0
           file_dir=$(dirname "$file_path")
           file_base=$(basename "$file_path")
@@ -194,11 +216,11 @@ case "$file_path" in
     ;;
 esac
 
-case "$file_path" in
-  *.ts|*.tsx|*.py|*.js|*.jsx|*.go|*.java|*.c|*.cpp|*.h|*.hpp|*.rb|*.swift|*.rs)
-    [[ -f "$file_path" ]] && check_duplication "$file_path"
-    ;;
-esac
+if [[ -n "$dup_pid" ]]; then
+  wait "$dup_pid" 2>/dev/null || true
+  dup_pid=""
+  [[ -s "$dup_out" ]] && advise "$(cat "$dup_out")"
+fi
 
 emit_advisory
 exit 0

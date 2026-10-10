@@ -33,20 +33,6 @@ fi
 
 temp_dir="${CLAUDE_PROJECT_DIR:-.}/temp"
 
-# Liveness gate: only enforce while there is work in flight, so ordinary
-# conversation that happens to say "done" is never interrupted.
-work_live=0
-for f in "$temp_dir"/sdd-wave-active-*.flag; do
-  [ -f "$f" ] && { work_live=1; break; }
-done
-if [ "$work_live" = 0 ] && command -v bd >/dev/null 2>&1; then
-  ip=$(bd list --status in_progress --json 2>/dev/null | jq 'length' 2>/dev/null || echo "")
-  if [ -n "$ip" ] && [ "$ip" -gt 0 ] 2>/dev/null; then
-    work_live=1
-  fi
-fi
-[ "$work_live" = 0 ] && exit 0
-
 # Completion claim with no evidence?
 # NOTE: 'ready to merge'/'ready for review' are deliberately absent — those are
 # reviewer-verdict vocabulary, not the orchestrator's own claim. During SDD the
@@ -70,6 +56,22 @@ printf '%s' "$last_message" | grep -qiE "$solicit_re" && exit 0
 # Trailing question mark → soliciting input, not declaring done.
 trimmed=$(printf '%s' "$last_message" | sed -e 's/[[:space:]]*$//')
 case "$trimmed" in *\?) exit 0 ;; esac
+
+# Liveness gate: only enforce while there is work in flight, so ordinary
+# conversation that happens to say "done" is never interrupted.
+work_live=0
+for f in "$temp_dir"/sdd-wave-active-*.flag; do
+  [ -f "$f" ] && { work_live=1; break; }
+done
+if [ "$work_live" = 0 ] && command -v bd >/dev/null 2>&1; then
+  # shellcheck source=/dev/null
+  . "$(dirname "${BASH_SOURCE[0]:-$0}")/bd-in-progress-count.sh"
+  ip=$(bd_in_progress_count)
+  if [ -n "$ip" ] && [ "$ip" -gt 0 ] 2>/dev/null; then
+    work_live=1
+  fi
+fi
+[ "$work_live" = 0 ] && exit 0
 
 # Bounded per-session counter so a degenerate case cannot nag indefinitely.
 count_file="$temp_dir/stop-gate-${session_id}.count"
