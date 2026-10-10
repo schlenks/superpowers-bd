@@ -398,6 +398,29 @@ printf '{"hook_event_name":"Stop","cwd":"%s","session_id":"s3","last_assistant_m
 check "Stop wrapper allows explicit verification evidence" \
   test ! -s "$stop_evidence_stdout"
 
+# No wave flag: liveness comes from bd's in_progress count, read through the
+# sourced bd-in-progress-count.sh helper next to each copy of the hooks.
+mkdir -p "$TEST_DIR/bd-live/temp"
+for hook_dir in hooks plugins/superpowers-bd/hooks; do
+  bd_live_stop="$TEST_DIR/bd-live-stop-${hook_dir//\//-}.json"
+  printf '{"hook_event_name":"Stop","cwd":"%s","session_id":"s4","last_assistant_message":"The implementation is complete."}\n' "$TEST_DIR/bd-live" \
+    | bash "$hook_dir/codex-stop-gate.sh" > "$bd_live_stop"
+  check_node "Stop wrapper ($hook_dir) treats bd in_progress work as live" "
+    const fs = require('fs');
+    const payload = JSON.parse(fs.readFileSync('$bd_live_stop', 'utf8'));
+    if (payload.decision !== 'block') process.exit(1);
+  "
+
+  bd_live_anchor="$TEST_DIR/bd-live-anchor-${hook_dir//\//-}.json"
+  printf '{"hook_event_name":"UserPromptSubmit","cwd":"%s"}\n' "$TEST_DIR/bd-live" \
+    | bash "$hook_dir/codex-work-state-anchor.sh" > "$bd_live_anchor"
+  check_node "UserPromptSubmit wrapper ($hook_dir) reports bd in_progress count" "
+    const fs = require('fs');
+    const payload = JSON.parse(fs.readFileSync('$bd_live_anchor', 'utf8'));
+    if (!String(payload.hookSpecificOutput?.additionalContext || '').includes('1 in_progress')) process.exit(1);
+  "
+done
+
 compact_stdout="$TEST_DIR/compact-stdout.json"
 printf '{"hook_event_name":"SessionStart","source":"compact","cwd":"%s"}\n' "$TEST_DIR/active" \
   | bash hooks/codex-session-start.sh > "$compact_stdout"

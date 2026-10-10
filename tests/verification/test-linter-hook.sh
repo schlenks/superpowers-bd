@@ -619,6 +619,120 @@ else
   echo "SKIP: duplication tests (lizard not installed)"
 fi
 
+# --- TypeScript complexity ratchet (ccts-json) ---
+
+# A function scoring well over 25, built from repeated nested loops.
+write_tangled_ts() {
+  local out="$1" loops="$2" i
+  {
+    echo 'export function tangled(a: number[], b: boolean, c: string): number {'
+    echo '  let t = 0;'
+    for ((i = 1; i <= loops; i++)); do
+      echo "  for (const x of a) { if (b) { if (x > $i) { for (const y of a) { if (y && c) { t += $i; } else if (y > x) { t -= 1; } } } } }"
+    done
+    echo '  return t;'
+    echo '}'
+  } > "$out"
+}
+
+# Run the hook with ccts-json wrapped so each invocation is counted.
+# Prints "<exit> <ccts calls>"; stdout goes to $TEST_DIR/ts_stdout.
+run_counted_ts() {
+  local file="$1" calls="$TEST_DIR/ccts.calls" real_ccts exit_code=0
+  real_ccts="$(command -v ccts-json)"
+  mkdir -p "$TEST_DIR/ccts-bin"
+  cat > "$TEST_DIR/ccts-bin/ccts-json" <<WRAP
+#!/usr/bin/env bash
+printf 'x' >> "$calls"
+exec "$real_ccts" "\$@"
+WRAP
+  chmod +x "$TEST_DIR/ccts-bin/ccts-json"
+  : > "$calls"
+  echo "{\"tool_input\":{\"file_path\":\"$file\"}}" \
+    | env PATH="$TEST_DIR/ccts-bin:$PATH" "$HOOK" >"$TEST_DIR/ts_stdout" 2>/dev/null || exit_code=$?
+  printf '%s %s' "$exit_code" "$(wc -c < "$calls" | tr -d ' ')"
+}
+
+if command -v ccts-json &>/dev/null; then
+  mkdir -p "$TEST_DIR/tsrepo"
+  write_tangled_ts "$TEST_DIR/tsrepo/tangled.ts" 4
+  git -C "$TEST_DIR/tsrepo" init -q
+  git -C "$TEST_DIR/tsrepo" add tangled.ts
+  git -C "$TEST_DIR/tsrepo" -c user.name=t -c user.email=t@example.com commit -qm init
+
+  # 24. Pre-existing over-25 debt that the edit does not worsen is allowed, and
+  # the edited file is scored once (plus once for HEAD), not re-scored.
+  result=$(run_counted_ts "$TEST_DIR/tsrepo/tangled.ts")
+  if [[ "$result" == "0 2" ]] && ! jq -e '.decision == "block"' "$TEST_DIR/ts_stdout" >/dev/null 2>&1 \
+    && jq -e '.hookSpecificOutput.additionalContext | contains("COMPLEXITY RATCHET")' "$TEST_DIR/ts_stdout" >/dev/null 2>&1; then
+    echo "PASS: .ts ratchet — unchanged over-25 debt allowed, ccts-json ran twice"
+    pass=$((pass + 1))
+  else
+    echo "FAIL: .ts ratchet — expected exit 0, 2 ccts-json calls, RATCHET advisory; got '$result'"
+    echo "  stdout: $(cat "$TEST_DIR/ts_stdout")"
+    fail=$((fail + 1))
+  fi
+
+  # 25. Worsening the over-25 function versus HEAD blocks.
+  write_tangled_ts "$TEST_DIR/tsrepo/tangled.ts" 6
+  result=$(run_counted_ts "$TEST_DIR/tsrepo/tangled.ts")
+  if [[ "${result%% *}" == "0" ]] && jq -e '.decision == "block"' "$TEST_DIR/ts_stdout" >/dev/null 2>&1; then
+    echo "PASS: .ts ratchet — worsened over-25 debt blocked"
+    pass=$((pass + 1))
+  else
+    echo "FAIL: .ts ratchet — expected a block for worsened debt; got '$result'"
+    echo "  stdout: $(cat "$TEST_DIR/ts_stdout")"
+    fail=$((fail + 1))
+  fi
+  git -C "$TEST_DIR/tsrepo" checkout -q -- tangled.ts
+
+  # 26. Complexity and duplication advisories both arrive when the duplication
+  # check runs alongside ccts-json.
+  if command -v lizard &>/dev/null; then
+    {
+      for fn in exportCsv exportTsv exportPsv; do
+        cat << TS
+export function ${fn}(rows: Record<string, unknown>[]): string {
+  const headers = rows.length ? Object.keys(rows[0]) : [];
+  const lines = [headers.join(",")];
+  for (const row of rows) {
+    const values: string[] = [];
+    for (const h of headers) {
+      const v = row[h];
+      if (v === null || v === undefined) {
+        values.push("");
+      } else if (typeof v === "number") {
+        values.push(v.toFixed(2));
+      } else {
+        values.push(String(v));
+      }
+    }
+    lines.push(values.join(","));
+  }
+  return lines.join("\\n");
+}
+
+TS
+      done
+      cat << 'TS'
+export function nested(a: number[], b: boolean, c: string): number {
+  let t = 0;
+  for (const x of a) { if (b) { if (x > 1) { for (const y of a) { if (y && c) { t += 1; } else if (y > x) { t -= 1; } } } } }
+  return t;
+}
+TS
+    } > "$TEST_DIR/both.ts"
+    run_advisory_test ".ts file — complexity advisory present with duplication running in parallel" \
+      "$TEST_DIR/both.ts" "COMPLEXITY WARNING" 1
+    run_advisory_test ".ts file — duplication advisory present with complexity running in parallel" \
+      "$TEST_DIR/both.ts" "DUPLICATION WARNING" 1
+  else
+    echo "SKIP: parallel advisory test (lizard not installed)"
+  fi
+else
+  echo "SKIP: TypeScript ratchet tests (ccts-json not installed)"
+fi
+
 # --- Summary ---
 echo ""
 echo "=== Results: $pass passed, $fail failed ($(( pass + fail )) total) ==="

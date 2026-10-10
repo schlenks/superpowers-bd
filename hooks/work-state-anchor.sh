@@ -33,9 +33,11 @@ if [ -d "$temp_dir" ]; then
     done
 fi
 
-# 2. In-progress beads work.
+# 2. In-progress beads work (cached against the database state; see the helper).
 if command -v bd >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-    ip=$(bd list --status in_progress --json 2>/dev/null | jq 'length' 2>/dev/null || echo "")
+    # shellcheck source=/dev/null
+    . "$(dirname "${BASH_SOURCE[0]:-$0}")/bd-in-progress-count.sh"
+    ip=$(bd_in_progress_count)
     if [ -n "$ip" ] && [ "$ip" -gt 0 ] 2>/dev/null; then
         parts+=("${ip} in_progress")
     fi

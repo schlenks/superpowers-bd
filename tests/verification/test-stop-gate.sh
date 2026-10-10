@@ -21,7 +21,10 @@ mkdir -p "$STUB_BIN"
 cat > "$STUB_BIN/bd" <<'STUB'
 #!/usr/bin/env bash
 case "$1" in
-  list) printf '%s' "${BD_STUB_OUTPUT:-[]}" ;;
+  list)
+    [ -n "${BD_STUB_CALLS:-}" ] && printf 'x' >> "$BD_STUB_CALLS"
+    printf '%s' "${BD_STUB_OUTPUT:-[]}"
+    ;;
   *) exit 0 ;;
 esac
 STUB
@@ -150,6 +153,36 @@ else
   echo "FAIL: Counter cap — expected 3 blocks across 4 stops, got $cap_blocks"
   FAIL=$((FAIL + 1))
 fi
+
+# bd opens its database on every call (~700ms), so the liveness check runs only
+# after the message checks: a turn that makes no unevidenced claim never calls bd.
+echo "--- bd is consulted only for unevidenced claims ---"
+# Args: name, message, expected bd list calls
+run_bd_call_test() {
+  local name="$1" msg="$2" want="$3" proj calls
+  TOTAL=$((TOTAL + 1))
+  proj="$TEST_ROOT/bdcalls-$TOTAL"
+  mkdir -p "$proj/temp"
+  calls="$proj/bd.calls"
+  : > "$calls"
+  payload "bd$TOTAL" "$msg" false \
+    | env CLAUDE_PROJECT_DIR="$proj" PATH="$STUB_BIN:$PATH" BD_STUB_OUTPUT='[{"id":"x"}]' \
+      BD_STUB_CALLS="$calls" bash "$HOOK_SCRIPT" > /dev/null
+  local got
+  got=$(wc -c < "$calls" | tr -d ' ')
+  if [ "$got" = "$want" ]; then
+    echo "PASS: $name (bd list calls=$got)"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL: $name — expected $want bd list call(s), got $got"
+    FAIL=$((FAIL + 1))
+  fi
+}
+run_bd_call_test "No completion claim skips bd" "Here is a summary of the three files." 0
+run_bd_call_test "Claim with evidence skips bd" "$CLAIM_WITH_EVIDENCE" 0
+run_bd_call_test "Status relay skips bd" "$STATUS_REVIEWER_DONE" 0
+run_bd_call_test "Question skips bd" "$META_PROPOSAL_QUESTION" 0
+run_bd_call_test "Unevidenced claim consults bd once" "$CLAIM_NO_EVIDENCE" 1
 
 echo ""
 echo "=== Results: $PASS/$TOTAL passed, $FAIL failed ==="

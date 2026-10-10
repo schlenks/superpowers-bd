@@ -27,17 +27,6 @@ if [ "$stop_active" = "true" ]; then
 fi
 
 temp_dir="${project_dir}/temp"
-work_live=0
-for flag in "${temp_dir}"/sdd-wave-active-*.flag; do
-  [ -f "$flag" ] && { work_live=1; break; }
-done
-if [ "$work_live" = 0 ] && command -v bd >/dev/null 2>&1; then
-  in_progress=$(bd list --status in_progress --json 2>/dev/null | jq 'length' 2>/dev/null || printf '')
-  if [ -n "$in_progress" ] && [ "$in_progress" -gt 0 ] 2>/dev/null; then
-    work_live=1
-  fi
-fi
-[ "$work_live" = 0 ] && exit 0
 
 # 'ready to merge'/'ready for review' deliberately absent — reviewer-verdict
 # vocabulary the orchestrator relays, not its own completion claim. See stop-gate.sh.
@@ -55,6 +44,20 @@ printf '%s' "$last_message" | grep -qiE "$inflight_re" && exit 0
 printf '%s' "$last_message" | grep -qiE "$solicit_re" && exit 0
 trimmed=$(printf '%s' "$last_message" | sed -e 's/[[:space:]]*$//')
 case "$trimmed" in *\?) exit 0 ;; esac
+
+work_live=0
+for flag in "${temp_dir}"/sdd-wave-active-*.flag; do
+  [ -f "$flag" ] && { work_live=1; break; }
+done
+if [ "$work_live" = 0 ] && command -v bd >/dev/null 2>&1; then
+  # shellcheck source=/dev/null
+  . "$(dirname "${BASH_SOURCE[0]:-$0}")/bd-in-progress-count.sh"
+  in_progress=$(bd_in_progress_count)
+  if [ -n "$in_progress" ] && [ "$in_progress" -gt 0 ] 2>/dev/null; then
+    work_live=1
+  fi
+fi
+[ "$work_live" = 0 ] && exit 0
 
 mkdir -p "$temp_dir"
 count_file="${temp_dir}/stop-gate-${session_id}.count"
