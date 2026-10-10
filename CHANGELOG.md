@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.13.1] - 2026-10-10
+
+### Fixed
+
+- **Per-turn hook latency:** `work-state-anchor.sh` (UserPromptSubmit) and `stop-gate.sh` (Stop), plus their Codex variants, called `bd list` on every prompt and every turn end, and each call opens the embedded Dolt database (~700ms). The in_progress count now comes from `hooks/bd-in-progress-count.sh`, which caches it against the database's own state: the Dolt manifest checksum plus the chunk journal size. Every bd write changes one or both; reads change only mtimes, which the key ignores. Server mode, `BEADS_DB`, and layouts without a journal skip the cache. Anchor 721ms → 33ms on a cache hit, measured against a real 333-issue database.
+- **Stop gate checks the message before the database:** the completion-claim, evidence, in-flight and question checks run before the liveness check, so a turn that makes no unevidenced claim never calls bd. Same verdicts in every case; 743ms → 34ms on an ordinary turn end.
+- **Post-edit linter:** on a TypeScript file over the cognitive-complexity limit, `run-linter.sh` re-ran `ccts-json` on the edited file to compute ratchet stats it already had; it now reuses the first result (3 → 2 ccts runs). The lizard duplication check runs alongside the complexity linters instead of after them. 747ms → 382ms on an over-limit file, 390ms → 250ms on a typical one.
+
+### Tests
+
+- `tests/verification/test-bd-in-progress-count.sh` (16 cases: hits, journal and manifest invalidation, mtime-only changes, server mode, `BEADS_DB`, bad bd output, Codex copy parity); stop-gate bd-call-count cases; linter TS ratchet and ccts-call-count cases; Codex hook cases for bd-driven liveness through both hook copies.
+
 ## [5.13.0] - 2026-09-24
 
 ### Added
