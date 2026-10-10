@@ -52,6 +52,16 @@ export function validateTitle(title: unknown): ValidationResult {
   return { valid: true, trimmed };
 }
 
+export function validateDescription(description: unknown): ValidationResult {
+  if (description === undefined || description === null) {
+    return { valid: true };
+  }
+  if (typeof description !== 'string' || description.length > 2000) {
+    return { valid: false, message: 'description must be a string of at most 2000 characters' };
+  }
+  return { valid: true };
+}
+
 // ─── Priority Validation ────────────────────────────────────────────
 
 /**
@@ -85,6 +95,23 @@ export function validatePriority(priority: unknown): ValidationResult {
 export function validateDueDate(dueDate: unknown): ValidationResult {
   if (typeof dueDate !== 'string') {
     return { valid: false, message: 'due_date must be a string' };
+  }
+
+  const iso = /^(\d{4})-(\d{2})-(\d{2})(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?$/;
+  const parts = iso.exec(dueDate);
+  if (!parts) {
+    return { valid: false, message: 'due_date must be a valid ISO-8601 date' };
+  }
+  const year = Number(parts[1]);
+  const month = Number(parts[2]);
+  const day = Number(parts[3]);
+  const calendarDate = new Date(Date.UTC(year, month - 1, day));
+  if (
+    calendarDate.getUTCFullYear() !== year ||
+    calendarDate.getUTCMonth() !== month - 1 ||
+    calendarDate.getUTCDate() !== day
+  ) {
+    return { valid: false, message: 'due_date must be a valid ISO-8601 date' };
   }
 
   const parsed = Date.parse(dueDate);

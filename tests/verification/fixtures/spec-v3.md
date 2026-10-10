@@ -223,7 +223,7 @@ Authentication errors must not reveal resource existence. Return a generic `401`
 ### 6.2 Rate Limiting
 
 - 120 requests per minute per authenticated user
-- Rate limits are per-user. Key must be derived from the authenticated user identity, not the request credential. Using the raw `Authorization` header as a rate-limit key is not permitted — clients sharing a token would exhaust a single bucket.
+- Rate limits are per-user. Key must be derived from the authenticated user identity, not the request credential. Using the raw `Authorization` header as a rate-limit key is not permitted — one user with multiple tokens would receive multiple buckets.
 - Rate limit headers included in all responses:
   - `X-RateLimit-Limit: 120`
   - `X-RateLimit-Remaining: <n>`
@@ -279,6 +279,9 @@ When an event fires, the server POSTs to the registered URL with the following p
 ```
 
 Webhook payload must include: `task_id`, `event_type`, `timestamp`, `task` (full task object), `changed_fields` (array of field names that changed). Partial payloads that omit `task` or `changed_fields` are non-compliant.
+
+Each successful task mutation emits its corresponding event. This includes each
+successful item in bulk update and bulk delete. Failed items emit no event.
 
 ### 7.3 Delivery and Retry
 

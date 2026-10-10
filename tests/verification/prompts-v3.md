@@ -490,7 +490,7 @@ Area descriptions (neutral — do not infer bug vs. correct from the name):
 - B10: Repository method return value encapsulation
 - B11: Webhook payload field completeness
 - B12: Test suite webhook coverage
-- D1: Token minimum-length validation in auth middleware
+- D1: Empty bearer credential handling in auth middleware
 - D2: Rate limit storage backend (in-memory vs. distributed)
 - D3: Priority field boundary validation
 - D4: Dynamic sort key type assertion

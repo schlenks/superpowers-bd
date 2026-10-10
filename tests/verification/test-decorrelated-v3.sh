@@ -41,10 +41,14 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export SPBD_VERIFICATION_DIR="$SCRIPT_DIR"
 FIXTURES_DIR="$SCRIPT_DIR/fixtures"
 # shellcheck source=test-helpers.sh
 source "$SCRIPT_DIR/test-helpers.sh"
 python3 "$SCRIPT_DIR/check_fixture_calibration.py" "$FIXTURES_DIR/ground-truth-v3.json"
+if [ -n "${SPBD_TEST_GROUND_TRUTH_FILE:-}" ]; then
+    python3 "$SCRIPT_DIR/check_fixture_calibration.py" "$SPBD_TEST_GROUND_TRUTH_FILE"
+fi
 
 echo "========================================"
 echo " Verification: Decorrelated V3"
@@ -52,26 +56,43 @@ echo "========================================"
 echo "Claude Code version: $(claude --version 2>/dev/null || echo 'unknown')"
 echo ""
 
-# ── Step 1: Load fixtures ────────────────────────────────────────────
-
-SPEC=$(cat "$FIXTURES_DIR/spec-v3.md")
-IMPL=$(cat "$FIXTURES_DIR/impl-v3.md")
-API=$(cat "$FIXTURES_DIR/api-v3.ts")
-VALIDATION=$(cat "$FIXTURES_DIR/validation-v3.ts")
-MIDDLEWARE=$(cat "$FIXTURES_DIR/middleware-v3.ts")
-REPOSITORY=$(cat "$FIXTURES_DIR/repository-v3.ts")
-TESTS=$(cat "$FIXTURES_DIR/tests-v3.md")
-
 # ── Test setup ───────────────────────────────────────────────────────
 
-TEST_DIR=$(mktemp -d)
+RUN_ROOT="${SPBD_BENCH_RUN_ROOT:-$SCRIPT_DIR/../../temp/verification-runs}"
+mkdir -p "$RUN_ROOT"
+TEST_DIR=$(mktemp -d "$RUN_ROOT/decorrelated-v3.XXXXXX")
 verify_no_spaces "$TEST_DIR"
 export TEST_DIR
+mkdir -p "$TEST_DIR/fixture"
+cp "$FIXTURES_DIR"/{spec-v3.md,impl-v3.md,api-v3.ts,validation-v3.ts,middleware-v3.ts,repository-v3.ts,tests-v3.md,ground-truth-v3.json} "$TEST_DIR/fixture/"
+cp "$0" "$TEST_DIR/benchmark-script.sh"
+cp "$SCRIPT_DIR/analyze-v3.py" "$TEST_DIR/analyzer.py"
+cp "$SCRIPT_DIR/json_blocks.py" "$TEST_DIR/json_blocks.py"
+shasum -a 256 "$TEST_DIR"/fixture/* > "$TEST_DIR/fixture.sha256"
+git rev-parse HEAD > "$TEST_DIR/base-commit.txt"
+claude --version > "$TEST_DIR/claude-version.txt"
+python3 "$SCRIPT_DIR/check_fixture_calibration.py" "$TEST_DIR/fixture/ground-truth-v3.json"
+
+# ── Step 1: Load the retained fixture snapshot ──────────────────────
+
+SPEC=$(cat "$TEST_DIR/fixture/spec-v3.md")
+IMPL=$(cat "$TEST_DIR/fixture/impl-v3.md")
+API=$(cat "$TEST_DIR/fixture/api-v3.ts")
+VALIDATION=$(cat "$TEST_DIR/fixture/validation-v3.ts")
+MIDDLEWARE=$(cat "$TEST_DIR/fixture/middleware-v3.ts")
+REPOSITORY=$(cat "$TEST_DIR/fixture/repository-v3.ts")
+TESTS=$(cat "$TEST_DIR/fixture/tests-v3.md")
+
 RESULTS_FILE="$TEST_DIR/results.csv"
 echo "label,run,duration_ms,status,attempt,pass_label" > "$RESULTS_FILE"
 export RESULTS_FILE
 
-NUM_CYCLES=15
+NUM_CYCLES="${SPBD_BENCH_CYCLES:-15}"
+if ! [[ "$NUM_CYCLES" =~ ^[1-9][0-9]*$ ]]; then
+    echo "SPBD_BENCH_CYCLES must be a positive integer" >&2
+    exit 2
+fi
+export SPBD_EXPECTED_SONNET_MODEL="${SPBD_EXPECTED_SONNET_MODEL:-claude-sonnet-5}"
 
 # ── Step 2: JSON output suffix (28 areas) ────────────────────────────
 # Neutral area descriptions — identical for all prompts.
@@ -96,7 +117,7 @@ Area descriptions (neutral — do not infer bug vs. correct from the name):
 - B10: Repository method return value encapsulation
 - B11: Webhook payload field completeness
 - B12: Test suite webhook coverage
-- D1: Token minimum-length validation in auth middleware
+- D1: Empty bearer credential handling in auth middleware
 - D2: Rate limit storage backend (in-memory vs. distributed)
 - D3: Priority field boundary validation
 - D4: Dynamic sort key type assertion
@@ -477,6 +498,11 @@ score_output() {
 
     python3 << PYEOF
 import json
+import os
+import sys
+
+sys.path.insert(0, os.environ["SPBD_VERIFICATION_DIR"])
+from json_blocks import find_json_objects
 
 output_file = "$output_file"
 condition = "$condition"
@@ -486,27 +512,36 @@ test_dir = "$TEST_DIR"
 
 with open(output_file, "r") as f:
     content = f.read()
+try:
+    response = json.loads(content)
+except json.JSONDecodeError:
+    response = {}
+if isinstance(response, dict) and isinstance(response.get("result"), str) and not response.get("is_error"):
+    actual_models = {model.get("canonicalModel") for model in response.get("modelUsage", {}).values()}
+    expected_model = os.environ["SPBD_EXPECTED_SONNET_MODEL"]
+    if expected_model not in actual_models:
+        raise SystemExit(f"Expected review model {expected_model}, got {actual_models}")
+    with open(f"{test_dir}/usage.jsonl", "a") as usage_file:
+        usage_file.write(json.dumps({
+            "condition": condition, "cycle": cycle_num, "reviewer": reviewer_num,
+            "modelUsage": response.get("modelUsage", {}),
+            "usage": response.get("usage", {}),
+            "duration_ms": response.get("duration_ms"),
+            "total_cost_usd": response.get("total_cost_usd"),
+            "is_error": response.get("is_error"),
+            "session_id": response.get("session_id"),
+            "num_turns": response.get("num_turns"),
+            "subagent_stats": response.get("subagent_stats", {}),
+        }) + "\n")
+    content = response["result"]
+else:
+    content = ""
 
 # Ground truth: hardcoded from ground-truth-v3.json
 REAL_BUGS = {"B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10", "B11", "B12"}
 DECOYS = {"D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15", "D16"}
 AREA_IDS = sorted(REAL_BUGS | DECOYS)
 TOTAL_BUGS = 12
-
-# Extract JSON by finding balanced brace blocks containing "areas"
-def find_json_objects(text):
-    depth = 0
-    start = None
-    for i, ch in enumerate(text):
-        if ch == '{':
-            if depth == 0:
-                start = i
-            depth += 1
-        elif ch == '}':
-            depth -= 1
-            if depth == 0 and start is not None:
-                yield text[start:i+1]
-                start = None
 
 tp = 0
 fp = 0
@@ -523,9 +558,11 @@ for block in find_json_objects(content):
         if "areas" not in data:
             continue
         areas = data["areas"]
-        # Require at least 23 of 28 areas present (tolerance: 5 missing)
-        missing_areas = [a for a in AREA_IDS if a not in areas]
-        if len(missing_areas) > 5:
+        # Score only a complete, explicit answer for every keyed area.
+        if not isinstance(areas, dict) or set(areas) != set(AREA_IDS) or any(
+            not isinstance(areas[area_id], dict) or type(areas[area_id].get("found")) is not bool
+            for area_id in AREA_IDS
+        ):
             continue
         parsed = True
         for area_id in AREA_IDS:
@@ -649,13 +686,16 @@ echo "cycle,condition,n_reviewers,score,tp,fp,fn,precision,recall,parse_ok,per_a
 
 CONDITIONS=(generalist specialist)
 
-for cycle in $(seq 1 $NUM_CYCLES); do
+for cycle in $(seq 1 "$NUM_CYCLES"); do
     echo ""
     echo "=== Cycle $cycle / $NUM_CYCLES ==="
 
     # Randomize condition order for this cycle to prevent systematic bias
     # Use Python-based shuffle (portable — BSD sort does not support -R on macOS)
-    mapfile -t shuffled < <(python3 -c "import random,sys; c=sys.argv[1:]; random.shuffle(c); print('\n'.join(c))" "${CONDITIONS[@]}")
+    shuffled=()
+    while IFS= read -r condition; do
+        shuffled+=("$condition")
+    done < <(python3 -c "import random,sys; c=sys.argv[1:]; random.shuffle(c); print('\n'.join(c))" "${CONDITIONS[@]}")
 
     for condition in "${shuffled[@]}"; do
         echo "--- $condition (cycle $cycle) ---"
@@ -682,8 +722,11 @@ $output_fmt
 $JSON_SUFFIX"
 
             label="${condition}-r${reviewer_num}"
-            run_claude_session "$label" "$cycle" 2 300 \
-                claude -p "$full_prompt" --permission-mode bypassPermissions --allowed-tools=all
+            prompt_file="$TEST_DIR/prompt-${label}-cycle${cycle}.txt"
+            printf '%s\n' "$full_prompt" > "$prompt_file"
+            # One attempt per reviewer: retries hide billed usage and wall time.
+            run_claude_session_stdin "$label" "$cycle" 1 300 "$prompt_file" \
+                claude -p - --model sonnet --output-format json --permission-mode bypassPermissions --allowed-tools=all
 
             # Score only if run succeeded
             local_output="$TEST_DIR/output-${label}-run${cycle}.txt"
@@ -700,31 +743,19 @@ $JSON_SUFFIX"
     done
 done
 
-# ── Step 8: Persist results before analysis ──────────────────────────
-# Copy raw data FIRST so it is preserved even if the analyzer fails.
-
-cp "$TEST_DIR/scores.csv" "$SCRIPT_DIR/decorrelated-v3-results.csv"
-cp "$TEST_DIR/aggregates.csv" "$SCRIPT_DIR/decorrelated-v3-aggregate.csv"
-
+# ── Step 8: Retain evidence before analysis ──────────────────────────
 echo ""
-echo "Results saved to:"
-echo "  tests/verification/decorrelated-v3-results.csv"
-echo "  tests/verification/decorrelated-v3-aggregate.csv"
+echo "Run artifacts retained at: $TEST_DIR"
 
 # ── Step 9: Analysis invocation ──────────────────────────────────────
 
 echo ""
-echo "========================================"
-echo " Statistical Analysis"
-echo "========================================"
-echo ""
-
-python3 "$SCRIPT_DIR/analyze-v3.py" "$TEST_DIR/scores.csv" "$TEST_DIR/aggregates.csv"
-
-# Copy summary JSON if analyzer created it
-if [ -f "$TEST_DIR/aggregates-summary.json" ]; then
-    cp "$TEST_DIR/aggregates-summary.json" "$SCRIPT_DIR/decorrelated-v3-summary.json"
-    echo "  tests/verification/decorrelated-v3-summary.json"
+VALID_PAIRS=$(python3 "$SCRIPT_DIR/count-paired-cycles.py" "$TEST_DIR/aggregates.csv" generalist specialist)
+if [ "$VALID_PAIRS" -ge 6 ]; then
+    echo "Statistical analysis on $VALID_PAIRS complete pairs"
+    python3 "$SCRIPT_DIR/analyze-v3.py" "$TEST_DIR/scores.csv" "$TEST_DIR/aggregates.csv"
+else
+    echo "Descriptive pilot only: $VALID_PAIRS complete pairs (6 required for inference)"
 fi
 
 # ── Inline summary for reporting contract ────────────────────────────
@@ -805,4 +836,4 @@ parse_rate = parse_failures / total_scored if total_scored > 0 else 0
 print(f"Individual parse failure rate: {parse_rate:.1%}")
 PYEOF
 
-rm -rf "$TEST_DIR"
+echo "Run artifacts retained at: $TEST_DIR"

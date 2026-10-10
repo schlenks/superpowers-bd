@@ -1,7 +1,7 @@
 # TaskFlow API v2.0 — Test Suite Summary
 
-**Total tests:** 62
-**Pass rate:** 62/62 (100%)
+**Total tests:** 66
+**Pass rate:** 66/66 (100%)
 **Line coverage:** 91%
 **Branch coverage:** 84%
 
@@ -17,7 +17,7 @@
 | 4 | Accepts valid bearer token and proceeds | PASS |
 | 5 | Returns 401 when Authorization header uses Basic scheme | PASS |
 | 6 | Returns 401 for empty bearer token value | PASS |
-| 7 | Returns 401 for tokens shorter than 10 characters (fast-reject guard) | PASS |
+| 7 | Rejects an empty bearer credential before signature verification | PASS |
 | 8 | Attaches userId to request context on valid token | PASS |
 
 ## GET /tasks Tests (12 tests)
@@ -109,6 +109,15 @@
 | 61 | Returns rate limit headers on normal requests | PASS |
 | 62 | Returns 429 with Retry-After after exceeding 120 requests/minute | PASS |
 
+## Body Parsing, Audit, and CORS Tests (4 tests)
+
+| # | Test | Status |
+|---|------|--------|
+| 63 | Returns 413 PAYLOAD_TOO_LARGE envelope for an oversized authenticated JSON body | PASS |
+| 64 | Records the resource ID and before/after field values for a successful task update | PASS |
+| 65 | Returns 204 with CORS headers for an OPTIONS preflight request | PASS |
+| 66 | Accepts a 100-item bulk update with maximum-length descriptions, including JSON-escaped characters | PASS |
+
 ---
 
 ## Coverage Notes
@@ -121,6 +130,5 @@ pollution.
 
 - **Not covered:** Concurrent update scenarios (out of scope for unit tests)
 - **Not covered:** Database persistence across restarts (in-memory only)
-- **Not covered:** Body size limit (413 response handled by express middleware,
-  verified manually — express does not surface this through the normal handler path)
-- **Not covered:** CORS preflight behavior (handled by middleware integration tests)
+- **Covered:** The body-size, audit-entry, and CORS preflight paths are exercised
+  by tests 63–66.

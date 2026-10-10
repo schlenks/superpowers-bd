@@ -9,7 +9,7 @@
 Implemented the TaskFlow REST API v2.0 per the extended specification. All
 CRUD endpoints carry over from v1, with four new capability areas: webhooks,
 bulk operations, audit logging, and CORS. The implementation is functional,
-tested, and deployed to staging. 62 tests pass in CI.
+tested, and deployed to staging. 66 tests pass in CI.
 
 ### Files Delivered
 
@@ -19,15 +19,15 @@ tested, and deployed to staging. 62 tests pass in CI.
 | `validation-v3.ts`    | Input validation (extended from v2)              |
 | `middleware-v3.ts`    | Auth, rate limiting, CORS, audit logging         |
 | `repository-v3.ts`    | Data access layer with secondary status index    |
-| Test suite            | 62 tests (see tests-v3.md)                       |
+| Test suite            | 66 tests (see tests-v3.md)                       |
 
 ## Implementation Notes
 
 ### Authentication
 
-Bearer token auth runs as early middleware. Token presence, format, and minimum
-length are checked before signature verification (the 10-character minimum
-fast-rejects garbage tokens without the cost of a full parse). The middleware
+Bearer token auth runs as early middleware. Token presence, format, and an empty
+credential are checked before signature verification. Signed claims carry the
+user ID, scope, and expiration. The middleware
 returns 401 for missing, expired, or malformed tokens. On resource-specific
 routes (`/tasks/:id`), the error message includes the resource context to help
 client developers confirm they are targeting the right endpoint — a developer
@@ -71,13 +71,14 @@ non-atomic at the request level — partial success is possible and failures are
 reported per-item in the `failed` array. Each individual task update is atomic:
 either all fields for that task are applied, or none. Field updates within a
 task are processed in the order they appear in the update object for consistent
-behavior.
+behavior. Successful items emit `task.updated` webhook events.
 
 ### Bulk Delete (DELETE /tasks/bulk)
 
 Accepts an array of task IDs (up to 100). Deletes are performed in sequence.
 Any not-found IDs are reported in the error response. The 100-item cap is
-enforced up front per spec Section 8.3.
+enforced up front per spec Section 8.3. Successful deletions emit
+`task.deleted` webhook events.
 
 ### Rate Limiting
 
@@ -100,8 +101,8 @@ event type array before persisting the subscription.
 Webhook delivery is asynchronous and non-blocking. When a task event fires,
 registered subscribers receive a POST with the webhook payload. Delivery
 includes retry logic with exponential backoff (1s, 2s, 4s). On a non-2xx
-response, the retry counter increments and the delivery is retried up to 3
-times total. Partial success responses (206) are handled as transient conditions
+response, an initial delivery is followed by up to three retries. Partial
+success responses (206) are handled as transient conditions
 — the endpoint is responsive but did not fully process the request, so the
 retry window restarts to allow the endpoint time to recover. Webhook payloads
 include event details so consumers can filter and route events without a
@@ -117,16 +118,18 @@ Preflight OPTIONS requests return 204 No Content per RFC 7231.
 
 All mutating operations (POST, PATCH, DELETE) are recorded in the audit log.
 Each entry captures timestamp, user ID, method, path, resource ID, action, and
-user agent. The `writeAuditLog` function appends to the in-memory log and runs
+user agent; updates also capture before and after values for changed fields.
+The `writeAuditLog` function appends to the in-memory log and runs
 a full-array serialization as an integrity check to ensure the in-memory
-representation is always valid JSON. The log write runs before `next()` to
-guarantee audit completeness — the entry is recorded before the response is sent.
+representation is always valid JSON. Route handlers write the entry before
+sending the response.
 
 ## Validation Approach
 
 All validation is centralized in `validation-v3.ts`:
 
 - **Title**: trimmed, length-checked (1-200 chars)
+- **Description**: at most 2000 characters
 - **Priority**: integer range check (1-5, inclusive) via `< 1 || > 5`
 - **Due date**: ISO-8601 format parsing + future-date enforcement
 - **Status**: enum check against `['todo', 'in_progress', 'done']`
@@ -136,7 +139,7 @@ All validation is centralized in `validation-v3.ts`:
 
 ## Test Coverage
 
-62 tests across all endpoints. See `tests-v3.md` for the full breakdown.
+66 tests across all endpoints. See `tests-v3.md` for the full breakdown.
 All tests pass in CI. Line coverage is at 91%.
 
 ## Known Limitations

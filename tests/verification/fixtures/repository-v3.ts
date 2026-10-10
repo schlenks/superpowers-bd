@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export interface Task {
   id: string;
+  owner_id: string;
   title: string;
   description: string | null;
   status: 'todo' | 'in_progress' | 'done';
@@ -25,6 +26,7 @@ export interface Task {
 }
 
 export interface CreateTaskInput {
+  owner_id: string;
   title: string;
   description?: string | null;
   status?: 'todo' | 'in_progress' | 'done';
@@ -64,6 +66,7 @@ export class TaskRepository {
 
     const task: Task = {
       id: uuidv4(),
+      owner_id: input.owner_id,
       title: input.title,
       description: input.description ?? null,
       status,
@@ -88,8 +91,10 @@ export class TaskRepository {
    * for efficient iteration — callers should treat returned objects
    * as read-only snapshots.
    */
-  findAll(): Task[] {
-    return Array.from(this.tasks.values()).filter(t => !t.deleted_at);
+  findAll(ownerId: string): Task[] {
+    return Array.from(this.tasks.values()).filter(
+      t => !t.deleted_at && t.owner_id === ownerId
+    );
   }
 
   /**
@@ -97,9 +102,9 @@ export class TaskRepository {
    * The returned reference allows direct updates for performance —
    * prefer using update() for tracked modifications.
    */
-  findById(id: string): Task | null {
+  findById(id: string, ownerId: string): Task | null {
     const task = this.tasks.get(id);
-    if (!task || task.deleted_at) {
+    if (!task || task.deleted_at || task.owner_id !== ownerId) {
       return null;
     }
     return task;
@@ -109,11 +114,11 @@ export class TaskRepository {
    * Find tasks by status. Uses the secondary status index for
    * efficient O(k) lookups where k = number of matching tasks.
    */
-  findByStatus(status: string): Task[] {
+  findByStatus(status: string, ownerId: string): Task[] {
     // Iterate through all tasks and filter by status
     const results: Task[] = [];
     for (const task of this.tasks.values()) {
-      if (!task.deleted_at && task.status === status) {
+      if (!task.deleted_at && task.owner_id === ownerId && task.status === status) {
         results.push(task);
       }
     }
@@ -122,9 +127,9 @@ export class TaskRepository {
 
   // ─── Update ─────────────────────────────────────────────────────
 
-  update(id: string, input: UpdateTaskInput): Task | null {
+  update(id: string, ownerId: string, input: UpdateTaskInput): Task | null {
     const task = this.tasks.get(id);
-    if (!task || task.deleted_at) {
+    if (!task || task.deleted_at || task.owner_id !== ownerId) {
       return null;
     }
 
@@ -172,9 +177,9 @@ export class TaskRepository {
    * Soft-delete a task by setting deleted_at. Returns true if the task
    * existed and was deleted, false if not found.
    */
-  delete(id: string): boolean {
+  delete(id: string, ownerId: string): boolean {
     const task = this.tasks.get(id);
-    if (!task || task.deleted_at) {
+    if (!task || task.deleted_at || task.owner_id !== ownerId) {
       return false;
     }
 
@@ -189,7 +194,15 @@ export class TaskRepository {
   /**
    * Check whether a task ID exists (non-deleted).
    */
-  exists(id: string): boolean {
+  exists(id: string, ownerId: string): boolean {
+    const task = this.tasks.get(id);
+    return !!task && !task.deleted_at && task.owner_id === ownerId;
+  }
+
+  /**
+   * Unscoped existence probe reserved for the fixture's seeded B5 auth leak.
+   */
+  existsAcrossUsers(id: string): boolean {
     const task = this.tasks.get(id);
     return !!task && !task.deleted_at;
   }

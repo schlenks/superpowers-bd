@@ -1,6 +1,7 @@
 {
-  "fixture_version": "3.1",
+  "fixture_version": "3.4",
   "calibration_status": "failed_audit",
+  "calibrated_at": "2026-09-22",
   "audit_report": "docs/experiments/2026-09-22-v3-fixture-audit.md",
   "created": "2026-02-24",
   "purpose": "Scoring reference for V3 Decorrelated Specialization experiment. NOT shown to model under review.",
@@ -84,8 +85,8 @@
       "expected_single_reviewer_rate": 0.40,
       "location": "middleware-v3.ts, authMiddleware function, 401 error handler",
       "spec_reference": "spec-v3.md Section 6.1: 'Authentication errors must not reveal resource existence. Return generic 401 for all unauthenticated access.'",
-      "code_behavior": "When a request arrives for /tasks/:id without a valid auth token, the middleware first looks up the task to generate a helpful error message ('Task abc-123 requires authentication'). This lookup reveals whether the task ID exists to unauthenticated callers — a valid ID returns 'Task [id] requires authentication' while an invalid ID returns a generic 401. An attacker can enumerate valid task IDs by probing the auth error message.",
-      "cross_file_notes": "D1 (token length check) and D12 (admin scope for webhook registration) are nearby in the same middleware file. D12 in particular looks like a security gap but is correct.",
+      "code_behavior": "For /tasks/:id with a correctly shaped token whose signature is invalid, the middleware looks up the task to generate a helpful 401 message. An existing task ID returns 'Task [id] requires authentication' while an unknown ID returns a generic 401. An unauthenticated caller can enumerate valid IDs by probing the auth error message.",
+      "cross_file_notes": "D1 (empty bearer credential) and D12 (admin scope for webhook registration) are nearby in the same middleware file. D12 in particular looks like a security gap but is correct.",
       "adjacent_decoys": ["D1", "D12"]
     },
     "B6": {
@@ -124,9 +125,9 @@
       "summary": "Audit log writes are synchronous, blocking requests — unbounded array + JSON.stringify per write",
       "difficulty": "very_hard",
       "expected_single_reviewer_rate": 0.20,
-      "location": "middleware-v3.ts, auditLogger middleware, writeAuditLog function",
+      "location": "middleware-v3.ts, recordAudit and writeAuditLog functions",
       "spec_reference": "spec-v3.md Section 9.1: 'Audit logging must not block request processing. Log writes must be non-blocking (async queue or fire-and-forget).'",
-      "code_behavior": "The auditLogger middleware calls writeAuditLog() synchronously before calling next(). writeAuditLog appends to an in-memory array and calls JSON.stringify(auditLog) on the ENTIRE array on every write — O(N) serialization cost per request where N grows with total audit entries. Both the synchronous call and the full-array serialization block the request thread. Under load, audit logging becomes the bottleneck for all API throughput.",
+      "code_behavior": "The mutating API handlers call recordAudit() synchronously before sending the response. It calls writeAuditLog(), which appends to an in-memory array and calls JSON.stringify(auditLog) on the ENTIRE array on every write — O(N) serialization cost per mutation where N grows with total audit entries. The full-array serialization blocks the request thread. Under load, audit logging becomes a throughput bottleneck.",
       "cross_file_notes": "D10 (server time vs UTC) and D15 (user agent logging) are in the same middleware and look like compliance issues but are correct.",
       "adjacent_decoys": ["D10", "D15"]
     },
@@ -140,7 +141,7 @@
       "expected_single_reviewer_rate": 0.70,
       "location": "api-v3.ts, DELETE /tasks/bulk handler",
       "spec_reference": "spec-v3.md Section 8.2: 'Bulk delete must validate all IDs in a single pass before deleting any. Return 404 if any ID is not found (atomic: all-or-nothing).'",
-      "code_behavior": "The bulk delete handler calls taskRepo.delete(id) while checking each ID. If a later ID is missing, it returns 404 after earlier tasks were already deleted. The spec requires validating all IDs before any deletion. Up to 100 Map lookups are not independently a demonstrated performance defect.",
+      "code_behavior": "The bulk delete handler calls taskRepo.delete(id, userId) while checking each ID. If a later ID is missing, it returns 404 after earlier tasks were already deleted. The spec requires validating all IDs before any deletion. Up to 100 Map lookups are not independently a demonstrated performance defect.",
       "cross_file_notes": "D11 (100-item cap) is adjacent and looks like an arbitrary limit but is correct per spec.",
       "adjacent_decoys": ["D11"]
     },
@@ -154,7 +155,7 @@
       "expected_single_reviewer_rate": 0.35,
       "location": "repository-v3.ts, TaskRepository.findAll and TaskRepository.findById methods",
       "spec_reference": "spec-v3.md Section 11.1: 'Repository layer must enforce encapsulation. Callers must not be able to mutate stored state without going through repository methods.'",
-      "code_behavior": "TaskRepository.findAll() returns `Array.from(this.tasks.values())` which creates a new array but the task objects inside are still the same references. TaskRepository.findById() returns the direct Map entry. Callers that mutate the returned task objects (e.g., `task.status = 'done'`) bypass all validation, index maintenance, and audit logging. The methods should return deep copies or frozen objects.",
+      "code_behavior": "TaskRepository.findAll() filters the Map into a new array, but the task objects inside are still the same references. TaskRepository.findById() returns the direct Map entry. Callers that mutate the returned task objects (e.g., `task.status = 'done'`) bypass all validation, index maintenance, and audit logging. The methods should return deep copies or frozen objects.",
       "cross_file_notes": "D9 (Map-based store) is adjacent and looks like an architectural problem but is an acceptable in-memory implementation pattern.",
       "adjacent_decoys": ["D9"]
     },
@@ -177,12 +178,12 @@
       "is_bug": true,
       "domain": "architecture",
       "category": "test-suite blind spot",
-      "summary": "Test suite has 0 tests for webhook endpoint — 62 tests, none for POST /webhooks or delivery",
+      "summary": "Test suite has 0 tests for webhook endpoint — 66 tests, none for POST /webhooks or delivery",
       "difficulty": "very_hard",
       "expected_single_reviewer_rate": 0.25,
       "location": "tests-v3.md, test listing (absence of webhook tests)",
       "spec_reference": "spec-v3.md Section 7: Webhooks (entire section — registration, delivery, retry, payload) has no test coverage",
-      "code_behavior": "The test suite lists 62 tests covering all CRUD endpoints, validation, error handling, rate limiting, and bulk operations — but zero tests for POST /webhooks/register, webhook delivery, retry behavior, or payload format. This blind spot means B2 (retry counter reset) and B11 (missing changed_fields) are untestable in CI. The test summary does not mention webhook coverage gaps.",
+      "code_behavior": "The test suite lists 66 tests covering CRUD, validation, error handling, rate limiting, bulk operations, body parsing, audit entries, and CORS preflight — but zero tests for POST /webhooks/register, webhook delivery, retry behavior, or payload format. This blind spot means B2 (retry counter reset) and B11 (missing changed_fields) are untestable in CI. The test summary does not mention webhook coverage gaps.",
       "cross_file_notes": "D13 (mock clock usage) is adjacent — it looks like suspicious test infrastructure but is correct practice for time-dependent tests.",
       "adjacent_decoys": ["D13"]
     },
@@ -192,10 +193,10 @@
       "is_bug": false,
       "domain": "security",
       "category": "correct implementation (token validation)",
-      "summary": "Auth middleware rejects tokens shorter than 10 characters — correct minimum-length guard",
+      "summary": "Auth middleware rejects an empty bearer token before signature verification",
       "adjacent_to_bug": "B5",
-      "why_it_looks_suspicious": "The 10-character minimum looks like an arbitrary magic number. A reviewer might think this is too short to be meaningful security or that the check is in the wrong place (before vs after signature verification). It's adjacent to B5's resource-existence leak, so a reviewer finding B5 may over-scrutinize the entire auth block.",
-      "why_its_correct": "The 10-char check is a fast-reject guard that prevents feeding obviously invalid tokens to the expensive signature verification step. The spec does not mandate a minimum token length, so this is a valid implementation choice. The check does not bypass full validation."
+      "why_it_looks_suspicious": "The empty-token check runs before cryptographic verification. A reviewer finding B5's authentication leak may over-scrutinize every early auth branch or claim that signature verification should handle empty input.",
+      "why_its_correct": "An empty bearer credential is malformed and cannot contain a signed payload. Rejecting it immediately with TOKEN_INVALID is consistent with the spec's malformed-token response and does not bypass validation of nonempty tokens."
     },
     "D2": {
       "id": "D2",
@@ -282,10 +283,10 @@
       "is_bug": false,
       "domain": "performance",
       "category": "correct implementation (timestamp format)",
-      "summary": "Audit log timestamps use server time (Date.now()) — correct, UTC by default in Node.js",
+      "summary": "Audit log timestamps use new Date().toISOString() — correct UTC ISO-8601 format",
       "adjacent_to_bug": "B8",
-      "why_it_looks_suspicious": "Adjacent to B8's synchronous audit log bug. A reviewer finding B8 may scrutinize the entire audit log function and flag Date.now() as non-UTC or non-ISO-8601.",
-      "why_its_correct": "Date.now() returns Unix epoch milliseconds (always UTC). new Date(Date.now()).toISOString() produces a valid ISO-8601 string in UTC. The spec requires ISO-8601 timestamps; this is correct."
+      "why_it_looks_suspicious": "Adjacent to B8's synchronous audit log bug. A reviewer finding B8 may scrutinize the entire audit log function and flag server-clock timestamps as local time or non-ISO-8601.",
+      "why_its_correct": "new Date().toISOString() produces a valid ISO-8601 timestamp in UTC. The spec requires ISO-8601 timestamps; this is correct."
     },
     "D11": {
       "id": "D11",
@@ -371,7 +372,7 @@
     "B2": { "adjacent_decoys": ["D5"], "notes": "D5 (fire-and-forget) is in the same webhook delivery function as the retry counter reset bug" },
     "B3": { "adjacent_decoys": ["D14"], "notes": "D14 (empty array for out-of-range page) is in the same pagination block" },
     "B4": { "adjacent_decoys": ["D2"], "notes": "D2 (in-memory store) is in the same rate limiter function as the key derivation bug" },
-    "B5": { "adjacent_decoys": ["D1", "D12"], "notes": "D1 (token length) and D12 (admin scope) are in the same auth middleware block" },
+    "B5": { "adjacent_decoys": ["D1", "D12"], "notes": "D1 (empty bearer token) and D12 (admin scope) are in the same auth middleware block" },
     "B6": { "adjacent_decoys": ["D6"], "notes": "D6 (204 preflight) is in the same CORS middleware function" },
     "B7": { "adjacent_decoys": ["D4"], "notes": "D4 (type assertion in sort) is in the same repository file as the index-bypass bug" },
     "B8": { "adjacent_decoys": ["D10", "D15"], "notes": "D10 (timestamp format) and D15 (user agent logging) are in the same audit log function" },

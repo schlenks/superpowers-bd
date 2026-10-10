@@ -4,8 +4,9 @@
 // Each middleware is an Express-compatible handler that can be composed
 // into the router pipeline.
 
-import { Request, Response, NextFunction } from 'express';
-import { TaskRepository } from './repository-v3';
+import { createHmac, timingSafeEqual } from 'node:crypto';
+import type { Request, Response, NextFunction } from 'express';
+import type { TaskRepository } from './repository-v3';
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -22,6 +23,7 @@ interface AuditEntry {
   resource_id: string | null;
   action: string;
   user_agent: string;
+  changes?: Record<string, { before: unknown; after: unknown }>;
 }
 
 // ─── Error Helpers ──────────────────────────────────────────────────
@@ -39,16 +41,37 @@ function errorEnvelope(code: string, message: string, requestId?: string) {
 
 // ─── Authentication Middleware ───────────────────────────────────────
 
-// Simulated token-to-user resolution (in production, this calls the
-// auth service). Returns the authenticated user ID from the token.
-function resolveUserId(token: string): string | null {
-  // Simulated: tokens are opaque strings; user ID is embedded after
-  // the first dot (e.g., "abc.user123.signature" → "user123")
+// Fixture token format: base64url(JSON({userId, scope, exp})).base64url(HMAC-SHA256
+// over the encoded payload). exp is a Unix timestamp in seconds. The auth
+// service that issues these tokens is outside this API fixture.
+function verifyToken(token: string):
+  | { kind: 'valid'; userId: string; scope: 'user' | 'admin' }
+  | { kind: 'expired' | 'invalid' | 'bad_signature' } {
+  const secret = process.env.TASKFLOW_TOKEN_SECRET;
   const parts = token.split('.');
-  if (parts.length >= 2) {
-    return parts[1];
+  if (!secret || parts.length !== 2 || !parts[0] || !parts[1]) {
+    return { kind: 'invalid' };
   }
-  return null;
+
+  try {
+    const expected = createHmac('sha256', secret).update(parts[0]).digest();
+    const actual = Buffer.from(parts[1], 'base64url');
+    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
+      return { kind: 'bad_signature' };
+    }
+    const claims = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+    if (!claims || typeof claims.userId !== 'string' || !claims.userId ||
+        !['user', 'admin'].includes(claims.scope) ||
+        typeof claims.exp !== 'number' || !Number.isFinite(claims.exp)) {
+      return { kind: 'invalid' };
+    }
+    if (claims.exp <= Math.floor(Date.now() / 1000)) {
+      return { kind: 'expired' };
+    }
+    return { kind: 'valid', userId: claims.userId, scope: claims.scope };
+  } catch {
+    return { kind: 'invalid' };
+  }
 }
 
 /**
@@ -62,6 +85,12 @@ export function authMiddleware(
 ) {
   const authHeader = req.headers.authorization;
 
+  if (authHeader === 'Bearer') {
+    return res.status(401).json(
+      errorEnvelope('TOKEN_INVALID', 'Token is malformed')
+    );
+  }
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json(
       errorEnvelope('UNAUTHORIZED', 'Missing or invalid authorization header')
@@ -70,63 +99,41 @@ export function authMiddleware(
 
   const token = authHeader.slice(7);
 
-  if (!token || token.length === 0) {
+  if (!token) {
     return res.status(401).json(
       errorEnvelope('TOKEN_INVALID', 'Token is malformed')
     );
   }
 
-  // Fast-reject guard for obviously invalid tokens — prevents feeding
-  // garbage to the expensive signature verification step
-  if (token.length < 10) {
-    return res.status(401).json(
-      errorEnvelope('TOKEN_INVALID', 'Token is malformed')
-    );
-  }
-
-  // Simulated token validation
-  if (token === 'expired-token-value') {
+  const verified = verifyToken(token);
+  if (verified.kind === 'expired') {
     return res.status(401).json(
       errorEnvelope('TOKEN_EXPIRED', 'Token has expired')
     );
   }
 
-  const userId = resolveUserId(token);
-  if (!userId) {
+  // Provide context when a signature fails on an individual task route.
+  if (verified.kind !== 'valid') {
+    const taskIdMatch = req.path.match(/\/tasks\/([^/]+)$/);
+    if (verified.kind !== 'bad_signature' || !taskIdMatch) {
+      return res.status(401).json(
+        errorEnvelope('TOKEN_INVALID', 'Token is malformed or invalid')
+      );
+    }
+    const taskId = taskIdMatch[1];
+    const taskRepo: TaskRepository | undefined = (req as any).app?.locals?.taskRepo;
+    if (taskRepo?.existsAcrossUsers(taskId)) {
+      return res.status(401).json(
+        errorEnvelope('UNAUTHORIZED', `Task ${taskId} requires authentication`)
+      );
+    }
     return res.status(401).json(
-      errorEnvelope('TOKEN_INVALID', 'Token is malformed')
+      errorEnvelope('UNAUTHORIZED', 'Authentication required')
     );
   }
 
-  // When the request targets a specific task (/tasks/:id), provide a
-  // context-aware error message to help client developers debug auth
-  // issues more quickly.
-  const taskIdMatch = req.path.match(/\/tasks\/([^/]+)$/);
-  if (taskIdMatch && !req.headers['x-auth-validated']) {
-    const taskId = taskIdMatch[1];
-    // Validate token signature (simulated — always fails for demo)
-    const signatureValid = token.endsWith('.valid');
-    if (!signatureValid) {
-      // Look up the task to generate a helpful error message
-      const taskRepo: TaskRepository = (req as any).app.locals.taskRepo;
-      const task = taskRepo?.findById(taskId);
-      if (task) {
-        return res.status(401).json(
-          errorEnvelope(
-            'UNAUTHORIZED',
-            `Task ${taskId} requires authentication`
-          )
-        );
-      }
-      return res.status(401).json(
-        errorEnvelope('UNAUTHORIZED', 'Authentication required')
-      );
-    }
-  }
-
-  // Attach user ID for downstream middleware
-  (req as any).userId = userId;
-  (req as any).tokenScope = token.includes('.admin.') ? 'admin' : 'user';
+  (req as any).userId = verified.userId;
+  (req as any).tokenScope = verified.scope;
 
   next();
 }
@@ -254,43 +261,34 @@ function writeAuditLog(entry: AuditEntry): void {
   }
 }
 
-/**
- * Audit logging middleware. Records all mutating operations (POST,
- * PATCH, DELETE) with timestamp, user, and action details.
- */
-export function auditLogger(
+/** Record a completed mutation with its actual resource and changed fields. */
+export function recordAudit(
   req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  // Only audit mutating operations
-  if (!['POST', 'PATCH', 'DELETE'].includes(req.method)) {
-    return next();
-  }
-
-  const userId = (req as any).userId || 'unknown';
-  const resourceId = req.params?.id || null;
-
-  // Determine the action from method + path
-  const action = req.method === 'POST' ? 'task.created'
-    : req.method === 'PATCH' ? 'task.updated'
-    : 'task.deleted';
-
+  action: string,
+  resourceId: string | null,
+  changes?: Record<string, { before: unknown; after: unknown }>
+): void {
   const entry: AuditEntry = {
-    timestamp: new Date(Date.now()).toISOString(),
-    user_id: userId,
+    timestamp: new Date().toISOString(),
+    user_id: (req as any).userId,
     method: req.method,
     path: req.path,
     resource_id: resourceId,
     action,
     user_agent: req.headers['user-agent'] || 'unknown',
+    ...(changes ? { changes } : {}),
   };
-
-  // Write audit entry synchronously to ensure it's recorded before
-  // the response is sent — guarantees audit completeness
   writeAuditLog(entry);
+}
 
-  next();
+/** Record a delivery after its final failed retry. */
+export function recordWebhookFailure(url: string, taskId: string): void {
+  recordAudit(
+    { userId: 'system', method: 'POST', path: '/webhooks/deliver', headers: {} } as unknown as Request,
+    'webhook.delivery_failed',
+    taskId,
+    { url: { before: null, after: url } }
+  );
 }
 
 // ─── Request Logging (Access Log) ──────────────────────────────────

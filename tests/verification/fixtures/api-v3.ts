@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import {
   validateTitle,
+  validateDescription,
   validatePriority,
   validateDueDate,
   validateStatus,
@@ -16,17 +17,37 @@ import {
   requireAdminScope,
   rateLimiter,
   corsMiddleware,
-  auditLogger,
+  recordAudit,
+  recordWebhookFailure,
   requestLogger,
 } from './middleware-v3';
 
 const router = express.Router();
 const taskRepo = new TaskRepository();
 
-// ─── Body Size Limit ────────────────────────────────────────────────
+// ─── Middleware Pipeline ────────────────────────────────────────────
 
-// Allow the largest valid 100-item bulk update, including descriptions
-// that expand when JSON-escaped. Keep a finite cap for oversized bodies.
+router.use(requestLogger);
+// Responses without an authenticated user still expose the documented
+// rate-limit header shape. The per-credential limiter replaces these values
+// after authentication.
+router.use((_req: Request, res: Response, next: NextFunction) => {
+  res.set('X-RateLimit-Limit', '120');
+  res.set('X-RateLimit-Remaining', '120');
+  res.set('X-RateLimit-Reset', String(Math.ceil((Date.now() + 60_000) / 1000)));
+  next();
+});
+router.use(corsMiddleware);
+// Make task repo available to middleware, including auth's task lookup.
+router.use((req: Request, _res: Response, next: NextFunction) => {
+  (req as any).app.locals.taskRepo = taskRepo;
+  next();
+});
+router.use(authMiddleware);
+router.use(rateLimiter);
+router.post('/webhooks/register', requireAdminScope);
+// Parse only authenticated requests. The cap accepts a valid 100-item bulk
+// update, including descriptions that expand when JSON-escaped.
 router.use(express.json({ limit: '2mb' }));
 router.use((
   err: Error & { type?: string },
@@ -38,21 +59,12 @@ router.use((
     res.status(413).json(errorEnvelope('PAYLOAD_TOO_LARGE', 'Request body exceeds size limit'));
     return;
   }
+  if (err.type === 'entity.parse.failed') {
+    res.status(400).json(errorEnvelope('VALIDATION_ERROR', 'Malformed JSON request body'));
+    return;
+  }
   next(err);
 });
-
-// ─── Middleware Pipeline ────────────────────────────────────────────
-
-router.use(requestLogger);
-router.use(corsMiddleware);
-// Make task repo available to middleware, including auth's task lookup.
-router.use((req: Request, _res: Response, next: NextFunction) => {
-  (req as any).app.locals.taskRepo = taskRepo;
-  next();
-});
-router.use(authMiddleware);
-router.use(rateLimiter);
-router.use(auditLogger);
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -79,12 +91,30 @@ function errorEnvelope(code: string, message: string, requestId?: string) {
 }
 
 /**
- * Strip internal fields (deleted_at) from task objects before sending
+ * Strip internal fields from task objects before sending
  * in API responses.
  */
-function stripInternalFields(task: Task): Omit<Task, 'deleted_at'> {
-  const { deleted_at, ...rest } = task;
+function stripInternalFields(task: Task): Omit<Task, 'deleted_at' | 'owner_id'> {
+  const { deleted_at, owner_id, ...rest } = task;
   return rest;
+}
+
+function authenticatedUserId(req: Request): string {
+  return (req as any).userId as string;
+}
+
+function changedValues(
+  before: Task,
+  after: Task
+): Record<string, { before: unknown; after: unknown }> {
+  const changes: Record<string, { before: unknown; after: unknown }> = {};
+  for (const field of Object.keys(before)) {
+    if (field === 'id' || field === 'owner_id') continue;
+    const oldValue = (before as any)[field];
+    const newValue = (after as any)[field];
+    if (oldValue !== newValue) changes[field] = { before: oldValue, after: newValue };
+  }
+  return changes;
 }
 
 // ─── Webhook Types ──────────────────────────────────────────────────
@@ -177,14 +207,26 @@ function buildCursorResponse(
 }
 
 function handleGetTasks(req: Request, res: Response): void {
-  const page = Math.max(1, parseInt(req.query.page as string) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+  const userId = authenticatedUserId(req);
+  const rawPage = req.query.page;
+  const rawLimit = req.query.limit;
+  if ((rawPage !== undefined && (typeof rawPage !== 'string' || !/^[1-9]\d*$/.test(rawPage) || !Number.isSafeInteger(Number(rawPage)))) ||
+      (rawLimit !== undefined && (typeof rawLimit !== 'string' || !/^[1-9]\d*$/.test(rawLimit) || !Number.isSafeInteger(Number(rawLimit))))) {
+    res.status(400).json(errorEnvelope('VALIDATION_ERROR', 'page and limit must be positive integers'));
+    return;
+  }
+  const page = rawPage === undefined ? 1 : Number(rawPage);
+  const limit = Math.min(100, rawLimit === undefined ? 20 : Number(rawLimit));
   const status = req.query.status as string | undefined;
-  const sort = (req.query.sort as string) || 'createdAt';
-  const order = ((req.query.order as string) || 'desc') as 'asc' | 'desc';
+  const sort = req.query.sort === undefined ? 'createdAt' : req.query.sort as string;
+  const order = req.query.order === undefined ? 'desc' : req.query.order as string;
+  if (order !== 'asc' && order !== 'desc') {
+    res.status(400).json(errorEnvelope('VALIDATION_ERROR', 'order must be asc or desc'));
+    return;
+  }
 
   // Validate status filter if provided
-  if (status) {
+  if (status !== undefined) {
     const statusResult = validateStatus(status);
     if (!statusResult.valid) {
       res.status(400).json(errorEnvelope('VALIDATION_ERROR', statusResult.message!));
@@ -193,7 +235,7 @@ function handleGetTasks(req: Request, res: Response): void {
   }
 
   // Validate sort field
-  if (req.query.sort) {
+  if (req.query.sort !== undefined) {
     const sortResult = validateSortField(sort);
     if (!sortResult.valid) {
       res.status(400).json(errorEnvelope('VALIDATION_ERROR', sortResult.message!));
@@ -202,9 +244,9 @@ function handleGetTasks(req: Request, res: Response): void {
   }
 
   // Fetch tasks — use status filter if provided
-  const tasks: Task[] = status
-    ? taskRepo.findByStatus(status)
-    : taskRepo.findAll();
+  const tasks: Task[] = status !== undefined
+    ? taskRepo.findByStatus(status, userId)
+    : taskRepo.findAll(userId);
 
   // Map sort field names to task property names
   const sortKey = sort === 'priority' ? 'priority'
@@ -243,6 +285,13 @@ function validateCreateFields(body: any): {
     return { valid: false, errorCode: 'VALIDATION_ERROR', errorMessage: titleResult.message! };
   }
 
+  if (body.description !== undefined) {
+    const descriptionResult = validateDescription(body.description);
+    if (!descriptionResult.valid) {
+      return { valid: false, errorCode: 'VALIDATION_ERROR', errorMessage: descriptionResult.message! };
+    }
+  }
+
   if (body.priority !== undefined) {
     const priorityResult = validatePriority(body.priority);
     if (!priorityResult.valid) {
@@ -268,9 +317,11 @@ function validateCreateFields(body: any): {
 }
 
 function handleCreateTask(req: Request, res: Response): void {
-  const { description, priority, due_date, status } = req.body;
+  const userId = authenticatedUserId(req);
+  const body = req.body ?? {};
+  const { description, priority, due_date, status } = body;
 
-  const validation = validateCreateFields(req.body);
+  const validation = validateCreateFields(body);
   if (!validation.valid) {
     res.status(400).json(errorEnvelope(validation.errorCode!, validation.errorMessage!));
     return;
@@ -280,6 +331,7 @@ function handleCreateTask(req: Request, res: Response): void {
   // duplicate titles
 
   const task = taskRepo.create({
+    owner_id: userId,
     title: validation.titleTrimmed!,
     description: description || null,
     status: status || 'todo',
@@ -289,6 +341,7 @@ function handleCreateTask(req: Request, res: Response): void {
 
   // Fire webhooks for task.created event
   fireWebhooks('task.created', task, ['title', 'status', 'priority']);
+  recordAudit(req, 'task.created', task.id);
 
   res.status(201).json(envelope(stripInternalFields(task)));
 }
@@ -310,6 +363,13 @@ function validateUpdateFields(body: any): {
     const titleResult = validateTitle(body.title);
     if (!titleResult.valid) {
       return { valid: false, errorCode: 'VALIDATION_ERROR', errorMessage: titleResult.message! };
+    }
+  }
+
+  if (body.description !== undefined) {
+    const descriptionResult = validateDescription(body.description);
+    if (!descriptionResult.valid) {
+      return { valid: false, errorCode: 'VALIDATION_ERROR', errorMessage: descriptionResult.message! };
     }
   }
 
@@ -342,16 +402,18 @@ function validateUpdateFields(body: any): {
 }
 
 function handleUpdateTask(req: Request, res: Response): void {
-  const task = taskRepo.findById(req.params.id);
+  const userId = authenticatedUserId(req);
+  const task = taskRepo.findById(req.params.id, userId);
 
   if (!task) {
     res.status(404).json(errorEnvelope('NOT_FOUND', `Task ${req.params.id} not found`));
     return;
   }
 
-  const { title, description, priority, due_date, status } = req.body;
+  const body = req.body ?? {};
+  const { title, description, priority, due_date, status } = body;
 
-  const validation = validateUpdateFields(req.body);
+  const validation = validateUpdateFields(body);
   if (!validation.valid) {
     res.status(400).json(errorEnvelope(validation.errorCode!, validation.errorMessage!));
     return;
@@ -365,7 +427,8 @@ function handleUpdateTask(req: Request, res: Response): void {
   if (due_date !== undefined) changedFields.push('due_date');
   if (status !== undefined) changedFields.push('status');
 
-  const updated = taskRepo.update(req.params.id, {
+  const before = { ...task };
+  const updated = taskRepo.update(req.params.id, userId, {
     title: validation.titleTrimmed,
     description,
     priority,
@@ -380,6 +443,7 @@ function handleUpdateTask(req: Request, res: Response): void {
 
   // Fire webhooks for task.updated event
   fireWebhooks('task.updated', updated, changedFields);
+  recordAudit(req, 'task.updated', updated.id, changedValues(before, updated));
 
   res.json(envelope(stripInternalFields(updated)));
 }
@@ -395,18 +459,20 @@ router.patch('/tasks/:id', handleUpdateTask);
 // Soft-delete: marks the task with a deleted_at timestamp rather than
 // removing it from the store. Excluded from all list operations.
 function handleDeleteTask(req: Request, res: Response): void {
-  const task = taskRepo.findById(req.params.id);
+  const userId = authenticatedUserId(req);
+  const task = taskRepo.findById(req.params.id, userId);
 
   if (!task) {
     res.status(404).json(errorEnvelope('NOT_FOUND', `Task ${req.params.id} not found`));
     return;
   }
 
-  const deleted = taskRepo.delete(req.params.id);
+  const deleted = taskRepo.delete(req.params.id, userId);
 
   if (deleted) {
     // Fire webhooks for task.deleted event
     fireWebhooks('task.deleted', task, []);
+    recordAudit(req, 'task.deleted', task.id);
   }
 
   res.json(envelope({ deleted: true, id: req.params.id }));
@@ -430,6 +496,15 @@ function validateBulkUpdateItem(fields: any): string | null {
   if (fields.priority !== undefined) {
     const priorityResult = validatePriority(fields.priority);
     if (!priorityResult.valid) return 'VALIDATION_ERROR';
+  }
+
+  if (fields.description !== undefined && !validateDescription(fields.description).valid) {
+    return 'VALIDATION_ERROR';
+  }
+
+  if (fields.due_date !== undefined && fields.due_date !== null &&
+      !validateDueDate(fields.due_date).valid) {
+    return 'VALIDATION_ERROR';
   }
 
   if (fields.status !== undefined) {
@@ -476,7 +551,8 @@ function applyBulkFieldUpdates(task: Task, fields: any): void {
 }
 
 function handleBulkUpdate(req: Request, res: Response): void {
-  const { updates } = req.body;
+  const userId = authenticatedUserId(req);
+  const { updates } = req.body ?? {};
 
   if (!Array.isArray(updates)) {
     res.status(400).json(errorEnvelope('VALIDATION_ERROR', 'updates must be an array'));
@@ -494,6 +570,10 @@ function handleBulkUpdate(req: Request, res: Response): void {
   const failed: Array<{ id: string; error: string }> = [];
 
   for (const update of updates) {
+    if (!update || typeof update !== 'object' || Array.isArray(update)) {
+      failed.push({ id: 'unknown', error: 'VALIDATION_ERROR' });
+      continue;
+    }
     const { id, ...fields } = update;
 
     if (!id) {
@@ -501,7 +581,7 @@ function handleBulkUpdate(req: Request, res: Response): void {
       continue;
     }
 
-    const task = taskRepo.findById(id);
+    const task = taskRepo.findById(id, userId);
     if (!task) {
       failed.push({ id, error: 'NOT_FOUND' });
       continue;
@@ -514,7 +594,11 @@ function handleBulkUpdate(req: Request, res: Response): void {
     }
 
     // Process each field in the update object
+    const before = { ...task };
     applyBulkFieldUpdates(task, fields);
+    const changes = changedValues(before, task);
+    fireWebhooks('task.updated', task, Object.keys(changes));
+    recordAudit(req, 'task.updated', task.id, changes);
     updatedCount++;
   }
 
@@ -524,7 +608,8 @@ function handleBulkUpdate(req: Request, res: Response): void {
 // ─── DELETE /tasks/bulk ─────────────────────────────────────────────
 
 function handleBulkDelete(req: Request, res: Response): void {
-  const { ids } = req.body;
+  const userId = authenticatedUserId(req);
+  const { ids } = req.body ?? {};
 
   if (!Array.isArray(ids)) {
     res.status(400).json(errorEnvelope('VALIDATION_ERROR', 'ids must be an array'));
@@ -543,9 +628,16 @@ function handleBulkDelete(req: Request, res: Response): void {
   const errors: string[] = [];
 
   for (const id of ids) {
-    const success = taskRepo.delete(id);
+    if (typeof id !== 'string') {
+      errors.push(String(id));
+      continue;
+    }
+    const task = taskRepo.findById(id, userId);
+    const success = taskRepo.delete(id, userId);
     if (success) {
       deletedCount++;
+      if (task) fireWebhooks('task.deleted', task, []);
+      recordAudit(req, 'task.deleted', id);
     } else {
       errors.push(id);
     }
@@ -564,7 +656,7 @@ function handleBulkDelete(req: Request, res: Response): void {
 // ─── POST /webhooks/register ────────────────────────────────────────
 
 function handleWebhookRegister(req: Request, res: Response): void {
-  const { url, events } = req.body;
+  const { url, events } = req.body ?? {};
 
   // Validate URL
   const urlResult = validateWebhookUrl(url);
@@ -588,11 +680,12 @@ function handleWebhookRegister(req: Request, res: Response): void {
   };
 
   webhookSubscriptions.set(subscription.webhook_id, subscription);
+  recordAudit(req, 'webhook.registered', subscription.webhook_id);
 
   res.status(201).json(envelope(subscription));
 }
 
-router.post('/webhooks/register', requireAdminScope, handleWebhookRegister);
+router.post('/webhooks/register', handleWebhookRegister);
 
 // ─── Webhook Delivery ───────────────────────────────────────────────
 
@@ -626,7 +719,7 @@ async function deliverWebhook(
   const backoffMs = [1000, 2000, 4000];
   let retryCount = 0;
 
-  while (retryCount < maxRetries) {
+  while (retryCount <= maxRetries) {
     try {
       const response = await fetch(url, {
         method: 'POST',
@@ -651,19 +744,20 @@ async function deliverWebhook(
 
       // Server error — increment retry count with backoff
       retryCount++;
-      if (retryCount < maxRetries) {
+      if (retryCount <= maxRetries) {
         await sleep(backoffMs[retryCount - 1]);
       }
     } catch (err) {
       // Network error — increment retry count
       retryCount++;
-      if (retryCount < maxRetries) {
+      if (retryCount <= maxRetries) {
         await sleep(backoffMs[retryCount - 1]);
       }
     }
   }
 
   console.error(`[webhook] Delivery failed to ${url} after ${maxRetries} retries`);
+  recordWebhookFailure(url, String(payload.task_id));
 }
 
 /**
