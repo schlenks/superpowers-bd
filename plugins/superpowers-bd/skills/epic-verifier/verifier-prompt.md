@@ -22,13 +22,15 @@ Agent tool:
     ## Rulings and Deferred Items
 
     Run `bd comments {epic_id} --json` and collect `[RULING]` and `[DEFERRED]`
-    comments. They are context, not failures:
+    comments:
     - A `[RULING]` amends the requirement it names. Judge Plan Drift against
       the amended requirement; implementing the ruling is not drift.
-    - A `[DEFERRED]` item is a recorded, out-of-scope follow-up from a fix-round
-      re-review. List it under the verdict; do not fail a check for it.
-    Neither excuses a security defect or a failing acceptance criterion: those
-    still FAIL their check.
+    - A `[DEFERRED]` item was out of scope for a fix-round re-review only. It
+      is not accepted for the epic: evaluate each one yourself. A correctness,
+      data-integrity or security defect, or a test/build failure, FAILs the
+      matching check. A style or maintainability item may pass with a note
+      under the verdict.
+    A ruling never excuses a security defect or a failing acceptance criterion.
 
     ## Git Context
 

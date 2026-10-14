@@ -38,13 +38,20 @@ Three fixers, one of them stronger, failed on a load-bearing finding, so the pla
 
 ## Spec Dispute During a Fix Round
 
-A fixer that refuses a finding because it contradicts the spec returns DONE_WITH_CONCERNS naming the requirement. Rule on it at once, using the authority order in `rulings-and-escalation.md`. The dispute does not use up a round:
+A fixer that refuses a finding because it contradicts the spec returns DONE_WITH_CONCERNS naming the requirement. Rule on every disputed finding in that verdict before routing, using the authority order in `rulings-and-escalation.md`. Disputes do not use up a round:
 
 ```
-ruling = rule(task_id, decision="keep spec, drop F<n>" | "apply F<n>", why, cost_if_wrong)
-if ruling drops the finding: remove it from the open findings; re-review the rest
-else: send the ruling to the same implementer in the same round R (resume, or fallback)
+for each disputed F<n>:
+    ruling = rule(task_id, decision="keep spec, drop F<n>" | "apply F<n>", why, cost_if_wrong)
+    if ruling drops the finding: remove it from the open findings
+if any ruling says "apply": send those rulings to the same implementer in the same round R
+                            (resume, or fallback); re-review all open findings after it returns
+elif no open findings remain: skip the re-review; route as passed
+                            (spec phase -> code review; otherwise gap closure and close)
+else: re-review the remaining findings
 ```
+
+Other concerns in the fixer's verdict (not spec disputes) are observations for the `[WAVE-SUMMARY]` Notes. They are not NOT_ADDRESSED and use no round; only the re-reviewer decides whether a finding was addressed.
 
 ## Implementer BLOCKED
 
@@ -224,7 +231,7 @@ When the orchestrator sees `<sdd-checkpoint-recovery>` in session context, or fi
 5. Check for in_progress tasks: bd show {epic_id}
    for each in_progress task:
        if checkpoint.fix_loop has it:      # mid fix loop (checkpoint-recovery.md)
-           resume implementer_agent_id at its fix_round (fallback if it can't be messaged)
+           restore its pending gate, round unchanged (checkpoint-recovery.md Recovery Logic step 4)
        else:
            bd update --status=open {task_id}  # reset interrupted wave
 6. Resume from LOADING at wave {wave_completed + 1}

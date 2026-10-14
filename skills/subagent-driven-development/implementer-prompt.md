@@ -138,6 +138,9 @@ Codex currently uses the default worker for implementation because this reposito
        `[RULING]`, the epic's Key Decisions or its `Spec:`) is not applied.
        Leave that code as is and return DONE_WITH_CONCERNS naming the finding
        and the requirement it contradicts. The orchestrator rules on it.
+       Same for a finding that asks you to change a test you believe is right,
+       or a test you believe is wrong: per Test Integrity, report it as
+       DONE_WITH_CONCERNS with the evidence instead of working around it.
     3. Rerun the project test suite (Your Job step 4).
     4. Append `### Fix round R` to `temp/{issue_id}-impl.md`: commit, tests,
        and one line per finding (`F<n>: fixed — file:line` or

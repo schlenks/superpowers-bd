@@ -120,13 +120,14 @@ Codex SDD uses these agents for review, aggregation, and verification stages. Im
 
 When review finds Critical or Important issues, SDD sends them back to the implementer that wrote the code. The cap is 3 rounds per task:
 
-- **Rounds 1-2:** resume the original worker with the findings: `followup_task` (multi-agent V2, which also reloads an evicted child) or `send_input` (V1). Do not close an implementer (`close_agent`) before its task closes, or every later round falls back to a fresh dispatch.
+- **Rounds 1-2:** resume the original worker with the findings: `followup_task` (multi-agent V2; documented to reload an evicted child, not live-tested here) or `send_input` (V1). Do not close an implementer (`close_agent`) before its task closes, or every later round falls back to a fresh dispatch.
+- **Thread cap:** `.codex/config.toml` sets `max_threads = 3`, so open implementers can starve reviewer spawns. When `spawn_agent` hits the limit, close implementers of already-closed tasks first; as a last resort close an idle implementer waiting on review. Its next fix round uses the fresh-dispatch fallback, which counts as that round, not an extra one.
 - **Fallback:** if the worker can't be messaged, `spawn_agent` a fresh worker with the issue id, the latest `[IMPL-REPORT]` from `bd comments <issue-id> --json`, and the findings. It is the same round, not an extra one.
 - **Round 3:** a fresh worker one `model_reasoning_effort` step up.
-- **Re-review:** one `code_reviewer` with `skills/subagent-driven-development/re-review-prompt.md`, scoped to the fix diff. It does not rerun spec review or the full reviewer fan-out.
+- **Re-review:** one `code_reviewer` with `skills/subagent-driven-development/re-review-prompt.md` (several for a security or data-loss finding; see `budget-and-wave-cap.md`). It checks the findings in the fix diff, runs the whole suite and checks callers of changed symbols; it does not rerun spec review or the full reviewer fan-out.
 - **After round 3:** the orchestrator adjudicates with recorded rulings (`skills/subagent-driven-development/failure-recovery.md`).
 
-Neither `followup_task` nor `send_input` has been exercised live by this repository's tests; the fallback path covers a worker that rejects them.
+Neither `followup_task` nor `send_input` has been exercised live by this repository's tests; their behavior here is as documented by Codex, and the fallback path covers a worker that rejects them.
 
 ## Codex Model Inheritance
 

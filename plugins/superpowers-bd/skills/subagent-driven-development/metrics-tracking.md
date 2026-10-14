@@ -56,7 +56,7 @@ task_metrics[f"{issue_id}.agg"] = normalize_agent_metrics(aggregation_result)
 
 Retries append a unique attempt suffix rather than overwriting prior metrics.
 Fix rounds key by round: `"{issue_id}.fix.R"` for the fixer and
-`"{issue_id}.rereview.R"` for the re-reviewer. A resumed implementer's
+`"{issue_id}.rereview.R.n"` for re-reviewer n. A resumed implementer's
 completion may report cumulative usage for the whole session; record it as
 reported and do not subtract unless the earlier figure is known.
 

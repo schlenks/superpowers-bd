@@ -19,12 +19,13 @@ skills' authoring workflows and do not modify artifacts.
 Do not fix issues. Report them with file and line evidence so implementers can
 address them in a follow-up pass.
 
-Query `bd comments <epic-id> --json` and treat its `[RULING]` and `[DEFERRED]`
-comments as context, not failures. A ruling amends the requirement it names:
-judge plan drift against the amended requirement. A deferred item is a recorded,
-out-of-scope follow-up from a fix-round re-review: list it under the verdict
-without failing a check for it. Neither excuses a security defect or a failing
-acceptance criterion.
+Query `bd comments <epic-id> --json` for `[RULING]` and `[DEFERRED]` comments.
+A ruling amends the requirement it names: judge plan drift against the amended
+requirement, but a ruling never excuses a security defect or a failing
+acceptance criterion. A deferred item was out of scope for a fix-round
+re-review only, not accepted for the epic: evaluate each one yourself. A
+correctness, data-integrity or security defect, or a test or build failure,
+FAILs the matching check; a style or maintainability item may pass with a note.
 
 If the dispatch context includes a maintainability delta (output of
 `skills/epic-verifier/scripts/quality-delta.sh`), add a Maintainability row:

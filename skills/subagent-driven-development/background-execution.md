@@ -362,6 +362,8 @@ spawn_agent(
 
 When spec review FAILs, or code review ends with Critical or Important consensus findings (after aggregation when N > 1), the original implementer fixes them. Spec FAIL items count as Important. One cap of 3 rounds per task covers review findings and gap-closure fixes (`verification-and-evidence.md`). Minor findings never enter the loop: list them in the close reason.
 
+**Claude Code: load `SendMessage` first.** It is a deferred tool in current Claude Code. Load it once with `ToolSearch` (`select:SendMessage`) before the first resume. A schema or input-validation error from `SendMessage` means the tool is not loaded: load it and retry. It is not a reason to fall back.
+
 ```python
 FIX_ROUND_CAP = 3
 
@@ -373,32 +375,45 @@ def on_review_findings(agent_id, findings, phase):  # phase: "spec" | "code" | "
     # Spec FAIL items arrive as Important, verification failures as Critical.
     findings = [f for f in findings if f.severity in ("Critical", "Important")]
     if not findings:
-        return close_path(agent_id)               # verification-and-evidence.md
+        return route_as_passed(agent_id)
     if task["fix_round"] == FIX_ROUND_CAP:
         return adjudicate(task["issue_id"], findings)   # failure-recovery.md
     task["fix_round"] += 1
     task["review_phase"] = phase
     task["fix_base_sha"] = task["head_sha"]       # last reviewed commit
     task["open_findings"] = number_as_F1_to_Fn(findings)
-    write_checkpoint()                            # checkpoint-recovery.md fix_loop
+    send_round(agent_id)
 
-    message = fix_message(task)  # round R, findings F1..Fn, issue id; the
+def send_round(agent_id):
+    # Sends the CURRENT round; never increments. Checkpoint recovery calls this
+    # directly to re-send an interrupted round.
+    task = pending_tasks[agent_id]
+    task["fix_stage"] = "fixing"
+    message = fix_message(task)  # round R, F1..Fn, issue id, any rulings; the
                                  # implementer follows "After Review Findings"
     if task["fix_round"] <= 2 and resume(agent_id, message):
-        return                                    # completion arrives as usual
-    if task["fix_round"] <= 2:
-        dispatch_fresh_fix(agent_id, same_strength=True)  # fallback, same round
+        task["fix_path"] = "resume"
+        agent_id_now = agent_id
+    elif task["fix_round"] <= 2:
+        agent_id_now = dispatch_fresh_fix(agent_id, same_strength=True)  # fallback, same round
+        task["fix_path"] = "fallback"
     else:
-        dispatch_fresh_fix(agent_id, one_tier_up=True)    # round 3
+        agent_id_now = dispatch_fresh_fix(agent_id, one_tier_up=True)    # round 3
+        task["fix_path"] = "round3"
+    write_checkpoint()  # after the dispatch, so fix_loop names the live agent
+                        # (checkpoint-recovery.md)
 
 def resume(agent_id, message):
-    # Claude Code: SendMessage(to=agent_id, message=message). The agent resumes
-    #   from its transcript and its completion is delivered like the first one.
+    # Claude Code: SendMessage(to=agent_id, message=message), tool loaded first.
+    #   The agent resumes from its transcript, and its completion arrives as a
+    #   new task notification, like the first one (observed on every resume
+    #   in a real SDD epic).
     # Codex: followup_task(agent_id, message), or send_input(agent_id, message)
     #   on multi-agent V1.
-    # Returns False when the agent can't be messaged: you stopped it, it is an
-    # Explore/Plan agent, its transcript is gone, the send errors, or (Codex)
-    # it was closed.
+    # Returns False only when the agent can't be messaged: you stopped it, it
+    # is an Explore/Plan agent, its transcript is gone, or (Codex) it was
+    # closed. A schema/validation error is not one of these: load the tool,
+    # retry.
     ...
 
 def dispatch_fresh_fix(agent_id, same_strength=False, one_tier_up=False):
@@ -410,42 +425,64 @@ def dispatch_fresh_fix(agent_id, same_strength=False, one_tier_up=False):
     new_id = dispatch_implementer(..., fix_round=pending_tasks[agent_id]["fix_round"])
     pending_tasks[new_id] = pending_tasks.pop(agent_id)  # later rounds resume new_id
     pending_tasks[new_id]["implementer_agent_id"] = new_id
+    return new_id
 
 def on_fix_complete(agent_id, verdict):
     task = pending_tasks[agent_id]
-    disputed = spec_disputes(verdict.CONCERNS)    # "F2 contradicts requirement 1"
-    for finding in disputed:
-        # Rule at once, by the authority order in rulings-and-escalation.md.
-        # A dispute does not use up a round.
+    task["head_sha"] = verdict.COMMIT
+    applied = []
+    for finding in spec_disputes(verdict.CONCERNS):  # "F2 contradicts requirement 1"
+        # Rule on every dispute in the verdict before routing, by the
+        # authority order in rulings-and-escalation.md. No round is used.
         ruling = rule(task["issue_id"], finding)
         if ruling.keeps_spec:
             task["open_findings"].remove(finding)
         else:
-            resume_or_fallback(agent_id, ruling)  # same round R, then continue here
-            return
+            applied.append((finding, ruling))
+    task["observations"] += other_concerns(verdict.CONCERNS)
+    # Non-spec concerns are observations for the [WAVE-SUMMARY] Notes. They do
+    # not count as NOT_ADDRESSED and use no round; only the re-reviewer
+    # decides whether a finding was addressed.
+    if applied:
+        task["rulings_to_apply"] = applied  # fix_message carries them; all
+        return send_round(agent_id)       # open findings are re-reviewed later
+    if not task["open_findings"]:
+        return route_as_passed(agent_id)  # every finding dropped: no re-review
+    task["fix_stage"] = "awaiting_re_review"
+    write_checkpoint()
     dispatch_re_review(agent_id, task["fix_base_sha"], task["head_sha"],
                        task["open_findings"])     # re-review-prompt.md
 
-def on_re_review_complete(agent_id, verdict):
+def on_re_review_complete(agent_id, verdicts):
+    # One verdict, or several under the security carve-out: any NOT_ADDRESSED
+    # finding or NEW line from any re-reviewer fails the round.
     task = pending_tasks[agent_id]
-    if verdict.status == "PASS" and task["review_phase"] == "spec":
-        return on_spec_review_pass(agent_id, verdict)  # code review has not run yet
-    if verdict.status == "PASS":
-        return close_path(agent_id)               # gap closure, then bd close
-    findings = verdict.not_addressed + verdict.new_breakage
+    task["fix_stage"] = "re_reviewed"
+    if all(v.status == "PASS" for v in verdicts):
+        return route_as_passed(agent_id)
+    findings = union(v.not_addressed + v.new_breakage for v in verdicts)
     on_review_findings(agent_id, findings, task["review_phase"])  # next round, or adjudicate after R3
+
+def route_as_passed(agent_id):
+    task = pending_tasks[agent_id]
+    if task.get("review_phase") == "spec":
+        return on_spec_review_pass(agent_id, None)   # code review has not run yet
+    return close_path(agent_id)                      # gap closure, then bd close
 ```
 
-**Re-review dispatch.** One reviewer per round, using `re-review-prompt.md` (tier-default N for a security or data-loss finding; any FAIL fails the round):
+**Re-review dispatch.** Use `re-review-prompt.md`. How many re-reviewers, and on which model, is set once in `budget-and-wave-cap.md` Review Fan-Out by Complexity (one; the tier-default N on sonnet for a security or data-loss finding):
 
 - Claude Code: `Agent(subagent_type="general-purpose", model="sonnet" if complexity == "complex" and budget_tier != "pro/api" else "haiku", run_in_background=True)`.
 - Codex: `spawn_agent(agent="code_reviewer")` with the re-review prompt.
 
-Never rerun spec review, the N code reviewers, or aggregation for a fix round. The re-reviewer posts out-of-scope issues as `[DEFERRED]` comments, which never block the close.
+Never rerun spec review, the N code reviewers, or aggregation for a fix round. The re-reviewer posts out-of-scope issues as `[DEFERRED]` comments, which never block the close; the epic verifier evaluates them.
 
-**Codex:** do not close an implementer (`close_agent`) until its task closes or is adjudicated. A closed agent cannot take `followup_task` or `send_input`, so every later round would fall back to a fresh dispatch.
+**Codex: keep implementers open, within the thread cap.** Do not close an implementer (`close_agent`) until its task closes or is adjudicated: a closed agent cannot take `followup_task` or `send_input`. `.codex/config.toml` caps threads (`max_threads = 3` in this repository), so open implementers can starve reviewer spawns. When `spawn_agent` hits the thread limit:
 
-**Fallback check.** `resume` is attempted first in rounds 1 and 2. Fall back only when it fails, and record which path ran (`resume` or `fallback`) for the `[WAVE-SUMMARY]` Fix rounds line (`metrics-tracking.md`).
+1. close implementers whose tasks are already closed or adjudicated;
+2. as a last resort, close an idle implementer that is waiting on review. Its next fix round uses the fresh-dispatch fallback, and that fallback counts as that round, not an extra one.
+
+**Fallback check.** `resume` is attempted first in rounds 1 and 2. Fall back only when it fails, and record which path ran (`resume`, `fallback` or `round3`) for the `[WAVE-SUMMARY]` Fix rounds line (`metrics-tracking.md`).
 
 ## Claude Code: Codex Cross-Model Review Presentation
 

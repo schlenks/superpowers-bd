@@ -134,6 +134,7 @@ Wave 2: Only Task 3 is ready
 [Fallback fixer returns DONE_WITH_CONCERNS: "F2 contradicts requirement 3 (IDs stay uuid-v4)"]
   [RULING] hub-abc.3: keep uuid-v4, drop F2 — why: requirement 3 and Key Decisions — cost if wrong: one-line ID change
   The dispute uses no round; re-review R1 checks F1 only → PASS → bd close
+  (Had the ruling dropped every finding, there would be no re-review: route as passed.)
 [Post [WAVE-SUMMARY] (Fix rounds: hub-abc.3: 1 (R1 fallback) → PASS; Rulings: hub-abc.3: keep uuid-v4) → cleanup temp → retain receipt]
   Wave 2: 1 task closed (hub-abc.3), 62k known tokens, 0 metrics unavailable. No new conventions.
 
