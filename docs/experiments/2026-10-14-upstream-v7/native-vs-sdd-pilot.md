@@ -8,14 +8,14 @@ Bead `superpowers_bd-ugg.9`. This pilot checks the Native-mode risk named in `ex
 
 ## Verdict
 
-**GO.** Keep the handoff recommendation as it is: Native for epics of 5 or fewer issues, or for all-`complexity:simple` epics.
+**GO, provisional:** a GO on cost; this fixture does not establish that Native catches defects as well as SDD. Keep the handoff recommendation as it is: Native for epics of 5 or fewer issues, or for all-`complexity:simple` epics. The pilot supports the cost case and found no stall or missed defect. It does not test compaction on longer epics, or how well Native's review catches a defect that the pre-flight scan cannot see.
 
-- Native cost $1.69 per run on average, about a quarter of SDD's $6.54. It finished in about 5 minutes; SDD took 30.
-- Native shipped the planted defect fixed in 3 of 3 runs, and SDD in 1 of 1.
-- In all four runs, the Opus final review also found extra spec violations that no issue mentions, and the fix pass fixed them.
-- No run stalled, and every run ended `SDD-STATUS: COMPLETE`.
+- Native cost $1.69 per run on average (n=3), about a quarter of SDD's $6.54 (n=1, capped at $7, so a lower bound; Codex advisory cost not counted). Native finished in about 5 minutes; SDD took 30.
+- Native shipped the planted defect fixed in 3 of 3 runs, and SDD in 1 of 1. In all four runs the controller's pre-flight scan caught the defect from the spec before any code was written. So this fixture tested the pre-flight scan, not whether Native's single final review can replace SDD's per-issue reviews (see Limits).
+- In all four runs the Opus final review found extra spec violations that no issue mentions, and the fix pass fixed them. These findings are the only signal this pilot gives about the review layers.
+- No run stalled, and every run ended `SDD-STATUS: COMPLETE`. No run compacted or resumed, so neither was tested.
 
-This was a go, so no follow-up bead was filed. The limits below say how far the result reaches.
+Follow-up: `superpowers_bd-qto` (see Limits, "Next test").
 
 ## Method
 
@@ -80,7 +80,7 @@ The scripts, fixture and transcripts are scratch files outside the repo and are 
 
 ### SDD cost and dispatches
 
-- **Cost by model:** Opus $5.01 (the controller plus 2 Opus verifier runs), Sonnet $1.45, Haiku $0.09.
+- **Cost by model:** Opus $5.01 (the controller plus 2 Opus verifier runs), Sonnet $1.44, Haiku $0.08.
 - **Dispatches:**
   - 4 implementers;
   - 4 spec reviewers;
@@ -103,7 +103,7 @@ All four runs caught the defect in the same place: the controller's **pre-flight
   - the CLI tests only passed when run from the repo root.
 - The single fix pass fixed each one test-first.
 - SDD's verifier found the same class of issue and closed it through two gap-closure issues.
-- So on this fixture, Native's one final review matched what SDD's per-issue reviews plus verifier delivered.
+- So on this fixture, Native's one final review matched what SDD's per-issue reviews plus verifier delivered. That rests on SDD n=1, and that run's last re-verification was moved to Sonnet because of the budget cap.
 
 ### Things to know about the runs
 
@@ -116,6 +116,11 @@ All four runs caught the defect in the same place: the controller's **pre-flight
 - **The fixture cannot tell the review layers apart.** The implied defect was caught at pre-flight by both modes. That is good news for the ugg.8 pre-flight scan, but this pilot does not repeat upstream's finding that only a fresh Opus review catches the defect. The spec's wording ("never end with a Python traceback") is probably explicit enough for a careful controller to connect. A defect that only shows up when the code runs would be the stronger test.
 - **The sample is small.** SDD n=1 is a smoke result, not a distribution. Native n=3 is consistent: cost range $1.59–$1.75, all three caught.
 - **One small epic.** The fixture has 4 issues. It says nothing about compaction risk on longer epics, which is why the ≤5-issue threshold exists; the threshold is unchanged.
+- **The export predates later epic commits.** The plugin export at `7f0e4a1` predates `cfac41d`, `692597c` and `a686ed1`, which changed the TDD reference, the verifier's falsifiability lens, and the implementer and verifier prompts. Both arms use those prompts. The declared dependencies were all present, so the comparison stands, but "what ships" here means "as of `7f0e4a1`".
+- **Next test (`superpowers_bd-qto`):**
+  - Plant a defect the pre-flight scan cannot see from the bead text: one that only shows when the code runs, like the newline-in-path and closed-stdout cases that only the reviews found here. Or drop the "spec outranks issue text" Key Decision.
+  - Run at least 3 reps per arm, with SDD uncapped or under a higher cap.
+  - Include one run long enough to compact, so the ≤5-issue threshold and resume get tested.
 
 ## Spend
 
