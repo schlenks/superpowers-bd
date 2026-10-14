@@ -2,20 +2,20 @@
 
 ## Filtering to Current Epic
 
-`bd ready` returns ALL ready issues across all epics. Filter to current epic:
+`bd ready --exclude-label human` returns ALL ready non-question issues across all epics (question beads labeled `human` are never dispatched; see `rulings-and-escalation.md`). Filter to current epic:
 
 ```bash
 # Get epic's child issue IDs
 bd show <epic-id>  # Lists children like hub-abc.1, hub-abc.2, etc.
 
 # Only dispatch issues that are BOTH:
-# 1. In bd ready output
+# 1. In bd ready --exclude-label human output
 # 2. Children of current epic
 ```
 
 **Example:**
 ```
-bd ready shows: hub-abc.1, hub-abc.2, hub-xyz.1
+bd ready --exclude-label human shows: hub-abc.1, hub-abc.2, hub-xyz.1
 Current epic: hub-abc
 Filter to: hub-abc.1, hub-abc.2 (ignore hub-xyz.1)
 ```
@@ -169,7 +169,7 @@ Issue hub-abc.3 files: [auth.service.ts, models/index.ts]  ← CONFLICT with .1!
 - hub-abc.1 and hub-abc.3 → NOT safe (both touch models/index.ts)
 
 **Algorithm:**
-1. Get all ready issues from `bd ready`
+1. Get all ready issues from `bd ready --exclude-label human`
 2. **Filter to current epic's children only**
 3. Parse `## Files` section from each issue description
 4. Build file → issue mapping
@@ -195,7 +195,26 @@ Issue hub-abc.3 files: [auth.service.ts, models/index.ts]  ← CONFLICT with .1!
 
 **If ALL ready tasks conflict:** Dispatch only the lowest-numbered task. This degrades to sequential execution—correct but slower. Consider whether the epic's task decomposition should be revised.
 
-**Why defer instead of block?** Deferred issues aren't blocked by dependencies—they're just waiting to avoid merge conflicts. Once the current wave completes, re-check `bd ready` and they'll be dispatchable.
+**Why defer instead of block?** Deferred issues aren't blocked by dependencies—they're just waiting to avoid merge conflicts. Once the current wave completes, re-check `bd ready --exclude-label human` and they'll be dispatchable.
+
+## Micro-Task Batching
+
+After the conflict check, collapse a group of ready issues into one dispatch when ALL hold:
+
+- 3 or more ready issues, all `complexity:simple`;
+- file-disjoint: no shared file in their `## Files` sections (a missing `## Files` section disqualifies);
+- same shape: the same kind of mechanical edit applied to different files (rename, wording or config change, one-line fix), judged from the issue titles and steps. When unsure, do not batch.
+
+Standard and complex issues are never batched. A batch counts as one slot against `{wave_cap}`.
+
+| Seat | Batch behavior |
+|------|----------------|
+| Implementer | One implementer gets every issue id and the union of their file lists. It reports one `[IMPL-REPORT]` with a per-issue section. |
+| Spec review | One review. For every issue, each listed file must appear in the diff; a listed file absent from the diff is a Missing finding and a FAIL for that issue. |
+| Code review | N=1, whatever the tier default (see `budget-and-wave-cap.md`). No aggregator. |
+| Close | Close issues individually; each `bd close` reason carries a per-issue evidence line (`<issue-id>: <files changed>, <verification command> exit 0`). |
+
+**Split on failure.** If the spec review FAILs any issue or the code review finds a Critical or Important defect, do not retry the batch. Re-dispatch each failing issue as its own single-issue task through the normal path (full N for its complexity); issues that passed close as-is. One bad edit must not hold the others back.
 
 ## Parallel Dispatch (Native-Progress-Tracked)
 

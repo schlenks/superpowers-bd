@@ -81,6 +81,18 @@ Implementers may use the default Codex worker with the active profile model and 
 
 Default issue complexity is `standard`.
 
+## Review Fan-Out by Complexity
+
+The tier's N (tables above) is a ceiling for standard and complex issues. Simple issues get fewer reviewers. Resolve N per issue from its `complexity:` label (default `standard`):
+
+| Issue complexity | Code reviews N | Aggregator |
+|------------------|----------------|------------|
+| simple | 1 | no |
+| standard | tier default | per tier default |
+| complex | tier default | per tier default |
+
+On max-20x and max-5x the tier default is 3 with an aggregator; on pro/api it is already 1. Batched micro-tasks (see `dispatch-and-conflict.md`) always use N=1. This applies to the Claude Code and Codex paths alike. A re-review after a Critical finding on a simple issue stays at N=1 unless the finding touches security or data loss, in which case use the tier default.
+
 ## Context Tier
 
 Detect the active model's context window by family, not by suffix alone. Since Claude Code 2.1.173/2.1.197 the `[1m]` suffix is auto-stripped for models whose 1M window is the default (Sonnet 5, Fable 5), so a pure `[1m]` substring test now under-detects and silently drops those models to the 3-wave/9-budget tier.
