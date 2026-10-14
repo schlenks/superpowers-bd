@@ -29,7 +29,7 @@ For EACH item, provide EVIDENCE (not just yes/no):
 
 **1.2 Plan Drift** — Re-read each task's requirements vs actual implementation. List deviations with file:line. If aligned: "Implementation matches plan"
 
-**1.3 Test Coverage** — Identify main code paths, check each has tests. List untested functions/paths. If adequate: "All significant paths have tests"
+**1.3 Test Coverage** — Identify main code paths, check each has tests. Check each test names a production change that would fail it; flag change detectors (constant-equality asserts), mirror/tautological asserts, and tests that grep prose wording (linting commands, links, mirrors is fine). List untested functions/paths and any flagged tests. If adequate: "All significant paths have tests"
 
 **1.4 No Regressions** — Run full test suite. Paste test output showing pass/fail count. List failing tests if any.
 
