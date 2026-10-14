@@ -47,7 +47,9 @@ Command-backed workflows must expose native entry points for each supported plat
 ### Token Usage Analysis
 
 ```bash
-# Analyze session transcript for token costs
+# Full post-mortem: per-seat/model cost (cache-aware), dispatch tree, waves, idle gaps, hook logs
+python3 scripts/sdd-postmortem.py ~/.claude/projects/<project-dir>/<session>.jsonl [--json]
+# Cost tables only (delegates to the same script)
 python3 tests/claude-code/analyze-token-usage.py ~/.claude/projects/<project-dir>/<session>.jsonl
 ```
 
@@ -136,11 +138,13 @@ Claude Code integration tests run headless Claude Code sessions and verify behav
 
 ### Key Workflows
 
-1. **brainstorming** → **using-git-worktrees** → **writing-plans** → **plan2beads** → **subagent-driven-development** → **epic-verifier** → **finishing-a-development-branch**
+1. **brainstorming** → **using-git-worktrees** → **writing-plans** → **plan2beads** → **subagent-driven-development** (or Native mode, **executing-plans**) → **epic-verifier** → **finishing-a-development-branch**. The execution handoff offers SDD or Native and recommends Native for epics with ≤5 implementation issues or only `complexity:simple` ones.
 
 2. **subagent-driven-development** uses state machine: `INIT → LOADING → DISPATCH → MONITOR → REVIEW → CLOSE → COMPLETE`
 
-3. **epic-verifier** runs engineering checklist (YAGNI, drift, tests, docs, security) and variant-aware rule-of-five on files >50 lines changed
+3. **Rulings, not holds:** SDD and Native rule on judgment calls with `[RULING] <issue-id>: <decision> — why: <reason> — cost if wrong: <impact>` and continue; only the hard stops in `skills/subagent-driven-development/rulings-and-escalation.md` wait for a human, asynchronously via a `human`-labeled question bead.
+
+4. **epic-verifier** runs engineering checklist (YAGNI, drift, tests, docs, security) and variant-aware rule-of-five on files >50 lines changed
 
 ## Writing Skills
 

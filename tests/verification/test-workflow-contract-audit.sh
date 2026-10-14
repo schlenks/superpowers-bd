@@ -1161,7 +1161,7 @@ check "Gap closure has no retry budget separate from the fix-round cap" \
   no_forbidden_text '3 attempts|max_attempts|gap_closure_attempt' skills/verification-before-completion plugins/superpowers-bd/skills/verification-before-completion
 
 check "Execute-plan surfaces describe Native mode, not batches" \
-  no_forbidden_text 'in batches|verified batches' commands/execute-plan.md skills/executing-plans plugins/superpowers-bd/skills/executing-plans README.md
+  no_forbidden_text 'in batches|verified batches|[Bb]atch execution with checkpoints' commands/execute-plan.md skills/executing-plans plugins/superpowers-bd/skills/executing-plans README.md
 
 check "All installable skill files stay mirrored" \
   mirrors_match

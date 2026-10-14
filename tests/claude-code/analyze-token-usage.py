@@ -16,6 +16,9 @@ def main():
         print("Usage: analyze-token-usage.py <session-file.jsonl>")
         return 1
     session = sys.argv[1]
+    if not session.endswith(".jsonl"):
+        print(f"Error: expected a .jsonl session transcript, got: {session}")
+        return 1
     if not Path(session).exists():
         print(f"Error: Session file not found: {session}")
         return 1

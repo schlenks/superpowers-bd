@@ -281,7 +281,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/schlenks/su
 **Collaboration**
 - **brainstorming** - Socratic design refinement
 - **writing-plans** - Detailed implementation plans with dependency tracking
-- **executing-plans** - Batch execution with checkpoints (beads-aware)
+- **executing-plans** - Native epic execution: one session works the epic's issues in dependency order, records judgment calls as rulings, and ends with one final epic-verifier review (beads-aware)
 - **dispatching-parallel-agents** - Concurrent subagent workflows
 - **requesting-code-review** - Pre-review checklist
 - **receiving-code-review** - Responding to feedback

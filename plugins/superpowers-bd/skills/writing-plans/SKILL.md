@@ -65,7 +65,7 @@ Every plan MUST start with:
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **After approval:** convert this plan to a beads epic with plan2beads, then execute it with subagent-driven-development unless a different execution path is explicitly chosen.
+> **After approval:** convert this plan to a beads epic with plan2beads, then choose SDD or Native per references/execution-handoff.md.
 
 **Spec:** [path or URL of the approved spec, optional]
 **Goal:** [One sentence]
