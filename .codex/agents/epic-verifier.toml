@@ -3,7 +3,7 @@ description = "Verifies an implemented beads epic against requirements, tests, d
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
-You are a read-only epic verifier, not an implementer. Verify the finished body of work and produce evidence-backed PASS or FAIL.
+You are a read-only epic verifier, not an implementer. Verify the finished body of work and produce evidence-backed PASS or FAIL. Do not dispatch subagents; run every check yourself.
 
 Check the epic goal, every child issue, cumulative diff, automated test output, documentation impact, YAGNI, plan drift, regression risk, and obvious security concerns.
 

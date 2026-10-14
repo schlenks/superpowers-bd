@@ -222,119 +222,148 @@ for path, text in texts.items():
 PY
 }
 
-epic_verifier_persistence_is_portable() {
-  python3 - <<'PY'
+# The epic-verifier persistence checks execute each copy's documented commands
+# (mkdir, the report heredoc, the comment query and add) in a fresh git repo
+# with a stub `bd` on PATH, so a broken heredoc, a path mismatch between the
+# report and the add command, or a marker the query cannot find fails here.
+run_epic_verifier_persistence() {
+  python3 - "$1" <<'PY'
 from pathlib import Path
+import json
+import os
 import re
+import subprocess
 import sys
+import tempfile
 
-paths = (
+mode = sys.argv[1]
+repo_root = Path.cwd()
+copies = (
     Path("skills/epic-verifier/verifier-prompt.md"),
     Path("plugins/superpowers-bd/skills/epic-verifier/verifier-prompt.md"),
     Path("agents/epic-verifier.md"),
     Path("plugins/superpowers-bd/agents/epic-verifier.md"),
     Path(".codex/agents/epic-verifier.toml"),
 )
+EPIC = "demo-x1"
+RUN_ID = "20261014T000000Z"
 
-for path in paths:
-    text = path.read_text()
-    required = (
-        r"mkdir\s+-p\s+temp",
-        r"tee\s+temp/",
-        r"bd comments add",
-        r"retry.*(?:three|3)\s+times|up to (?:three|3) times.*retry",
-    )
-    for pattern in required:
-        if not re.search(pattern, text, re.IGNORECASE | re.DOTALL):
-            print(f"{path}: missing portable verifier persistence contract: {pattern}")
-            sys.exit(1)
-PY
-}
+STUB_BD = r'''#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$BD_LOG"
+if [ "$1" = comments ] && [ "$2" = add ]; then
+  [ "$4" = -f ] || { echo "stub bd: expected -f <file>" >&2; exit 2; }
+  [ -f "$5" ] || { echo "stub bd: no such file $5" >&2; exit 2; }
+  cp "$5" "$BD_STATE/$3.$(ls "$BD_STATE" | wc -l | tr -d ' ')"
+  exit 0
+fi
+if [ "$1" = comments ] && [ "$3" = --json ]; then
+  python3 -c 'import glob,json,sys; print(json.dumps([{"text": open(p).read()} for p in sorted(glob.glob(sys.argv[1] + "/" + sys.argv[2] + ".*"))]))' "$BD_STATE" "$2"
+  exit 0
+fi
+echo "stub bd: unsupported: $*" >&2
+exit 2
+'''
 
-epic_verifier_persistence_fails_closed() {
-  python3 - <<'PY'
-from pathlib import Path
-import re
-import sys
-
-paths = (
-    Path("skills/epic-verifier/verifier-prompt.md"),
-    Path("plugins/superpowers-bd/skills/epic-verifier/verifier-prompt.md"),
-    Path("agents/epic-verifier.md"),
-    Path("plugins/superpowers-bd/agents/epic-verifier.md"),
-    Path(".codex/agents/epic-verifier.toml"),
-)
-
-required = (
-    (r"query.*comments.*before.*retry|before.*retry.*query.*comments", "query-before-retry contract"),
-    (r"retry.*only.*marker.*absent|only.*retry.*marker.*absent", "absence-confirmed retry guard"),
-    (r"exact marker line.*only persistence proof", "marker-only persistence proof"),
-    (r"FAIL\s*\(CANNOT_VERIFY\)|CANNOT_VERIFY.*FAIL", "fail-closed persistence verdict"),
-    (r"block.*epic completion|epic completion.*block", "epic completion block"),
-    (r"Never emit PASS.*persistence.*unconfirmed", "no-PASS-on-persistence-failure guard"),
-    (r"Report Persistence", "persistence summary status"),
-)
-
-for path in paths:
-    text = path.read_text()
-    if not re.search(
-        r"^[^\n]*\[EPIC-VERIFICATION\][^\n]*(?:head-sha|head_sha)"
-        r"[^\n]*verification-run-id[^\n]*$",
-        text,
-        re.IGNORECASE | re.MULTILINE,
+def substitute(text, head):
+    for old, new in (
+        ("{epic_id}", EPIC), ("<epic-id>", EPIC),
+        ("{head-sha}", head), ("<head-sha>", head),
+        ("<verification-run-id>", RUN_ID),
     ):
-        print(f"{path}: missing epic, HEAD, and verification-run marker line")
-        sys.exit(1)
+        text = text.replace(old, new)
+    return text
 
-    query = re.search(
-        r"bd comments (?:\{epic_id\}|<epic-id>) --json",
-        text,
-        re.IGNORECASE,
-    )
-    add = re.search(r"bd comments add", text, re.IGNORECASE)
-    if query is None or add is None or query.start() > add.start():
-        print(f"{path}: must query the exact marker before the first comment-add attempt")
-        sys.exit(1)
+def extract(text):
+    lines = text.splitlines()
+    tee = next(i for i, l in enumerate(lines) if l.startswith("tee temp/") and "EPIC_VERIFICATION_EOF" in l)
+    end = next(i for i in range(tee + 1, len(lines)) if lines[i].strip() == "EPIC_VERIFICATION_EOF")
+    heredoc = "\n".join(lines[tee:end + 1]) + "\n"
+    after = "\n".join(lines[end + 1:])
+    query = re.search(r"`(bd comments (?:\{epic_id\}|<epic-id>) --json)`", after)
+    add = re.search(r"`(bd comments add (?:\{epic_id\}|<epic-id>) -f [^`]+)`", after)
+    mkdir = re.search(r"`(mkdir -p temp)`", text[:text.index(lines[tee])])
+    if not (query and add and mkdir):
+        raise ValueError("missing mkdir, query or add command")
+    if query.start() > add.start():
+        raise ValueError("comment query must come before the first add")
+    return mkdir.group(1), heredoc, query.group(1), add.group(1), lines[tee + 1]
 
-    for pattern, description in required:
-        if not re.search(pattern, text, re.IGNORECASE | re.DOTALL):
-            print(f"{path}: missing {description}")
-            sys.exit(1)
-PY
-}
+def sh(cmd, cwd, env):
+    return subprocess.run(["bash", "-c", cmd], cwd=cwd, env=env, capture_output=True, text=True)
 
-epic_verifier_heredoc_is_valid() {
-  python3 - <<'PY'
-from pathlib import Path
-import sys
+def check(path):
+    text = (repo_root / path).read_text()
+    mkdir, heredoc, query, add, marker_tpl = extract(text)
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        repo, bin_dir, state = tmp / "repo", tmp / "bin", tmp / "state"
+        for d in (repo, bin_dir, state):
+            d.mkdir()
+        (bin_dir / "bd").write_text(STUB_BD)
+        (bin_dir / "bd").chmod(0o755)
+        env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}",
+                   BD_LOG=str(tmp / "bd.log"), BD_STATE=str(state))
+        subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit",
+                        "-q", "--allow-empty", "-m", "init"], cwd=repo, check=True)
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True,
+                              capture_output=True, text=True).stdout.strip()
+        marker = substitute(marker_tpl, head)
+        report = repo / "temp" / f"{EPIC}-verification.md"
 
-for path in (
-    Path("skills/epic-verifier/verifier-prompt.md"),
-    Path("plugins/superpowers-bd/skills/epic-verifier/verifier-prompt.md"),
-    Path("agents/epic-verifier.md"),
-    Path("plugins/superpowers-bd/agents/epic-verifier.md"),
-    Path(".codex/agents/epic-verifier.toml"),
-):
-    lines = path.read_text().splitlines()
-    tee = next(
-        (
-            i
-            for i, line in enumerate(lines)
-            if "tee temp/" in line and "-verification.md" in line
-        ),
-        None,
-    )
-    if tee is None or "> /dev/null" not in lines[tee]:
-        sys.exit(1)
-    if "EPIC_VERIFICATION_EOF" not in lines[tee]:
-        sys.exit(1)
-    if "EPIC_VERIFICATION_EOF" not in lines[tee + 1:]:
-        sys.exit(1)
-    terminator = next(
-        line for line in lines[tee + 1:] if line.strip() == "EPIC_VERIFICATION_EOF"
-    )
-    if terminator != "EPIC_VERIFICATION_EOF":
-        sys.exit(1)
+        if mode == "heredoc":
+            for cmd in (mkdir, substitute(heredoc, head)):
+                r = sh(cmd, repo, env)
+                if r.returncode != 0 or r.stderr:
+                    return f"command failed or warned: {cmd.splitlines()[0]}: {r.stderr.strip()}"
+            body = report.read_text().splitlines()
+            if body[0] != marker or "EPIC_VERIFICATION_EOF" in body:
+                return "report file does not start with the marker or swallowed the terminator"
+            return None
+
+        for cmd in (mkdir, substitute(heredoc, head)):
+            sh(cmd, repo, env)
+        if mode == "portable":
+            before = sh(substitute(query, head), repo, env)
+            if before.returncode != 0 or marker in before.stdout:
+                return "query before add failed or already showed the marker"
+            r = sh(substitute(add, head), repo, env)
+            if r.returncode != 0:
+                return f"comment add failed: {r.stderr.strip()}"
+            log = (tmp / "bd.log").read_text()
+            if f"comments add {EPIC} -f temp/{EPIC}-verification.md" not in log:
+                return "add did not reference the report file the heredoc wrote"
+            after = sh(substitute(query, head), repo, env)
+            texts = [c["text"] for c in json.loads(after.stdout)]
+            if not any(marker in t.splitlines() for t in texts):
+                return "query after add does not show the exact marker line"
+            return None
+
+        if mode == "idempotent":
+            sh(substitute(add, head), repo, env)
+            texts = [c["text"] for c in json.loads(sh(substitute(query, head), repo, env).stdout)]
+            if not any(marker in t.splitlines() for t in texts):
+                return "persisted report is not found by its own marker"
+            other_run = marker.replace(RUN_ID, "20261015T000000Z")
+            other_head = marker.replace(head, "0" * 40)
+            if any(m in t.splitlines() for t in texts for m in (other_run, other_head)):
+                return "marker does not distinguish verification runs or HEADs"
+            if not re.search(r"FAIL \(CANNOT_VERIFY\)", text) or "Report Persistence" not in text:
+                return "missing the fail-closed verdict token or Report Persistence row"
+            return None
+    raise SystemExit(f"unknown mode {mode}")
+
+bad = []
+for path in copies:
+    try:
+        problem = check(path)
+    except (ValueError, StopIteration, IndexError, json.JSONDecodeError) as exc:
+        problem = f"cannot execute persistence commands: {exc!r}"
+    if problem:
+        bad.append(f"{path}: {problem}")
+if bad:
+    print("\n".join(bad))
+    sys.exit(1)
 PY
 }
 
@@ -705,6 +734,217 @@ retired_references_absent() {
   done
 }
 
+rulings_use_canonical_prefix() {
+  python3 - <<'PY'
+from pathlib import Path
+import re
+import sys
+
+# An example ruling starts with a placeholder or an issue id; prose mentions
+# such as "every [RULING] posted" do not.
+example = re.compile(r"\[RULING\] (?=[<{]|[a-z][\w-]*\.\d|[a-z]+-[a-z0-9]+:)")
+canonical = re.compile(
+    r"\[RULING\] (?:<[\w-]+>|\{[^}]+\}|[\w.-]+): "
+    r"(?:\.\.\.|[^\n]*? — why: [^\n]*? — cost if wrong: )"
+)
+roots = (
+    "skills", "commands", "agents", "plugins/superpowers-bd/skills",
+    "plugins/superpowers-bd/agents", ".codex/agents",
+)
+files = [p for r in roots for p in Path(r).rglob("*") if p.suffix in (".md", ".toml")]
+files += [Path("AGENTS.md"), Path("CLAUDE.md"), Path("docs/README.codex.md")]
+bad = []
+for path in files:
+    for n, line in enumerate(path.read_text().splitlines(), 1):
+        for m in example.finditer(line):
+            if not canonical.match(line, m.start()):
+                bad.append(f"{path}:{n}: {line.strip()[:120]}")
+if bad:
+    print("Rulings must use '[RULING] <issue-id>: <decision> — why: <reason> — cost if wrong: <impact>':")
+    print("\n".join(bad))
+    sys.exit(1)
+PY
+}
+
+no_forbidden_text() {
+  # no_forbidden_text <python-regex> <root>... : fail when any md/toml/yaml file matches
+  python3 - "$@" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+pattern = re.compile(sys.argv[1])
+bad = []
+for root in map(Path, sys.argv[2:]):
+    paths = [root] if root.is_file() else root.rglob("*")
+    for path in paths:
+        if path.is_file() and path.suffix in (".md", ".toml", ".yaml", ".json"):
+            for n, line in enumerate(path.read_text().splitlines(), 1):
+                if pattern.search(line):
+                    bad.append(f"{path}:{n}: {line.strip()[:120]}")
+if bad:
+    print("\n".join(bad))
+    sys.exit(1)
+PY
+}
+
+sdd_never_holds_for_a_human() {
+  python3 - <<'PY'
+from pathlib import Path
+import re
+import sys
+
+# Only rulings-and-escalation.md may describe the hard stops that wait.
+pattern = re.compile(r"PENDING_HUMAN|report_to_human|WAIT for human|pause for (?:a )?human", re.IGNORECASE)
+bad = []
+for root in (
+    "skills/subagent-driven-development", "skills/executing-plans",
+    "plugins/superpowers-bd/skills/subagent-driven-development",
+    "plugins/superpowers-bd/skills/executing-plans",
+):
+    for path in Path(root).rglob("*"):
+        if path.is_file() and path.name != "rulings-and-escalation.md" and pattern.search(path.read_text()):
+            bad.append(str(path))
+if bad:
+    print("Synchronous human holds remain:")
+    print("\n".join(bad))
+    sys.exit(1)
+PY
+}
+
+re_review_prompt_is_mirrored() {
+  [ -f skills/subagent-driven-development/re-review-prompt.md ] &&
+    cmp -s skills/subagent-driven-development/re-review-prompt.md \
+      plugins/superpowers-bd/skills/subagent-driven-development/re-review-prompt.md
+}
+
+implementer_dispatch_has_no_name() {
+  python3 - <<'PY'
+from pathlib import Path
+import re
+import sys
+
+text = Path("skills/subagent-driven-development/implementer-prompt.md").read_text()
+block = re.search(r"## Claude Code Dispatch\s*```\n(.*?)```", text, re.DOTALL)
+if not block or "Agent:" not in block.group(1):
+    print("implementer Claude dispatch block not found")
+    sys.exit(1)
+if re.search(r"^\s*name:", block.group(1), re.MULTILINE):
+    print("implementer dispatch passes name: (teammate mode breaks fix-round resume)")
+    sys.exit(1)
+PY
+}
+
+plugin_hook_commands_start_with_bash() {
+  python3 - <<'PY'
+from pathlib import Path
+import json
+import sys
+
+bad = []
+for path in (Path("plugins/superpowers-bd/hooks.json"), Path("plugins/superpowers-bd/hooks/hooks.json")):
+    for groups in json.loads(path.read_text())["hooks"].values():
+        for group in groups:
+            for hook in group["hooks"]:
+                if hook.get("type") == "command" and not hook["command"].startswith("bash "):
+                    bad.append(f"{path}: {hook['command']}")
+if bad:
+    print("Codex hook commands must launch through bash:")
+    print("\n".join(bad))
+    sys.exit(1)
+PY
+}
+
+review_agents_disallow_agent() {
+  python3 - <<'PY'
+from pathlib import Path
+import re
+import sys
+
+for path in (Path("agents/code-reviewer.md"), Path("agents/epic-verifier.md")):
+    frontmatter = path.read_text().split("---", 2)[1]
+    block = re.search(r"^disallowedTools:\n((?:\s+- .*\n)+)", frontmatter, re.MULTILINE)
+    tools = re.findall(r"- (\S+)", block.group(1)) if block else []
+    if "Agent" not in tools:
+        print(f"{path}: disallowedTools lacks Agent")
+        sys.exit(1)
+PY
+}
+
+fix_round_loop_executes() {
+  python3 - <<'PY'
+from pathlib import Path
+from types import SimpleNamespace as NS
+import re
+import sys
+
+text = Path("skills/subagent-driven-development/background-execution.md").read_text()
+block = next(b for b in re.findall(r"```python\n(.*?)```", text, re.DOTALL) if "def on_review_findings" in b)
+
+def run(resume_ok, fix_round, findings, phase="code"):
+    ns, calls = {}, []
+    exec(block, ns)
+    ns.update(
+        pending_tasks={"a1": {"issue_id": "x.1", "fix_round": fix_round, "head_sha": "h"}},
+        resume=lambda agent_id, message: resume_ok,
+        fix_message=lambda task: "m",
+        number_as_F1_to_Fn=lambda f: list(f),
+        write_checkpoint=lambda: None,
+        dispatch_implementer=lambda *a, **k: "a2",
+        adjudicate=lambda issue, f: calls.append("adjudicate"),
+        on_spec_review_pass=lambda a, v: calls.append("spec_pass"),
+        close_path=lambda a: calls.append("close"),
+    )
+    ns["on_review_findings"]("a1", [NS(severity=s) for s in findings], phase)
+    return ns["pending_tasks"], calls
+
+tasks, _ = run(False, 0, ["Important"])
+if "a2" not in tasks or tasks["a2"]["fix_path"] != "fallback" or tasks["a2"]["fix_round"] != 1:
+    sys.exit("an unmessageable implementer must fall back to a fresh dispatch in the same round")
+tasks, _ = run(True, 0, ["Critical"])
+if tasks["a1"]["fix_path"] != "resume":
+    sys.exit("rounds 1-2 must resume the implementer")
+tasks, _ = run(True, 2, ["Critical"])
+if tasks["a2"]["fix_path"] != "round3":
+    sys.exit("round 3 must be a fresh dispatch")
+if run(True, 3, ["Critical"])[1] != ["adjudicate"]:
+    sys.exit("findings after round 3 must adjudicate, not start round 4")
+if run(True, 0, ["Minor"], "spec")[1] != ["spec_pass"] or run(True, 0, ["Minor"])[1] != ["close"]:
+    sys.exit("Minor-only findings must route as passed by phase")
+PY
+}
+
+dispatched_roles_forbid_subagents() {
+  local f
+  for f in \
+    skills/subagent-driven-development/implementer-prompt.md \
+    skills/subagent-driven-development/spec-reviewer-prompt.md \
+    skills/subagent-driven-development/re-review-prompt.md \
+    skills/requesting-code-review/code-reviewer.md \
+    skills/epic-verifier/verifier-prompt.md \
+    plugins/superpowers-bd/agents/spec-reviewer.md \
+    plugins/superpowers-bd/agents/code-reviewer.md \
+    plugins/superpowers-bd/agents/epic-verifier.md \
+    .codex/agents/spec-reviewer.toml \
+    .codex/agents/code-reviewer.toml \
+    .codex/agents/epic-verifier.toml; do
+    grep -Eiq 'do not dispatch subagents' "$f" || { echo "$f: missing no-subagent clause"; return 1; }
+  done
+}
+
+spec_line_flows_to_reviewers() {
+  contains skills/writing-plans/SKILL.md '^\*\*Spec:\*\*' &&
+    contains commands/plan2beads.md 'Spec: <value>' &&
+    contains skills/plan2beads/SKILL.md 'Spec: <value>' &&
+    contains skills/plan2beads/references/codex-plan2beads-flow.md 'Spec: <value>' &&
+    contains skills/subagent-driven-development/context-loading.md '`Spec: <path or URL>`' &&
+    contains skills/subagent-driven-development/context-loading.md '^\| `\{spec_ref\}`' &&
+    contains skills/subagent-driven-development/spec-reviewer-prompt.md '\{spec_ref\}' &&
+    contains skills/subagent-driven-development/implementer-prompt.md '`Spec:` line' &&
+    contains .codex/agents/spec-reviewer.toml '`Spec:` line' &&
+    contains plugins/superpowers-bd/agents/spec-reviewer.md '`Spec:` line'
+}
+
 mirrors_match() {
   python3 - <<'PY'
 from pathlib import Path
@@ -759,13 +999,13 @@ check "Claude and both Codex epic-verifier paths are read-only" \
   epic_verifier_paths_are_read_only
 
 check "Epic-verifier report persistence works in fresh consumer repositories" \
-  epic_verifier_persistence_is_portable
+  run_epic_verifier_persistence portable
 
 check "Epic-verifier persistence is idempotent and fails closed" \
-  epic_verifier_persistence_fails_closed
+  run_epic_verifier_persistence idempotent
 
 check "Epic-verifier report heredoc is executable and repository-compliant" \
-  epic_verifier_heredoc_is_valid
+  run_epic_verifier_persistence heredoc
 
 check "Active Claude dispatch examples use Agent terminology" \
   no_active_task_invocations
@@ -835,6 +1075,54 @@ check "Fast Claude skill runner fails closed for missing configured tests" \
 
 check "Claude integration harness exercises current Beads and Agent semantics" \
   integration_harness_uses_current_workflow
+
+check "Ruling examples use the canonical [RULING] <issue-id>: ... why ... cost if wrong prefix" \
+  rulings_use_canonical_prefix
+
+check "SDD and Native execution never hold synchronously for a human" \
+  sdd_never_holds_for_a_human
+
+check "No retired '[Ask budget tier' prompt remains" \
+  no_forbidden_text '\[Ask budget tier' skills commands agents plugins/superpowers-bd .codex AGENTS.md CLAUDE.md docs/README.codex.md
+
+check "Scoped re-review prompt exists and is mirrored" \
+  re_review_prompt_is_mirrored
+
+check "Implementer dispatch passes no name (resume needs a non-teammate agent)" \
+  implementer_dispatch_has_no_name
+
+check "Plan template no longer demands complete code in plan" \
+  no_forbidden_text 'Complete code in plan' skills plugins/superpowers-bd/skills commands
+
+check "Retired testing-anti-patterns reference is gone and unreferenced" \
+  no_forbidden_text 'testing-anti-patterns' skills plugins/superpowers-bd agents commands .codex AGENTS.md CLAUDE.md README.md docs/README.codex.md
+
+check "Codex plugin hook commands launch through bash" \
+  plugin_hook_commands_start_with_bash
+
+check "Claude review agents cannot dispatch subagents (Agent disallowed)" \
+  review_agents_disallow_agent
+
+check "Writing-plans keeps What a Step Contains and the Proportion check" \
+  bash -c "grep -q 'What a Step Contains' skills/writing-plans/SKILL.md && grep -q 'Proportion' skills/writing-plans/SKILL.md"
+
+check "Fix-round loop executes: resume, unmessageable fallback, round 3, adjudication" \
+  fix_round_loop_executes
+
+check "Every dispatched-role template forbids subagent spawning" \
+  dispatched_roles_forbid_subagents
+
+check "Codex spec-reviewer copies apply [RULING] comments" \
+  bash -c "grep -q '\[RULING\]' .codex/agents/spec-reviewer.toml && grep -q '\[RULING\]' plugins/superpowers-bd/agents/spec-reviewer.md"
+
+check "Plan Spec: line flows through plan2beads to SDD reviewers and implementers" \
+  spec_line_flows_to_reviewers
+
+check "Gap closure has no retry budget separate from the fix-round cap" \
+  no_forbidden_text '3 attempts|max_attempts|gap_closure_attempt' skills/verification-before-completion plugins/superpowers-bd/skills/verification-before-completion
+
+check "Execute-plan surfaces describe Native mode, not batches" \
+  no_forbidden_text 'in batches|verified batches' commands/execute-plan.md skills/executing-plans plugins/superpowers-bd/skills/executing-plans README.md
 
 check "All installable skill files stay mirrored" \
   mirrors_match
