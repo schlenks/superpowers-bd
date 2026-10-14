@@ -226,6 +226,8 @@ PY
 # (mkdir, the report heredoc, the comment query and add) in a fresh git repo
 # with a stub `bd` on PATH, so a broken heredoc, a path mismatch between the
 # report and the add command, or a marker the query cannot find fails here.
+# Idempotent mode also runs the documented retry loop (query, add only when the
+# marker is absent, query again) against a stub that drops adds.
 run_epic_verifier_persistence() {
   python3 - "$1" <<'PY'
 from pathlib import Path
@@ -253,6 +255,7 @@ printf '%s\n' "$*" >> "$BD_LOG"
 if [ "$1" = comments ] && [ "$2" = add ]; then
   [ "$4" = -f ] || { echo "stub bd: expected -f <file>" >&2; exit 2; }
   [ -f "$5" ] || { echo "stub bd: no such file $5" >&2; exit 2; }
+  [ -n "${BD_DROP_ADDS:-}" ] && exit 0
   cp "$5" "$BD_STATE/$3.$(ls "$BD_STATE" | wc -l | tr -d ' ')"
   exit 0
 fi
@@ -264,11 +267,15 @@ echo "stub bd: unsupported: $*" >&2
 exit 2
 '''
 
-def substitute(text, head):
+# Hermetic git: the caller's GIT_DIR, GIT_CONFIG_GLOBAL etc. must not leak in.
+CLEAN_ENV = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+GIT = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]
+
+def substitute(text, head, run_id=RUN_ID):
     for old, new in (
         ("{epic_id}", EPIC), ("<epic-id>", EPIC),
         ("{head-sha}", head), ("<head-sha>", head),
-        ("<verification-run-id>", RUN_ID),
+        ("<verification-run-id>", run_id),
     ):
         text = text.replace(old, new)
     return text
@@ -286,14 +293,17 @@ def extract(text):
         raise ValueError("missing mkdir, query or add command")
     if query.start() > add.start():
         raise ValueError("comment query must come before the first add")
-    return mkdir.group(1), heredoc, query.group(1), add.group(1), lines[tee + 1]
+    retries = re.search(r"up\s+to\s+(?:3|three)\s+times", after, re.IGNORECASE)
+    if not retries:
+        raise ValueError("missing the bounded add-retry count")
+    return mkdir.group(1), heredoc, query.group(1), add.group(1), lines[tee + 1], 3
 
 def sh(cmd, cwd, env):
     return subprocess.run(["bash", "-c", cmd], cwd=cwd, env=env, capture_output=True, text=True)
 
 def check(path):
     text = (repo_root / path).read_text()
-    mkdir, heredoc, query, add, marker_tpl = extract(text)
+    mkdir, heredoc, query, add, marker_tpl, max_adds = extract(text)
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         repo, bin_dir, state = tmp / "repo", tmp / "bin", tmp / "state"
@@ -301,13 +311,32 @@ def check(path):
             d.mkdir()
         (bin_dir / "bd").write_text(STUB_BD)
         (bin_dir / "bd").chmod(0o755)
-        env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}",
+        env = dict(CLEAN_ENV, PATH=f"{bin_dir}:{os.environ['PATH']}",
                    BD_LOG=str(tmp / "bd.log"), BD_STATE=str(state))
-        subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit",
-                        "-q", "--allow-empty", "-m", "init"], cwd=repo, check=True)
-        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True,
-                              capture_output=True, text=True).stdout.strip()
+
+        def commit(message):
+            subprocess.run(GIT + ["commit", "-q", "--allow-empty", "-m", message],
+                           cwd=repo, env=CLEAN_ENV, check=True)
+            return subprocess.run(GIT + ["rev-parse", "HEAD"], cwd=repo, env=CLEAN_ENV,
+                                  check=True, capture_output=True, text=True).stdout.strip()
+
+        def marker_hits(marker, run_env=env):
+            out = sh(substitute(query, head), repo, run_env).stdout
+            return sum(marker in c["text"].splitlines() for c in json.loads(out))
+
+        def persist(head, run_id, run_env=env):
+            # The documented flow: write the report, then query before every add
+            # and add only while a successful query shows the marker absent.
+            for cmd in (mkdir, substitute(heredoc, head, run_id)):
+                sh(cmd, repo, run_env)
+            marker, adds = substitute(marker_tpl, head, run_id), 0
+            while marker_hits(marker, run_env) == 0 and adds < max_adds:
+                sh(substitute(add, head, run_id), repo, run_env)
+                adds += 1
+            return marker_hits(marker, run_env) > 0, adds
+
+        subprocess.run(GIT + ["init", "-q"], cwd=repo, env=CLEAN_ENV, check=True)
+        head = commit("init")
         marker = substitute(marker_tpl, head)
         report = repo / "temp" / f"{EPIC}-verification.md"
 
@@ -340,16 +369,26 @@ def check(path):
             return None
 
         if mode == "idempotent":
-            sh(substitute(add, head), repo, env)
-            texts = [c["text"] for c in json.loads(sh(substitute(query, head), repo, env).stdout)]
-            if not any(marker in t.splitlines() for t in texts):
-                return "persisted report is not found by its own marker"
-            other_run = marker.replace(RUN_ID, "20261015T000000Z")
-            other_head = marker.replace(head, "0" * 40)
-            if any(m in t.splitlines() for t in texts for m in (other_run, other_head)):
-                return "marker does not distinguish verification runs or HEADs"
-            if not re.search(r"FAIL \(CANNOT_VERIFY\)", text) or "Report Persistence" not in text:
-                return "missing the fail-closed verdict token or Report Persistence row"
+            if persist(head, RUN_ID) != (True, 1):
+                return "first persistence did not add exactly one confirmed comment"
+            if persist(head, RUN_ID) != (True, 0):
+                return "a retry added a second comment although the marker was present"
+            # A new run on the same HEAD, then the first run id on a new HEAD:
+            # each must persist its own comment, and no marker may match another.
+            head2, run2 = commit("second"), "20261015T000000Z"
+            runs = ((head, RUN_ID), (head, run2), (head2, RUN_ID))
+            for h, r in runs[1:]:
+                if persist(h, r) != (True, 1):
+                    return f"run {r} on {h[:7]} was treated as already persisted: the marker lacks the HEAD or run id"
+            for h, r in runs:
+                if marker_hits(substitute(marker_tpl, h, r)) != 1:
+                    return "markers from distinct runs cross-match: the marker lacks the HEAD or run id"
+            dropped = dict(env, BD_DROP_ADDS="1")
+            head3 = commit("third")
+            if persist(head3, "20261016T000000Z", dropped) != (False, max_adds):
+                return "adds that never land must stop after the bounded retries, unconfirmed"
+            if "FAIL (CANNOT_VERIFY)" not in text or "Report Persistence" not in text:
+                return "no fail-closed verdict for unconfirmed persistence"
             return None
     raise SystemExit(f"unknown mode {mode}")
 
