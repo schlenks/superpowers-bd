@@ -10,6 +10,9 @@
 #   *.py|*.js|*.jsx|*.go|*.java|*.c|*.cpp|*.h|*.hpp|*.rb|*.swift|*.rs (lizard)
 # Graceful degradation: exits 0 if linter tool not installed.
 
+# Backfill PATH for cron/launchd/GUI launches; appended so callers' resolution wins.
+export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:${HOME:-}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 set -euo pipefail
 
 input=$(cat)

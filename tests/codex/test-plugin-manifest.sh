@@ -108,7 +108,7 @@ for (const [file, name] of Object.entries({
 const pluginHooks = readJson(path.join(pluginRoot, 'hooks.json'));
 const lifecycleHooks = readJson(path.join(pluginRoot, 'hooks', 'hooks.json'));
 function pluginHookCommand(scriptName) {
-  return '"${PLUGIN_ROOT}/hooks/' + scriptName + '"';
+  return 'bash "${PLUGIN_ROOT}/hooks/' + scriptName + '"';
 }
 assert(pluginHooks.hooks?.SessionStart?.[0]?.hooks?.[0]?.command === pluginHookCommand('codex-session-start.sh'), 'plugin wrapper bundles SessionStart hook command');
 assert(pluginHooks.hooks?.PostToolUse?.[0]?.hooks?.[0]?.command === pluginHookCommand('codex-post-tool-use.sh'), 'plugin wrapper bundles PostToolUse hook command');

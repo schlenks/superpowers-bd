@@ -13,6 +13,9 @@
 # Adapted from tenzir/claude-plugins link-plugin-components.sh.
 # Remove this script only after both plugin skill and agent hooks pass live.
 
+# Backfill PATH for cron/launchd/GUI launches; appended so callers' resolution wins.
+export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:${HOME:-}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 set -euo pipefail
 
 project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
@@ -232,10 +235,10 @@ output_result() {
   local display=""
   if [[ ${#copied_skills[@]} -gt 0 || ${#copied_agents[@]} -gt 0 ]]; then
     display="Copied:"
-    for skill in "${copied_skills[@]}"; do
+    for skill in ${copied_skills[@]+"${copied_skills[@]}"}; do
       display+=" $skill"
     done
-    for agent in "${copied_agents[@]}"; do
+    for agent in ${copied_agents[@]+"${copied_agents[@]}"}; do
       display+=" $agent"
     done
   else

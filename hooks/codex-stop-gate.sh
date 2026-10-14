@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Stop hook for Codex: require verification evidence before ending live work.
 
+# Backfill PATH for cron/launchd/GUI launches; appended so callers' resolution wins.
+export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:${HOME:-}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 set -euo pipefail
 
 if [ "${SDD_ALLOW_STOP:-}" = "1" ]; then

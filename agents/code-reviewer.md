@@ -13,15 +13,16 @@ disallowedTools:
   - Write
   - Edit
   - NotebookEdit
+  - Agent
 hooks:
   PostToolUse:
     - matcher: "Write|Edit"
       hooks:
         - type: command
-          command: "$CLAUDE_PLUGIN_ROOT/hooks/log-file-modification.sh"
+          command: "bash \"$CLAUDE_PLUGIN_ROOT/hooks/log-file-modification.sh\""
           timeout: 5
         - type: command
-          command: "$CLAUDE_PLUGIN_ROOT/hooks/run-linter.sh"
+          command: "bash \"$CLAUDE_PLUGIN_ROOT/hooks/run-linter.sh\""
           timeout: 5
 ---
 

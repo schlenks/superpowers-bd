@@ -43,7 +43,7 @@ Agent tool:
 
 Required context: `{epic_id}` (verifier self-reads from beads), base SHA, head SHA, test command, and `{quality-delta}`.
 
-**Before dispatch**, run `scripts/quality-delta.sh <base-sha> <head-sha>` from this skill's base directory, in the repository root, and pass its full output as `{quality-delta}`. It compares complexity (lizard CCN) and duplicated blocks of the changed code files at base versus head. The orchestrator runs it because the verifier cannot locate plugin files; if the script is unavailable, pass `Unavailable: <reason>`.
+**Before dispatch**, run `bash scripts/quality-delta.sh <base-sha> <head-sha>` from this skill's base directory, in the repository root, and pass its full output as `{quality-delta}`. It compares complexity (lizard CCN) and duplicated blocks of the changed code files at base versus head. The orchestrator runs it because the verifier cannot locate plugin files; if the script is unavailable, pass `Unavailable: <reason>`.
 
 ## Model Selection
 

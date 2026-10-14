@@ -67,7 +67,7 @@ check_node "plugin Codex hooks config has expanded lifecycle command hooks" '
   const fs = require("fs");
   const config = JSON.parse(fs.readFileSync("plugins/superpowers-bd/hooks.json", "utf8"));
   const hooks = config.hooks || {};
-  const command = (script) => "\"${PLUGIN_ROOT}/hooks/" + script + "\"";
+  const command = (script) => "bash \"${PLUGIN_ROOT}/hooks/" + script + "\"";
   const expected = {
     SessionStart: { matcher: "startup|resume|clear|compact", command: command("codex-session-start.sh") },
     UserPromptSubmit: { command: command("codex-work-state-anchor.sh") },
@@ -466,7 +466,7 @@ check_node "Codex plugin wrapper bundles hook packaging" '
   if (!prompts.every((line) => typeof line === "string" && nativeSkillPattern.test(line))) process.exit(1);
   if (prompts.some((line) => line.includes("/superpowers-bd:"))) process.exit(1);
   if (!fs.existsSync(".codex/hooks.json")) process.exit(1);
-  const pluginHookCommand = (script) => "\"${PLUGIN_ROOT}/hooks/" + script + "\"";
+  const pluginHookCommand = (script) => "bash \"${PLUGIN_ROOT}/hooks/" + script + "\"";
   if (wrapperHooks.hooks?.SessionStart?.[0]?.hooks?.[0]?.command !== pluginHookCommand("codex-session-start.sh")) process.exit(1);
   if (wrapperHooks.hooks?.PostToolUse?.[0]?.hooks?.[0]?.command !== pluginHookCommand("codex-post-tool-use.sh")) process.exit(1);
   if (JSON.stringify(wrapperHooks) !== JSON.stringify(lifecycleHooks)) process.exit(1);

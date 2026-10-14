@@ -4,6 +4,9 @@
 # greps for the VERDICT line, and appends an audit entry to temp/verdict-audit.log.
 # Always exits 0 (audit-only, never blocks).
 
+# Backfill PATH for cron/launchd/GUI launches; appended so callers' resolution wins.
+export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:${HOME:-}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 set -euo pipefail
 
 log_dir="${CLAUDE_PROJECT_DIR:-.}/temp"

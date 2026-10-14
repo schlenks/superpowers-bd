@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # SessionStart hook for Codex project-local Superpowers-BD usage.
 
+# Backfill PATH for cron/launchd/GUI launches; appended so callers' resolution wins.
+export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:${HOME:-}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 set -euo pipefail
 
 input=$(cat)

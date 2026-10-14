@@ -8,6 +8,9 @@
 # Plugin agent frontmatter PostToolUse did not fire in a Claude Code 2.1.275
 # probe, so link-plugin-components.sh copies hooked agents to .claude/agents/.
 
+# Backfill PATH for cron/launchd/GUI launches; appended so callers' resolution wins.
+export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:${HOME:-}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 set -euo pipefail
 
 log_dir="${CLAUDE_PROJECT_DIR:-.}/temp"

@@ -8,6 +8,9 @@
 # gives wave observability now and the evidence needed to decide whether a reactive
 # MONITOR/stall gate on top of `agent_needs_input` is worth building. Always exits 0.
 
+# Backfill PATH for cron/launchd/GUI launches; appended so callers' resolution wins.
+export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:${HOME:-}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 set -euo pipefail
 
 log_dir="${CLAUDE_PROJECT_DIR:-.}/temp"

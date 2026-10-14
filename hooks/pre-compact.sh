@@ -6,6 +6,9 @@
 #
 # Requires Claude Code 2.1.105+ (PreCompact decision block support).
 
+# Backfill PATH for cron/launchd/GUI launches; appended so callers' resolution wins.
+export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:${HOME:-}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 set -euo pipefail
 
 # Resolve project directory — Claude provides CLAUDE_PROJECT_DIR for hooks.

@@ -6,6 +6,9 @@
 # or beads has in_progress issues. Stays SILENT when idle, so ordinary sessions
 # pay no per-turn noise. Always exits 0; never blocks the prompt.
 
+# Backfill PATH for cron/launchd/GUI launches; appended so callers' resolution wins.
+export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:${HOME:-}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 set -euo pipefail
 
 proj="${CLAUDE_PROJECT_DIR:-.}"

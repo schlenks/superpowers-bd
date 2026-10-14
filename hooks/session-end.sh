@@ -3,6 +3,9 @@
 # Requires Claude Code >= 2.1.74 (earlier versions kill SessionEnd hooks after 1.5s)
 # Uses `bd dolt commit` (bd sync is deprecated and is a no-op)
 
+# Backfill PATH for cron/launchd/GUI launches; appended so callers' resolution wins.
+export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:${HOME:-}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 set -euo pipefail
 
 # Find project root (hooks/ is one level below)

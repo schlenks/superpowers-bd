@@ -158,7 +158,7 @@ if (fs.existsSync(hooksPath) && fs.existsSync(lifecycleHooksPath)) {
 }
 if (fs.existsSync(hooksPath)) {
   const hooksConfig = JSON.parse(fs.readFileSync(hooksPath, "utf8"));
-  const command = (script) => '"${PLUGIN_ROOT}/hooks/' + script + '"';
+  const command = (script) => 'bash "${PLUGIN_ROOT}/hooks/' + script + '"';
   const expectedHooks = {
     SessionStart: { matcher: "startup|resume|clear|compact", command: command("codex-session-start.sh") },
     UserPromptSubmit: { command: command("codex-work-state-anchor.sh") },

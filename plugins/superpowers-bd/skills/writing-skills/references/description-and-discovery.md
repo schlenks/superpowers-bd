@@ -153,9 +153,11 @@ See `graphviz-conventions.dot` (in this directory) for graphviz style rules.
 
 **Render flowcharts:** Use `render-graphs.js` at skill root:
 ```bash
-./render-graphs.js ../some-skill           # Each diagram separately
-./render-graphs.js ../some-skill --combine # All diagrams in one SVG
+node render-graphs.js ../some-skill           # Each diagram separately
+node render-graphs.js ../some-skill --combine # All diagrams in one SVG
 ```
+
+**Invoke bundled scripts through their interpreter** (`bash x.sh`, `node x.js`, `python3 x.py`), never `./x.sh`: plugin packagers and copies can strip exec bits, and the interpreter form still runs.
 
 ## Code Examples
 

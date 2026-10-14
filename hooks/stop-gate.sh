@@ -10,6 +10,9 @@
 # and cap blocks per session via a counter file. Override with SDD_ALLOW_STOP=1.
 # Always exits 0; a block is expressed via the decision JSON, never a non-zero exit.
 
+# Backfill PATH for cron/launchd/GUI launches; appended so callers' resolution wins.
+export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:${HOME:-}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 set -euo pipefail
 
 # Escape hatch — accept the risk and let the turn end.

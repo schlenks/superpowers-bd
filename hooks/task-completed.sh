@@ -4,6 +4,9 @@
 # Stderr feedback is shown to the model when blocking (per Claude Code docs).
 # Only fires in interactive mode (not headless claude -p).
 
+# Backfill PATH for cron/launchd/GUI launches; appended so callers' resolution wins.
+export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:${HOME:-}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 set -euo pipefail
 
 # Read JSON input from stdin
