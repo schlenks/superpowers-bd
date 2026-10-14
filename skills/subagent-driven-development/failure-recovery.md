@@ -51,6 +51,8 @@ elif no open findings remain: skip the re-review; route as passed
 else: re-review the remaining findings
 ```
 
+A later review with only Minor findings routes by its own phase: a Minor-only code review after a spec fix loop goes straight to gap closure and close, never back to code review.
+
 Other concerns in the fixer's verdict (not spec disputes) are observations for the `[WAVE-SUMMARY]` Notes. They are not NOT_ADDRESSED and use no round; only the re-reviewer decides whether a finding was addressed.
 
 ## Implementer BLOCKED

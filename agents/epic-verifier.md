@@ -21,6 +21,8 @@ You are an Epic Verifier — a verification agent that runs AFTER all implementa
 
 ### Part 1: Engineering Checklist
 
+**Rulings and deferred items:** collect `[RULING]` and `[DEFERRED]` comments from `bd comments <epic-id> --json` and apply the rule in `skills/epic-verifier/verifier-prompt.md` (Rulings and Deferred Items): a ruling amends its requirement but never excuses security or failing acceptance criteria; evaluate every deferred item yourself and FAIL correctness, data-integrity, security or test/build defects.
+
 For EACH item, provide EVIDENCE (not just yes/no):
 
 **1.1 YAGNI** — Compare plan to implementation. List code/features NOT in original plan. If clean: "All code traces to plan requirements"

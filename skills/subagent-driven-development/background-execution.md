@@ -372,14 +372,14 @@ def on_review_findings(agent_id, findings, phase):  # phase: "spec" | "code" | "
     # cache expires after about 5 minutes idle; after that the resume pays to
     # rewrite its whole context.
     task = pending_tasks[agent_id]
+    task["review_phase"] = phase                  # set first: route_as_passed reads it
     # Spec FAIL items arrive as Important, verification failures as Critical.
     findings = [f for f in findings if f.severity in ("Critical", "Important")]
     if not findings:
-        return route_as_passed(agent_id)
+        return route_as_passed(agent_id)          # Minor-only: route by this phase
     if task["fix_round"] == FIX_ROUND_CAP:
         return adjudicate(task["issue_id"], findings)   # failure-recovery.md
     task["fix_round"] += 1
-    task["review_phase"] = phase
     task["fix_base_sha"] = task["head_sha"]       # last reviewed commit
     task["open_findings"] = number_as_F1_to_Fn(findings)
     send_round(agent_id)
@@ -458,6 +458,7 @@ def on_re_review_complete(agent_id, verdicts):
     # finding or NEW line from any re-reviewer fails the round.
     task = pending_tasks[agent_id]
     task["fix_stage"] = "re_reviewed"
+    write_checkpoint()                            # recovery can route these verdicts
     if all(v.status == "PASS" for v in verdicts):
         return route_as_passed(agent_id)
     findings = union(v.not_addressed + v.new_breakage for v in verdicts)
@@ -472,7 +473,7 @@ def route_as_passed(agent_id):
 
 **Re-review dispatch.** Use `re-review-prompt.md`. How many re-reviewers, and on which model, is set once in `budget-and-wave-cap.md` Review Fan-Out by Complexity (one; the tier-default N on sonnet for a security or data-loss finding):
 
-- Claude Code: `Agent(subagent_type="general-purpose", model="sonnet" if complexity == "complex" and budget_tier != "pro/api" else "haiku", run_in_background=True)`.
+- Claude Code: `Agent(subagent_type="general-purpose", model="sonnet" if security_or_data_loss or (complexity == "complex" and budget_tier != "pro/api") else "haiku", run_in_background=True)`.
 - Codex: `spawn_agent(agent="code_reviewer")` with the re-review prompt.
 
 Never rerun spec review, the N code reviewers, or aggregation for a fix round. The re-reviewer posts out-of-scope issues as `[DEFERRED]` comments, which never block the close; the epic verifier evaluates them.
