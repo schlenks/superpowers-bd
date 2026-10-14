@@ -32,6 +32,10 @@ After compaction finishes, type `continue` to resume verification.
 
 Substitute the real path. The "type `continue`" line is critical — `/compact` doesn't give the model a turn.
 
+### No human present — skip the wait
+
+In a headless or unattended run (for example `claude -p`, or a prompt that says no user is available), nobody can run `/compact` or type `continue`. Skip the pause, announce "Plan written to {path}. Proceeding to verification.", and continue to task 2.
+
 ## Plan Verification Checklist (Inline)
 
 Mark task 2 in_progress, then announce:
@@ -53,6 +57,8 @@ Plan Verification Checklist results:
 - Key Decisions documented: {check/cross} {explanation}
 - Context sections present: {check/cross} {explanation}
 - File Structure complete: {check/cross} {explanation}
+- Step scan: {check/cross} {explanation}
+- Proportion: {check/cross} {explanation}
 
 {N} fixes applied inline. Proceeding to rule-of-five-plans dispatch.
 ```
@@ -103,9 +109,16 @@ Use the **actual values** from the collected verdicts — never show template pl
 
 ## On BLOCKED/FAIL Verdict
 
-Stop the dispatch loop and announce:
+Fix what the verdict names, re-run that pass once, and announce:
 
 ```
-Verification BLOCKED at {pass_name}: {SUMMARY}
-Please resolve the issue before verification can continue.
+{pass_name} verdict: {STATUS} — {SUMMARY}. Fixed; re-running {pass_name} once.
 ```
+
+If the re-run still returns BLOCKED/FAIL, do not stall. Decide the issue yourself, record the ruling under the pass's row in the plan's Verification Record, and continue to the next pass:
+
+```
+{pass_name} still {STATUS} after one re-run. Ruling: {decision and why}. Recorded in the Verification Record; continuing.
+```
+
+The ruling stays visible to whoever approves the plan.

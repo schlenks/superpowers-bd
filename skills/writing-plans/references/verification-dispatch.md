@@ -6,7 +6,7 @@ Dispatch each rule-of-five pass (tasks 3–7) as a sequential foreground sub-age
 
 ## Dispatch Flow
 
-After task 2 (inline checklist) completes, the main session drives this loop for tasks 3–7. On `[1m]` (default) dispatch begins immediately after task 2; on 200k, wait for compact + "continue" before task 2, then proceed to task 3 after.
+After task 2 (inline checklist) completes, the main session drives this loop for tasks 3–7. On `[1m]` (default) dispatch begins immediately after task 2; on 200k, wait for compact + "continue" before task 2, then proceed to task 3 after. With no human present, skip that wait.
 
 ```
 for each pass in [draft, feasibility, completeness, risk, optimality]:
@@ -17,7 +17,8 @@ for each pass in [draft, feasibility, completeness, risk, optimality]:
          prompt: <built from template below>)
   4. Collect verdict from sub-agent response
   5. Announce: "{pass_name} verdict: {STATUS} — {SUMMARY}"
-  6. If verdict STATUS == "BLOCKED" or "FAIL": stop, report to user, do NOT continue
+  6. If verdict STATUS == "BLOCKED" or "FAIL": fix the plan, re-run this pass once;
+     if it still fails, record a ruling in the Verification Record and continue
   7. TaskUpdate(task_id, status: "completed")
 
 After all 5 passes:
@@ -74,7 +75,8 @@ SUMMARY: <1-3 sentences — what you found and changed>
 - File paths verified via Glob (existing files exist, new files in correct locations)
 - Commands tested or known to work (`pytest`, `npm test`, etc.)
 - Dependencies available (libraries installed, APIs accessible)
-- Estimates realistic (2-5 min per bite-sized step)
+- Each step is one action with a checkable result
+- Hand-trace steps to check them; don't build or run the plan's code
 - No circular dependencies in task graph
 - External service requirements documented
 
@@ -115,10 +117,11 @@ SUMMARY: <1-3 sentences — what you found and changed>
 - Simplest approach chosen (not most elegant)
 - No speculative tasks for "future" requirements
 - You'd defend every task to a senior colleague
+- No bodies the signature and tests already determine; plan not several times the spec's length
 
 **Exit when:** You'd defend every task to a senior colleague.
 
 ## Error Handling
 
-- **BLOCKED verdict:** Stop the dispatch loop immediately. Report the SUMMARY to the user and do NOT continue to the next pass. The user must resolve the issue before verification can proceed.
-- **Malformed verdict:** If a sub-agent returns output that doesn't match the verdict format, treat it as BLOCKED with SUMMARY: "Sub-agent returned malformed verdict. Re-run this pass."
+- **BLOCKED/FAIL verdict:** Fix what the SUMMARY names and re-run that pass once. If it still fails, record a ruling (the decision and why) under that pass's row in the Verification Record and continue to the next pass. See `references/announcements-protocol.md`.
+- **Malformed verdict:** If a sub-agent returns output that doesn't match the verdict format, re-run the pass once; a second malformed verdict is handled like a failed re-run above.

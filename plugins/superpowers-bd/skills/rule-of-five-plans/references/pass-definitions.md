@@ -21,7 +21,8 @@
 - File paths verified via Glob (existing files exist, new files in correct locations)
 - Commands tested or known to work (`pytest`, `npm test`, etc.)
 - Dependencies available (libraries installed, APIs accessible)
-- Estimates realistic (2-5 min per bite-sized step)
+- Each step is one action with a checkable result
+- Hand-trace steps to check them; don't build or run the plan's code
 - No circular dependencies in task graph
 - External service requirements documented
 
@@ -66,5 +67,6 @@
 - Simplest approach chosen (not most elegant)
 - No speculative tasks for "future" requirements
 - You'd defend every task to a senior colleague
+- Implementation plans: no bodies the signature and tests already determine; plan not several times the spec's length
 
 **Exit when:** You'd defend every task to a senior colleague.

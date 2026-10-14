@@ -18,7 +18,7 @@ TaskCreate: "Pass 1: Draft"
   activeForm: "Drafting"
 
 TaskCreate: "Pass 2: Feasibility"
-  description: "Can every step be executed? Dependencies available? Paths valid? Estimates realistic?"
+  description: "Can every step be executed? Dependencies available? Paths valid? One checkable result per step? Hand-trace; don't build or run the plan's code."
   activeForm: "Checking feasibility"
 TaskUpdate: pass-2-id
   addBlockedBy: [draft-task-id]
@@ -107,10 +107,10 @@ Announce: "Applying rule-of-five-plans to [artifact]. Starting 5-pass review."
 | Pass | Focus | Exit when... |
 |------|-------|--------------|
 | **Draft** | Shape and structure. All sections sketched, task list complete. | All major sections exist; task list complete |
-| **Feasibility** | Can every step be executed? Deps available? Paths valid? Estimates realistic? | No infeasible steps; all references verified |
+| **Feasibility** | Can every step be executed? Deps available? Paths valid? One checkable result per step? Hand-trace; don't build or run the plan's code. | No infeasible steps; all references verified |
 | **Completeness** | Every requirement traced to a task? Gaps? Missing rollback? | Every requirement maps to task(s) |
 | **Risk** | What could go wrong? Migration, data loss, breaking changes, parallel conflicts? | Risks identified and mitigated |
-| **Optimality** | Simplest approach? YAGNI? Could tasks be combined? | You'd defend every task to a senior colleague |
+| **Optimality** | Simplest approach? YAGNI? Could tasks be combined? Plans: no bodies the signature and tests already determine; not several times the spec's length. | You'd defend every task to a senior colleague |
 
 ### Structural Checks
 
