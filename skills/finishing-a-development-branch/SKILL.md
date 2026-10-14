@@ -67,7 +67,7 @@ Keep two values apart. `BASE_SHA` is the merge-base commit and is used only for 
 BASE_SHA=$(git merge-base HEAD main || git merge-base HEAD master)
 ```
 
-`BASE_BRANCH` is the named destination branch for merge and PR: the plan or epic's stated branch, else the branch's upstream if known, else `main`, else `master`. Never `git checkout` a SHA. Confirm `BASE_BRANCH` with the user only in an interactive session; unattended with no resolvable named branch, do not merge: keep as-is and record it.
+`BASE_BRANCH` is the named destination branch for merge and PR: the plan or epic's stated branch, else `main`, else `master`. Never use the feature branch's tracking upstream (after `git push -u` it is `origin/<feature>`, not an integration branch). Never `git checkout` a SHA. Confirm `BASE_BRANCH` with the user only in an interactive session; unattended with no resolvable named branch, do not merge: keep as-is and record it.
 
 ### Step 3 Auto: Execute Pre-Chosen Strategy
 
