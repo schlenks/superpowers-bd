@@ -15,6 +15,10 @@ TOTAL=0
 
 TEST_ROOT=$(mktemp -d)
 trap 'rm -rf "$TEST_ROOT"' EXIT
+# bd-in-progress-count.sh caches under $TMPDIR keyed by cwd; isolate it so the
+# repo's real .beads (or a stale cache entry) cannot leak into results.
+mkdir -p "$TEST_ROOT/tmp"
+export TMPDIR="$TEST_ROOT/tmp"
 
 STUB_BIN="$TEST_ROOT/bin"
 mkdir -p "$STUB_BIN"

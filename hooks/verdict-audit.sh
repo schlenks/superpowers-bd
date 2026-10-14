@@ -13,16 +13,19 @@ log_dir="${CLAUDE_PROJECT_DIR:-.}/temp"
 log_file="$log_dir/verdict-audit.log"
 
 # Read stdin (SubagentStop hook provides JSON with agent_type, agent_id, last_assistant_message)
+# SUPERPOWERS_BD_JQ overrides the jq binary (tests point it at a missing path to
+# exercise the jq-absent branch; PATH narrowing cannot, given the PATH backfill).
+jq_bin="${SUPERPOWERS_BD_JQ:-jq}"
 input=$(cat)
 
 # Extract fields via jq if available; fall back to unknown for audit continuity.
 # parsed=1 only when we could actually read the payload — the gate below must NOT
 # treat an unparsed (jq-less) payload as NO_VERDICT, or it would block every stop.
-if command -v jq &>/dev/null; then
+if command -v "$jq_bin" &>/dev/null; then
   parsed=1
-  agent_type=$(echo "$input" | jq -r '.agent_type // "unknown"' 2>/dev/null || echo "unknown")
-  agent_id=$(echo "$input" | jq -r '.agent_id // "unknown"' 2>/dev/null || echo "unknown")
-  last_message=$(echo "$input" | jq -r '.last_assistant_message // ""' 2>/dev/null || echo "")
+  agent_type=$(echo "$input" | "$jq_bin" -r '.agent_type // "unknown"' 2>/dev/null || echo "unknown")
+  agent_id=$(echo "$input" | "$jq_bin" -r '.agent_id // "unknown"' 2>/dev/null || echo "unknown")
+  last_message=$(echo "$input" | "$jq_bin" -r '.last_assistant_message // ""' 2>/dev/null || echo "")
 else
   parsed=0
   agent_type="unknown"

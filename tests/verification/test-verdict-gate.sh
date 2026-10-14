@@ -90,19 +90,14 @@ fi
 # jq-absent environment must NOT enforce the gate (audit-only), even with a wave
 # flag — otherwise jq-less hosts block every SubagentStop under agent_id=unknown.
 echo "--- jq-absent environment ---"
-JQLESS_BIN="$TEST_ROOT/jqless-bin"
-mkdir -p "$JQLESS_BIN"
-for tool in cat grep date mkdir rm; do
-  real=$(command -v "$tool" || true)
-  [ -n "$real" ] && ln -s "$real" "$JQLESS_BIN/$tool"
-done
-BASH_BIN=$(command -v bash)
 JQLESS_PROJ="$TEST_ROOT/jqless"
 mkdir -p "$JQLESS_PROJ/temp"
 printf '' > "$JQLESS_PROJ/temp/sdd-wave-active-fake-epic.flag"
-# Payload is built with the test's real jq; the hook runs under a jq-less PATH.
+# Payload is built with the test's real jq; the hook is pointed at a missing jq via
+# SUPERPOWERS_BD_JQ. Narrowing PATH no longer works: the hook's PATH backfill
+# re-finds a system jq.
 jqless_out=$(payload jl1 "$NO_VERDICT_MSG" \
-  | env CLAUDE_PROJECT_DIR="$JQLESS_PROJ" PATH="$JQLESS_BIN" "$BASH_BIN" "$HOOK_SCRIPT")
+  | env CLAUDE_PROJECT_DIR="$JQLESS_PROJ" SUPERPOWERS_BD_JQ="$TEST_ROOT/no-such-jq" bash "$HOOK_SCRIPT")
 TOTAL=$((TOTAL + 1))
 if echo "$jqless_out" | grep -q '"decision":"block"'; then
   echo "FAIL: jq-absent env must not enforce gate (out: $jqless_out)"
