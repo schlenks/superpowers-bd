@@ -20,7 +20,9 @@ grep -i "worktree.*director" CLAUDE.md 2>/dev/null
 
 ## 3. Ask User
 
-If no directory exists and no CLAUDE.md preference:
+**Unattended** (headless `claude -p`, background run, or `AskUserQuestion` unavailable): skip the ask and use `.worktrees/`.
+
+Interactive, if no directory exists and no CLAUDE.md preference:
 
 ```
 No worktree directory found. Where should I create worktrees?

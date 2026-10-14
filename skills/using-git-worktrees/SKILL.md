@@ -37,7 +37,7 @@ Report with branch state:
 
 **If `GIT_DIR == GIT_COMMON` (or in a submodule):** You are in a normal repo checkout.
 
-Has the user already indicated their worktree preference (CLAUDE.md, brainstorming spec, prior instructions)? If yes, honor it without asking. If no, ask for consent before creating a worktree:
+Has the user already indicated their worktree preference (CLAUDE.md, brainstorming spec, prior instructions)? If yes, honor it without asking. If no, and a human can answer, ask for consent before creating a worktree (unattended: a headless `claude -p` or background run, or `AskUserQuestion` unavailable, so proceed with a worktree without asking):
 
 > "Would you like me to set up an isolated worktree? It protects your current branch from changes."
 
@@ -63,7 +63,7 @@ Follow this priority order to select the directory:
 
 1. **Check existing directories** -- Use `.worktrees/` or `worktrees/` if present (`.worktrees/` wins if both exist)
 2. **Check CLAUDE.md** -- Use any worktree directory preference specified there
-3. **Ask user** -- Offer `.worktrees/` (project-local) or `~/.config/superpowers/worktrees/<project>/` (global)
+3. **Ask user** -- Offer `.worktrees/` (project-local) or `~/.config/superpowers/worktrees/<project>/` (global). Unattended: default to `.worktrees/` without asking
 
 See `references/directory-selection.md` for full bash commands and ask-user flow.
 
@@ -98,7 +98,7 @@ if [ -f go.mod ]; then go mod download; fi
 
 ## Step 4: Verify Clean Baseline
 
-Run the project test suite. Report pass/fail. If failing, ask before proceeding.
+Run the project test suite. Report pass/fail. If failing, interactive sessions ask before proceeding; unattended runs record the failing tests as the baseline (a `[RULING]` bd comment, or the report) and continue, so later runs compare against them.
 
 ## Quick Reference
 
@@ -111,9 +111,9 @@ Run the project test suite. Report pass/fail. If failing, ask before proceeding.
 | `.worktrees/` exists | Use it (verify ignored) |
 | `worktrees/` exists | Use it (verify ignored) |
 | Both exist | Use `.worktrees/` |
-| Neither exists | Check CLAUDE.md -> Ask user |
+| Neither exists | Check CLAUDE.md -> Ask user (unattended: `.worktrees/`) |
 | Directory not ignored | Add to .gitignore + commit |
-| Tests fail during baseline | Report failures + ask |
+| Tests fail during baseline | Interactive: report + ask. Unattended: record as baseline, continue |
 | No package.json/Cargo.toml | Skip dependency install |
 | Done with worktree | Use ExitWorktree tool (2.1.72+) |
 
@@ -121,7 +121,7 @@ Run the project test suite. Report pass/fail. If failing, ask before proceeding.
 
 - **Skipping ignore verification** -- worktree contents pollute git status. Always `git check-ignore` first.
 - **Assuming directory location** -- follow priority: existing > CLAUDE.md > ask.
-- **Proceeding with failing tests** -- report failures, get permission first.
+- **Proceeding with failing tests** -- report failures; get permission first when a human can answer, otherwise record them as the baseline.
 - **Hardcoding setup commands** -- auto-detect from project files instead.
 
 ## Integration

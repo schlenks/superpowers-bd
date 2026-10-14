@@ -18,6 +18,8 @@ Ad-hoc code review using the code-reviewer agent. Works outside SDD for any chan
 
 Extract N from the command argument if provided. If N is 0, negative, or non-integer, warn the user and default to empty (determined by recommendation in Step 5). Cap at 10 — if N>10, warn and use 10. If no argument, N is empty.
 
+**Fully specified arguments:** when the arguments name the target (a PR number or URL, or a ref range or `uncommitted`) and N, skip every AskUserQuestion below and use the arguments; requirements default to the PR description, or the general-review text when none exists. This is the only path that works in `claude -p`, where AskUserQuestion is unavailable.
+
 ## Step 2: Ask Review Mode
 
 Use AskUserQuestion to ask what to review:
@@ -406,7 +408,7 @@ No automatic follow-up actions — the user decides what to do with the findings
 
 ## Rules
 
-- **Always ask** scope and requirements — never assume
+- **Always ask** scope and requirements when arguments leave them open — never assume
 - **Cap N at 10** — warn if user requests more
 - **No beads integration** — this is ad-hoc, no issue to attach to
 - **No automatic fixes** — present findings, stop

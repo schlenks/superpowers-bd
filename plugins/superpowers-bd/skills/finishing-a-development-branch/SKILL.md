@@ -64,9 +64,7 @@ This determines which menu to show in Step 3:
 ```bash
 git merge-base HEAD main
 ```
-If that fails, try `git merge-base HEAD master` instead.
-
-Or ask: "This branch split from main - is that correct?"
+If that fails, try `git merge-base HEAD master` instead. The merge-base result is the base; confirm it with the user only in an interactive session.
 
 ### Step 3 Auto: Execute Pre-Chosen Strategy
 
@@ -87,6 +85,8 @@ Skip to Step 5 if applicable. See `references/completion-strategies.md`.
 ### Step 3 Manual: Present Options
 
 If no `completion:*` label, present options based on HEAD state from Step 1.7.
+
+**Unattended (no human can answer):** do not present the menu. Unattended means a headless `claude -p` run, a background session, or any run where `AskUserQuestion` is unavailable or the prompt says not to wait for input. Keep the branch and worktree, never merge, push or discard, and state this line verbatim in your final message: "Kept as-is (unattended; no completion label)". Record the choice as a `[RULING]` bd comment when an epic exists. Skip Steps 4 and 5.
 
 **On a named branch (normal repo or named-branch worktree) — present exactly these 3 choices:**
 
