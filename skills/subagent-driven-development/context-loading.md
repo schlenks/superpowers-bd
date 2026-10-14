@@ -20,6 +20,12 @@ bd comments <epic-id> --json
 
 **Why self-read?** Shifting context loading from orchestrator to sub-agent eliminates ~450-750 lines/wave of pasted content from the orchestrator's context window. Sub-agents have fresh, disposable context windows.
 
+## Epic Spec Pointer (Orchestrator)
+
+At setup, if the epic description has a `Spec: <path or URL>` line (written by plan2beads from the plan's `**Spec:**` header), read that spec once. Use it in pre-flight and later plan-conflict rulings: it ranks below the epic's Key Decisions and above child text (`rulings-and-escalation.md`), and a ruling that relies on it cites it in the "why". Pass it to spec reviewers as `{spec_ref}`.
+
+If the spec cannot be read (missing path, dead link, no network), do not stall. Record `[RULING] <epic-id>: spec unreadable (<reason>) — proceeding on bead text — cost if wrong: <impact>` on the epic and continue.
+
 ## What the Orchestrator Still Provides
 
 These fields stay in the dispatch prompt (small, safety-critical):
@@ -34,6 +40,7 @@ These fields stay in the dispatch prompt (small, safety-critical):
 | `{base_sha}`, `{head_sha}` | Reviewers need these for diff (not in beads). `base_sha` = `git rev-parse HEAD` captured before wave dispatch. `head_sha` = implementer's COMMIT verdict field. See dispatch-and-conflict.md. | 2 lines |
 | `{code_reviewer_path}` | Code reviewers read methodology from disk (119 lines not in prompt) | 1 line |
 | `{wave_number}` | For tagging beads comments | 1 line |
+| `{spec_ref}` | Spec reviewers check a ruling's basis against the epic's `Spec:` (omit when the epic has none) | 1 line |
 
 Everything else — requirements, implementation steps, epic goal, Key Decisions, wave conventions — the sub-agent reads from beads.
 

@@ -97,6 +97,9 @@ bd comments add <epic-id> "[WAVE-SUMMARY] Wave N complete:
   - hub-abc.1: commit=[hash], files=[count] changed, tests=[pass_count] pass
   - hub-abc.2: commit=[hash], files=[count] changed, tests=[pass_count] pass
 - Simplification: [applied/skipped (reason)] [files touched, if applied]
+- Wave cap: [N] ([explicit|recommended|fallback]; first wave only, or when it changes)
+- Rulings: [none | hub-abc.1: decision (one per [RULING] posted this wave)]
+- Escalated: [none | hub-abc.3: [HUMAN-NEEDED] question (beads labeled human this wave)]
 - Metrics: [measured_count] measured, [missing_count] unavailable
   - Known minimum: [wave_tokens] tokens | [tool_calls] tool calls
   - Token split: [input_tokens] input | [output_tokens] output
@@ -127,10 +130,11 @@ Full summaries live in beads. Future agents read them with
 
 ## Epic Completion Report
 
-Report workflow results first, then telemetry quality:
+The first line of the final message is `SDD-STATUS: COMPLETE` or `SDD-STATUS: PARTIAL`, so an unattended wrapper can tell a finished epic from a parked one without parsing prose. `PARTIAL` means at least one epic child is still open, including any `human`-labeled bead. Then report workflow results, every ruling, open escalations, and telemetry quality:
 
 ```text
-Epic {epic_id} complete
+SDD-STATUS: COMPLETE|PARTIAL
+Epic {epic_id} complete|partial
 - Waves: {wave_count}
 - Tasks: {task_count} ({impl} implementation, {spec} spec review, {code} code review, {agg} aggregation)
 - Structured telemetry: {measured_count} measured, {missing_count} unavailable
@@ -138,7 +142,16 @@ Epic {epic_id} complete
 - Tool calls: {known_tool_uses} (minimum when any result is unavailable)
 - Wall clock: {wall_clock}
 - Cost: run analyze-token-usage.py <session>.jsonl for model-aware analysis
+
+Rulings I made:
+- {issue_id}: {decision} — why: {reason} — cost if wrong: {impact}
+  (every [RULING] from the epic's comments, not a sample; "none" if none)
+
+Waiting on a human:
+- {issue_id}: {question} (from bd list --label human --parent {epic_id}; "none" if none)
 ```
+
+Build both lists from bd (`bd comments <epic-id> --json` for `[RULING]`, `bd list --label human --parent <epic-id>` for escalations), not from memory: the session may have compacted since the ruling was made.
 
 ## Disk Persistence
 

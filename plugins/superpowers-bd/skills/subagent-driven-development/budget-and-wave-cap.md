@@ -1,5 +1,15 @@
 # Budget and Wave Cap
 
+## Budget Tier Resolution
+
+Resolve the tier once per epic, in this order, and never ask the user:
+
+1. an explicit tier in the invocation (`execute epic hub-abc max-20x`);
+2. the `SDD_BUDGET_TIER` environment variable (`max-20x`, `max-5x`, or `pro/api`);
+3. `max-5x`.
+
+Store the result as `budget_tier` in the checkpoint and reuse it on resume. An unrecognized `SDD_BUDGET_TIER` value falls through to `max-5x`; note it in the first `[WAVE-SUMMARY]`.
+
 ## Claude Code Model Policy
 
 Claude Code routes work by Opus/Sonnet/Haiku model families. Complexity selects the desired model and the budget tier caps it.
@@ -113,7 +123,7 @@ if budget_tier == "pro/api":
     recommended = min(recommended, 3)
 ```
 
-Ask the user to confirm unless the recommendation is at or below the context default or only one issue is ready.
+Use the recommendation without asking, even when it exceeds the context default. Record the chosen cap and how it was chosen (explicit, recommended, or fallback) in the first `[WAVE-SUMMARY]` (`Wave cap:` line).
 
 ## Effective Wave Sizes
 
@@ -129,7 +139,6 @@ Ask the user to confirm unless the recommendation is at or below the context def
 
 - `bd sql` fails: print a warning and use `min(DEFAULT_CAP, max_parallel)`.
 - No complexity labels: use average weight 2.0.
-- Recommended <= default: skip question and use recommended.
 - `max_parallel = 1`: wave cap is 1.
 - Old checkpoint without `context_tier`: default to standard.
 - Old checkpoint without `platform`: infer current platform and store it at the next checkpoint write.

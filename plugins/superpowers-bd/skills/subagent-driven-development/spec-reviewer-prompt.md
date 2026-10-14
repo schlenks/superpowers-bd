@@ -30,6 +30,13 @@ spawn_agent:
 
     1. Run: `bd show {issue_id}` for the task requirements (what was requested)
     2. Run: `bd comments {issue_id} --json` and find the `[IMPL-REPORT]` entry for what the implementer claims they built (if no `[IMPL-REPORT]` exists, review code changes via `git log --oneline -5` and `git diff`)
+    3. Collect `[RULING]` comments from the issue (same output as step 2) and from its parent epic (`bd comments <parent-id> --json`, parent from `bd show {issue_id}`). Rulings may be posted on either, so read both.
+
+    ## Rulings Amend the Spec
+
+    A `[RULING] {issue_id}: ...` comment is the controller's recorded decision on a conflicting or defective requirement, and it amends that requirement. Judge the amended requirement: implementing the ruling is PASS for that criterion, and implementing the original text it replaced is FAIL. A requirement amended by a ruling is not CANNOT_VERIFY. Cite the ruling in that criterion's line. A ruling covers only what it names; it never excuses other defects.
+
+    **Epic spec:** {spec_ref} (from the epic's `Spec:` line; "none" if absent). When a ruling or an ambiguous requirement cites the spec, read the cited part and check the ruling's basis against it. A ruling whose cited basis contradicts the spec is a finding to report, not grounds to ignore the ruling.
 
     ## CRITICAL: Do Not Trust the Report
 

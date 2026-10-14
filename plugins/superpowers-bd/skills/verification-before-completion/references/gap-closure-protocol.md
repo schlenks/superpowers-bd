@@ -1,6 +1,6 @@
 # Gap Closure Enforcement Protocol
 
-When verification fails, follow this protocol exactly:
+When verification fails, follow this protocol exactly. The `TaskCreate`/`TaskUpdate` records below are native progress tracking (Codex: `update_plan`). They are optional where Task tools are unavailable (off by default on Claude Code 2.1.233+), and they are never the only record of an escalation: Step 4 escalates in bd.
 
 ## Step 1: Create Gap-Fix Task
 
@@ -39,13 +39,13 @@ TaskUpdate: [re-verification task ID]
 
 ```
 IF attempt >= max_attempts AND still failing:
-  TaskCreate: "ESCALATE: [claim] failed after 3 attempts"
-    description: "Human intervention required. Attempts: [list failures and fixes tried]."
-    activeForm: "Awaiting human input"
-    metadata:
-      requires_human: true
-      failure_history: [array of attempt summaries]
+  bd label add <issue-id> human
+  bd comments add <issue-id> "[HUMAN-NEEDED] <issue-id>: [claim] failed after 3 attempts. Attempts: [failures and fixes tried]."
+  Leave the issue open and continue with independent work.
+  Optional mirror: TaskCreate (Codex: update_plan) "ESCALATE: [claim] failed after 3 attempts"
 ```
+
+Outside a beads workflow (no issue id), report the failure history in your final message and do not claim the work complete.
 
 ## Why blockedBy Matters
 

@@ -21,12 +21,13 @@ After both reviews pass, apply `superpowers-bd:verification-before-completion` w
 
 ```python
 on_code_review_pass(task_id, result):
-    # Create verification task for the implementation
+    # Optional progress mirror only (Claude Code TaskCreate / Codex update_plan).
+    # Task tools are off by default on Claude Code 2.1.233+; bd is the record.
     verify_task = TaskCreate(
         subject=f"Verify: {task_id} implementation",
         description=f"Run tests, check build. Max 3 attempts.",
         metadata={"attempt": 1, "max_attempts": 3}
-    )
+    )  # skip when Task tools are unavailable
 
     # Run verification with gap closure loop
     verification_result = run_verification_with_gap_closure(
@@ -39,8 +40,11 @@ on_code_review_pass(task_id, result):
         # Extract evidence and close with audit trail (see below)
         extract_evidence_and_close(task_id, implementer_result)
     elif verification_result.escalated:
-        # Human intervention task created by gap closure
-        pending_human_intervention.add(task_id)
+        # Gap closure exhausted: async escalation in bd, never only a TaskCreate
+        bd label add {task_id} human
+        bd comments add {task_id} "[HUMAN-NEEDED] {task_id}: verification failed after 3 attempts: <failure history>"
+        escalated_tasks[task_id] = "verification failed after 3 attempts"
+        # task stays open; continue with independent issues
 ```
 
 **Gap closure flow within SDD:**
@@ -50,13 +54,13 @@ Code review passes → Create verification task (attempt 1) → Run verification
   → no → Create gap-fix task → Fix completes → Re-verify (attempt N+1)
     → passes? → yes → bd close
     → no, attempt < 3 → loop
-    → no, attempt >= 3 → Escalate to human
+    → no, attempt >= 3 → bd label add <id> human + [HUMAN-NEEDED] comment, continue
 ```
 
 **Integration with state machine:**
 - Gap closure happens in REVIEW → CLOSE transition
-- If escalated, task moves to "pending human" (not closed, not dispatched)
-- After human resolves, re-enter REVIEW state for that task
+- If escalated, the task carries the `human` label (not closed, not dispatched) and the epic continues with independent issues (`rulings-and-escalation.md`)
+- After the human responds (`bd human respond`, or the label is removed), re-enter REVIEW state for that task
 
 ## Evidence Extraction Before Close
 
@@ -78,7 +82,9 @@ on_verification_pass(task_id, implementer_verdict):
     if not evidence["files"]:
         evidence["files"] = run("git diff --stat")
 
-    # 3. Create native "Close evidence" task → triggers TaskCompleted hook (interactive mode)
+    # 3. Optional: native "Close evidence" task → triggers TaskCompleted hook (interactive
+    #    Claude Code with Task tools enabled). Skip when Task tools are unavailable;
+    #    step 4 is the required record.
     evidence_task = TaskCreate(
         subject=f"Close evidence: {task_id}",
         description=f"Commit: {evidence['commit']}\n"
@@ -93,7 +99,7 @@ on_verification_pass(task_id, implementer_verdict):
 ```
 
 **Why two layers:**
-- **Native task** (step 3) — triggers TaskCompleted hook in interactive mode, which blocks if evidence is missing
+- **Native task** (step 3, optional) — triggers TaskCompleted hook in interactive mode, which blocks if evidence is missing
 - **bd close --reason** (step 4) — persists evidence in beads for cross-session audit trail
 - **Verdict-based** — implementer verdict provides structured fields; full report lives in beads comments for audit
 

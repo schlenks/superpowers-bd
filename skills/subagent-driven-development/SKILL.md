@@ -17,19 +17,19 @@ Execute a beads epic by dispatching independent implementation issues in paralle
 1. `bd show <epic-id>`; parse children, acceptance criteria, Key Decisions, and completion strategy.
 2. Detect platform: `claude-code`, `codex`, or another supported native layer. Store it as `platform` in the checkpoint.
 3. If `temp/sdd-checkpoint-{epic_id}.json` exists, restore it and resume from the next wave. Do not re-ask budget tier, platform, or wave cap.
-4. Choose budget tier once (`max-20x`, `max-5x`, or `pro/api`) and store it in the checkpoint.
+4. Resolve budget tier once (`max-20x`, `max-5x`, or `pro/api`): explicit tier, else `SDD_BUDGET_TIER`, else `max-5x`. Never ask; store it in the checkpoint.
 5. Codex only: inherit the active Codex model. Do not auto-select models from plan tier unless Codex exposes a reliable authenticated tier signal; route strength with role-specific `model_reasoning_effort`.
 6. Detect context tier. Claude Code: extended if the model ID contains `[1m]` **or** is a 1M-native family (`sonnet-5`, `fable-5`); otherwise standard. Codex: use visible model/context info; if unknown, default to standard. See `budget-and-wave-cap.md` Context Tier and the Fable effort ceiling.
 7. Build `platform_agent_plan` once per session and store it in the checkpoint. It must name the native dispatch path for implementers, spec reviewers, code reviewers, aggregators, and epic verifier.
 8. Claude Code only: detect Codex cross-model advisory review by looking for `<codex-integration>`. Store `codex_enabled` and `codex_install_path` in the checkpoint. In Codex sessions, omit `codex_install_path` and set `codex_enabled: false` or leave it absent because Codex is the orchestrator.
 9. Run `bd ready`, filter to this epic's children, and exclude blocked/cross-epic/file-conflicting issues.
-10. **Pre-flight requirement-conflict scan:** read each in-scope child issue body (`bd show <id>`) and check for contradictory requirements on a shared surface — two issues specifying incompatible behavior for the same file, API endpoint, data contract, or behavioral rule. This is requirement-level contradiction only; `wave_file_map` handles file-write conflicts separately. If a contradiction is found, surface it and hold at PENDING_HUMAN before dispatching wave 1. If clean, proceed silently.
+10. **Pre-flight requirement-conflict scan:** read each in-scope child issue body (`bd show <id>`) and check for contradictory requirements on a shared surface — two issues specifying incompatible behavior for the same file, API endpoint, data contract, or behavioral rule. This is requirement-level contradiction only; `wave_file_map` handles file-write conflicts separately. If a contradiction is found, rule, record, continue (see Pre-flight Requirement-Conflict Scan), then dispatch wave 1.
 11. Select wave cap. Use explicit invocation first; otherwise use the budget/context heuristic in `budget-and-wave-cap.md`.
 12. Load `wave-orchestration.md`, create the active-wave flag, then dispatch implementers in parallel for non-conflicting ready issues. Mark each issue `in_progress` before dispatch.
-13. Route implementer status: `DONE`/`DONE_WITH_CONCERNS` -> review; `NEEDS_CONTEXT`/`BLOCKED` -> re-dispatch or escalate.
+13. Route implementer status: `DONE`/`DONE_WITH_CONCERNS` -> review; `NEEDS_CONTEXT`/`BLOCKED` -> re-dispatch, rule, or escalate asynchronously.
 14. Run review pipeline: spec review, code review(s), platform-native aggregation when needed, and gap closure up to 3 attempts.
 15. Close passing issues immediately with evidence, post `[WAVE-SUMMARY]`, update checkpoint, and loop back to `bd ready`.
-16. When all implementation tasks are closed, dispatch the platform-native epic verifier; after PASS, run `finishing-a-development-branch`.
+16. When all implementation tasks are closed, dispatch the platform-native epic verifier; after PASS, run `finishing-a-development-branch`. The final report's first line is `SDD-STATUS: COMPLETE|PARTIAL` (`metrics-tracking.md`).
 
 ## Claude Code Dispatch Path
 
@@ -78,10 +78,8 @@ If you are updating an older checkpoint or prompt, map old behavior as follows:
 
 ## Platform Mapping
 
-- **Claude Code:** use `Agent` with `run_in_background: true` as shown in prompt templates.
-- **Codex:** use `spawn_agent` for implementers/reviewers and `wait_agent` only when the controller is blocked. Use `.codex/agents/` names `spec_reviewer`, `code_reviewer`, `review_aggregator`, and `epic_verifier` for specialist stages.
 - **Progress tracking:** map `TaskCreate`/`TaskUpdate` blocks to the native progress tracker. Beads remains the durable source of truth for issue state.
-- **Questions:** in Codex, use `request_user_input` with `autoResolutionMs` for useful but non-blocking choices when available; otherwise ask concise direct questions. Use `AskUserQuestion` only on platforms that provide it.
+- **Questions:** do not ask mid-epic; `AskUserQuestion` (Claude Code) and `request_user_input` (Codex) are absent in `claude -p` and `codex exec`. Rule or escalate per `rulings-and-escalation.md`.
 
 ## Budget Summary
 
@@ -113,7 +111,7 @@ Default issue complexity is `standard`. Use `complexity:simple|standard|complex`
 INIT -> LOADING -> DISPATCH -> MONITOR -> STATUS_ROUTE
 STATUS_ROUTE [DONE|DONE_WITH_CONCERNS] -> REVIEW -> CLOSE -> LOADING
 STATUS_ROUTE [NEEDS_CONTEXT|BLOCKED] -> RE_DISPATCH -> MONITOR
-RE_DISPATCH [>2 attempts] -> PENDING_HUMAN
+RE_DISPATCH [>2 attempts] -> ESCALATE (human label, async) -> LOADING
 LOADING [no open implementation tasks] -> EPIC_VERIFIER -> COMPLETE
 ```
 
@@ -123,9 +121,7 @@ Before dispatching wave 1, read every in-scope child issue body (`bd show <id>` 
 
 **Distinct from file-conflict detection.** `wave_file_map` detects write-write conflicts at the file level; this scan checks for semantic incompatibilities in the requirements themselves — e.g., issue A requires an endpoint to return 404 on missing keys while issue B requires it to return an empty list.
 
-**When a contradiction is found:** Surface the specific conflicting requirement pairs and hold at PENDING_HUMAN. Do not dispatch wave 1 until resolved.
-
-**When clean:** Proceed silently. No log entry, no announcement — noise on every clean epic defeats the purpose.
+**Rule, record, continue.** Rule on each contradiction using the authority order in `rulings-and-escalation.md`, post one `[RULING]` per affected child (on the epic and the child), carry it into the dispatch prompt, and dispatch wave 1. Post one epic comment listing the surfaces the scan checked and the rulings it made; a clean scan posts nothing. Only the hard-stop classes escalate, and only the affected bead waits.
 
 ## Implementer Status Routing
 
@@ -133,9 +129,9 @@ Before dispatching wave 1, read every in-scope child issue body (`bd show <id>` 
 
 **DONE_WITH_CONCERNS:** Forward correctness/scope concerns to the spec reviewer. Note observational concerns in the wave summary.
 
-**NEEDS_CONTEXT:** Re-dispatch same issue with missing context. If this happens more than twice, escalate.
+**NEEDS_CONTEXT:** Re-dispatch same issue with missing context. If this happens more than twice, escalate it asynchronously and continue.
 
-**BLOCKED:** Decide whether the fix is more context, stronger model, task split, or human plan correction. Never ignore a blocker.
+**BLOCKED:** More context, a stronger model, a task split, or a ruling on the plan defect; scope changes escalate asynchronously (`failure-recovery.md`). Never ignore a blocker.
 
 ## Review Rules
 
@@ -145,11 +141,15 @@ Code review count follows the budget tier. In Claude Code, 2+ Claude reviewers a
 
 Claude-only Codex cross-model advisory language applies only when Claude Code detects a separate Codex integration. In native Codex sessions, Codex is the orchestrator and uses native agents rather than reviewing itself as an advisory external model.
 
-If reviewers find issues, loop: implementer fixes, reviewers re-check, and closure happens only after evidence passes. More than 3 failed review attempts -> pause for human.
+If reviewers find issues, loop: implementer fixes, reviewers re-check, and closure happens only after evidence passes. More than 3 failed review attempts -> rule on the remaining findings and record it; never pause the epic.
 
 **CANNOT_VERIFY resolution.** A spec reviewer returns `VERDICT: CANNOT_VERIFY` when a finding depends on code or state OUTSIDE the reviewed diff (e.g. a symbol or file owned by a sibling task in a parallel wave). This is neither PASS nor FAIL — the orchestrator must resolve it, and a task may NOT close on an unresolved CANNOT_VERIFY. Take the sibling dependency the reviewer named and check it against `wave_file_map` and the sibling's receipts/`[IMPL-REPORT]`:
 - If a closed sibling already satisfies the dependency (the named file/symbol exists and is correct), resolve to PASS and proceed to close.
-- Otherwise, HOLD the task (do not close) and re-review it after the sibling lands — once the sibling task closes or in the next wave.
+- Otherwise, HOLD the task (do not close) and re-review it after the sibling lands. If the sibling is escalated, the held task inherits its `human` label.
+
+## Rulings, Not Stalls
+
+Non-destructive ambiguity gets a recorded `[RULING]` and work continues. Only the five hard-stop classes (destructive, security-sensitive, unauthorized push/merge/publish, every path a guess, bd unavailable) wait for a human, asynchronously, via the `human` label. Formats and the decision table: `rulings-and-escalation.md`.
 
 ## Guardrails
 
@@ -181,7 +181,6 @@ If reviewers find issues, loop: implementer fixes, reviewers re-check, and closu
 - `metrics-tracking.md`: summary templates and usage tracking
 - `context-loading.md`: self-read pattern and orchestrator responsibilities
 - `failure-recovery.md`: timeout, rejection loop, deadlock, bd errors
+- `rulings-and-escalation.md`: hard stops, `[RULING]` and `[HUMAN-NEEDED]` formats
 - `wave-orchestration.md`: required before DISPATCH; owns active-wave flag creation, cleanup, and checkpoint ordering
 - `example-workflow.md`: complete worked example
-
-<!-- compressed: 2026-05-14, original: 235 lines, compressed: 123 lines -->
