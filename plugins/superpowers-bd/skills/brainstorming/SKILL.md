@@ -30,7 +30,7 @@ Your first message is two things, in this order:
 
 That's the whole message.
 
-**When they're not there.** If they say they're unavailable, or ask you to proceed without them, treat it as the opt-out: make the calls yourself, and for project-sized work still write the design document with every call marked as yours, so they can review it when they're back.
+**When they're not there.** Unattended means an explicit signal only: a headless or non-interactive run (`claude -p`, `codex exec`), a background or subagent session, or the user or prompt saying not to wait or to proceed without them. Never infer it from a missing question tool. When unattended, treat it as the opt-out: make the calls yourself, and for project-sized work still write the design document with every call marked as yours, so they can review it when they're back.
 
 ## The Conversation
 
