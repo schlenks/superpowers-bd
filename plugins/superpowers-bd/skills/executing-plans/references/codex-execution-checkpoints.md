@@ -22,4 +22,4 @@ Use this reference when `executing-plans` runs in Codex. The flow is the one in 
 
 ## Completion
 
-The final report's first line is `SDD-STATUS: COMPLETE` or `SDD-STATUS: PARTIAL`, followed by the rulings made and the open question beads. On COMPLETE, hand off to `superpowers-bd:finishing-a-development-branch` unless the user explicitly asks for a different stopping point.
+The final report's first line is `SDD-STATUS: COMPLETE` (only with a green full suite and no unresolved blocking finding) or `SDD-STATUS: PARTIAL`, followed by the rulings made and the open question beads. On COMPLETE, hand off to `superpowers-bd:finishing-a-development-branch` unless the user explicitly asks for a different stopping point.

@@ -4,7 +4,7 @@
 
 The final review runs once, so a resumed session finds its stage in `bd comments <epic-id>` before doing anything:
 
-- A verifier report is already persisted (its report marker, or a PASS/FAIL verdict): do not dispatch again. Continue at step 2 with that report, skipping findings that already have a `Final fix:` or `[RULING]` comment.
+- A verifier report is already persisted (its report marker, or a PASS/FAIL verdict): do not dispatch again. Continue at section 2 (One Fix Pass) with that report, skipping findings that already have a `Final fix:` or `[RULING]` comment.
 - No report yet: start at step 1.
 
 ## 1. Final Review: the Epic Verifier
@@ -13,7 +13,7 @@ Start only when every implementation child is closed and the verification task i
 
 1. `bd update <verification-id> --status=in_progress`.
 2. Collect the dispatch context the `superpowers-bd:epic-verifier` skill names: `{epic_id}`, base SHA, head SHA, the test command, and `{quality-delta}` from `bash skills/epic-verifier/scripts/quality-delta.sh <base-sha> <head-sha>` (plugin path, run from the repository root; pass `Unavailable: <reason>` if it cannot run).
-   - **Base SHA** is the `[NATIVE-BASE] <sha>` comment recorded on the epic at Setup. Never derive it at the end: `git merge-base` equals HEAD on `main` or after a resume, and the review would see an empty or partial diff. If the comment is missing, use the parent of the epic's first commit from `git log` and post a `[RULING]` naming the SHA you chose.
+   - **Base SHA** is the `[NATIVE-BASE] <sha>` comment recorded on the epic at Setup. Never derive it at the end: `git merge-base` equals HEAD on `main` or after a resume, and the review would see an empty or partial diff. If the comment is missing, use the parent of the earliest commit cited in a child's `bd close` reason (`commit <sha>`) and post a `[RULING]` naming the SHA you chose.
 3. Dispatch one fresh, read-only verifier with `../../epic-verifier/verifier-prompt.md`:
    - **Claude Code:** `Agent` with `model: "opus"` (the most capable model available; never omit it).
    - **Codex:** `spawn_agent agent=epic_verifier` (`high`).
