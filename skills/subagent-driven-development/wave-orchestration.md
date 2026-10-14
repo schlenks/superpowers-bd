@@ -4,6 +4,8 @@
 lifecycle used by PreCompact, verdict-audit, work-state, and notification hooks.
 Do not dispatch an implementer until the flag has been created.
 
+Before each dispatch, apply the Dispatch-Time Guard in `rulings-and-escalation.md`: a step matching a hard stop is withheld from the implementer's scope and escalated as its own `human` bead, with `bd dep add <dependent> <new-bead>` for every dependent of the original task and for the epic verification task, before the original closes.
+
 Create tasks to track orchestrator state:
 
 ```python

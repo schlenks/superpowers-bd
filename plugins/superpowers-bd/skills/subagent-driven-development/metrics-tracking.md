@@ -99,7 +99,7 @@ bd comments add <epic-id> "[WAVE-SUMMARY] Wave N complete:
 - Simplification: [applied/skipped (reason)] [files touched, if applied]
 - Wave cap: [N] ([explicit|recommended|fallback]; first wave only, or when it changes)
 - Rulings: [none | hub-abc.1: decision (one per [RULING] posted this wave)]
-- Escalated: [none | hub-abc.3: [HUMAN-NEEDED] question (beads labeled human this wave)]
+- Escalated: [none | hub-abc.3: [HUMAN-NEEDED] question (question beads filed this wave)]
 - Metrics: [measured_count] measured, [missing_count] unavailable
   - Known minimum: [wave_tokens] tokens | [tool_calls] tool calls
   - Token split: [input_tokens] input | [output_tokens] output
@@ -130,7 +130,7 @@ Full summaries live in beads. Future agents read them with
 
 ## Epic Completion Report
 
-The first line of the final message is `SDD-STATUS: COMPLETE` or `SDD-STATUS: PARTIAL`, so an unattended wrapper can tell a finished epic from a parked one without parsing prose. `PARTIAL` means at least one epic child is still open, including any `human`-labeled bead. Then report workflow results, every ruling, open escalations, and telemetry quality:
+The first line of the final message is `SDD-STATUS: COMPLETE` or `SDD-STATUS: PARTIAL`, so an unattended wrapper can tell a finished epic from a parked one without parsing prose. `PARTIAL` means at least one epic child is still open, including any `human`-labeled bead; a PARTIAL epic skips the epic verifier and `finishing-a-development-branch` (`rulings-and-escalation.md` Ending a Run). Then report workflow results, every ruling, open escalations, and telemetry quality:
 
 ```text
 SDD-STATUS: COMPLETE|PARTIAL
@@ -148,10 +148,10 @@ Rulings I made:
   (every [RULING] from the epic's comments, not a sample; "none" if none)
 
 Waiting on a human:
-- {issue_id}: {question} (from bd list --label human --parent {epic_id}; "none" if none)
+- {issue_id}: {question} ("none" if none)
 ```
 
-Build both lists from bd (`bd comments <epic-id> --json` for `[RULING]`, `bd list --label human --parent <epic-id>` for escalations), not from memory: the session may have compacted since the ruling was made.
+Build both lists from bd (`bd comments <epic-id> --json` for `[RULING]`; escalations as in `checkpoint-recovery.md` Recovery Logic step 3), not from memory: the session may have compacted since the ruling was made.
 
 ## Disk Persistence
 

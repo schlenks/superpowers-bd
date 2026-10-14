@@ -39,9 +39,12 @@ TaskUpdate: [re-verification task ID]
 
 ```
 IF attempt >= max_attempts AND still failing:
-  bd label add <issue-id> human
-  bd comments add <issue-id> "[HUMAN-NEEDED] <issue-id>: [claim] failed after 3 attempts. Attempts: [failures and fixes tried]."
-  Leave the issue open and continue with independent work.
+  # Separate question bead; never label the issue itself (bd human respond closes the bead it answers)
+  bd create "[HUMAN-NEEDED] <issue-id>: [claim] failed after 3 attempts" --parent <epic-id> --type task \
+    --description "Attempts: [failures and fixes tried]."      # -> <question-bead>
+  bd label add <question-bead> human
+  bd dep add <issue-id> <question-bead>
+  Leave the issue open and continue with independent work. When the question bead closes, read its answer and resume.
   Optional mirror: TaskCreate (Codex: update_plan) "ESCALATE: [claim] failed after 3 attempts"
 ```
 

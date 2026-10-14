@@ -24,7 +24,7 @@ bd comments <epic-id> --json
 
 At setup, if the epic description has a `Spec: <path or URL>` line (written by plan2beads from the plan's `**Spec:**` header), read that spec once. Use it in pre-flight and later plan-conflict rulings: it ranks below the epic's Key Decisions and above child text (`rulings-and-escalation.md`), and a ruling that relies on it cites it in the "why". Pass it to spec reviewers as `{spec_ref}`.
 
-If the spec cannot be read (missing path, dead link, no network), do not stall. Record `[RULING] <epic-id>: spec unreadable (<reason>) — proceeding on bead text — cost if wrong: <impact>` on the epic and continue.
+If the spec cannot be read (missing path, dead link, no network), do not stall. Record `[RULING] <epic-id>: proceed on bead text without the spec — why: spec unreadable (<reason>) — cost if wrong: <impact>` on the epic and continue.
 
 ## What the Orchestrator Still Provides
 

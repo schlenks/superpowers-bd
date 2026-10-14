@@ -41,8 +41,8 @@ on_code_review_pass(task_id, result):
         extract_evidence_and_close(task_id, implementer_result)
     elif verification_result.escalated:
         # Gap closure exhausted: async escalation in bd, never only a TaskCreate
-        bd label add {task_id} human
-        bd comments add {task_id} "[HUMAN-NEEDED] {task_id}: verification failed after 3 attempts: <failure history>"
+        # question bead + bd dep add {task_id} <question-bead>; never label the task itself
+        escalate(task_id, question="verification failed after 3 attempts: <failure history>")
         escalated_tasks[task_id] = "verification failed after 3 attempts"
         # task stays open; continue with independent issues
 ```
@@ -54,13 +54,13 @@ Code review passes → Create verification task (attempt 1) → Run verification
   → no → Create gap-fix task → Fix completes → Re-verify (attempt N+1)
     → passes? → yes → bd close
     → no, attempt < 3 → loop
-    → no, attempt >= 3 → bd label add <id> human + [HUMAN-NEEDED] comment, continue
+    → no, attempt >= 3 → question bead blocking the task (rulings-and-escalation.md), continue
 ```
 
 **Integration with state machine:**
 - Gap closure happens in REVIEW → CLOSE transition
-- If escalated, the task carries the `human` label (not closed, not dispatched) and the epic continues with independent issues (`rulings-and-escalation.md`)
-- After the human responds (`bd human respond`, or the label is removed), re-enter REVIEW state for that task
+- If escalated, the task stays open and blocked by its question bead (not closed, not dispatched) and the epic continues with independent issues (`rulings-and-escalation.md`)
+- After the question bead closes, read the answer from it and re-enter REVIEW state for that task (`rulings-and-escalation.md` Escalation Format)
 
 ## Evidence Extraction Before Close
 

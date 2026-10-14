@@ -1,6 +1,6 @@
 # Failure Recovery Playbooks
 
-None of these playbooks waits for a human. Each ends in a ruling, an asynchronous escalation, or (for bd failures only) a stop. Formats and the hard-stop classes: `rulings-and-escalation.md`. `rule(...)` below means "post a `[RULING]` on the epic and the child"; `escalate(...)` means "`bd label add <id> human` plus a `[HUMAN-NEEDED]` comment, then continue with independent work".
+None of these playbooks waits for a human. `rule(...)` and `escalate(...)` below use the formats, hard stops and security rule in `rulings-and-escalation.md`.
 
 ## Subagent Timeout/Crash
 
@@ -22,8 +22,9 @@ if background agent shows no completion notification after extended time:
 if rejection_count[task_id] exceeds the review-loop cap (SKILL.md Review Rules):
     # Do not pause the epic. Adjudicate the remaining findings.
     for finding in open_findings:
-        if fixing it needs a hard-stop action:
-            escalate(finding_step_or_task, question=finding)
+        if fixing it needs a hard-stop action, or the finding is a security defect
+           that would be kept (security rule, rulings-and-escalation.md):
+            escalate(finding_step_or_task, question=finding)  # task stays open
         else:
             rule(task_id, decision="fix" | "accept as-is", why=evidence, cost_if_wrong=impact)
     apply "fix" rulings once more, or close with the accepted findings listed in the close reason
@@ -132,7 +133,7 @@ All other instructions from your original dispatch still apply.
 
 ```
 if verification_attempt_count[task_id] > 3:
-    # Gap closure already escalated via the bd human label (verification-and-evidence.md)
+    # Gap closure already escalated via a question bead blocking the task (verification-and-evidence.md)
     # Don't dispatch new work for this task; continue with independent issues
     record in [WAVE-SUMMARY] Escalated: "{task_id}: verification failed {n} times"
 ```
@@ -199,8 +200,7 @@ When the orchestrator sees `<sdd-checkpoint-recovery>` in session context, or fi
    - wave_cap (default to 3 if absent)
    - wave_receipts (list of 2-line receipt strings)
    - closed_issues (for tracking)
-   - escalated_tasks: rebuild from `bd list --label human --parent {epic_id}`
-     (bd is the record; the checkpoint copy is a cache). Skip them during LOADING.
+   - escalated_tasks: rebuild from bd (checkpoint-recovery.md Recovery Logic step 3)
    - epic_tokens, epic_input_tokens, epic_output_tokens, epic_tool_uses,
      epic_metrics_unavailable (running measured metrics)
 4. Restore Claude-only Codex advisory fields only when platform is "claude-code".
@@ -218,8 +218,8 @@ When the orchestrator sees `<sdd-checkpoint-recovery>` in session context, or fi
 if checkpoint is unreadable or missing expected fields:
     ignore checkpoint
     use beads as SSOT: bd show {epic_id} to determine completed vs remaining
-    rebuild escalations from bd list --label human --parent {epic_id}
-    resolve budget tier: explicit tier, else SDD_BUDGET_TIER, else max-5x (never ask)
+    rebuild escalations from bd (checkpoint-recovery.md)
+    resolve budget tier without asking (budget-and-wave-cap.md)
     re-detect platform and context tier
     rebuild platform_agent_plan from the active dispatch path
     run smart wave cap recommendation or use the context-tier default
