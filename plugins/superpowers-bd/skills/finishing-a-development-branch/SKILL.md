@@ -43,6 +43,9 @@ GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
 GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
 BRANCH=$(git branch --show-current)
 SUPERPROJECT=$(git rev-parse --show-superproject-working-tree 2>/dev/null)
+# Capture now, while still inside the workspace — Step 4 changes directory
+# to the main repo root before cleanup (Step 5) needs this value
+WORKTREE_PATH=$(git rev-parse --show-toplevel)
 ```
 
 **Submodule guard:** If `SUPERPROJECT` is non-empty, you are inside a submodule. Treat it as a normal repo (no worktree cleanup, no detached-HEAD menu reduction). `GIT_DIR != GIT_COMMON` is also true in submodules, so always check `SUPERPROJECT` first.
@@ -51,10 +54,10 @@ This determines which menu to show in Step 3:
 
 | State | Menu | Cleanup behavior |
 |-------|------|------------------|
-| `SUPERPROJECT` non-empty (submodule) | Standard 4 options | Treat as normal repo |
-| `GIT_DIR == GIT_COMMON` (normal repo) | Standard 4 options | No worktree to clean up |
-| `GIT_DIR != GIT_COMMON`, named branch | Standard 4 options | Provenance-based (Step 5) |
-| `GIT_DIR != GIT_COMMON`, detached HEAD | Reduced 3 options (no merge) | Provenance-based on Discard (Option 3); harness exit tool if not superpowers-owned |
+| `SUPERPROJECT` non-empty (submodule) | Standard 3 options | Treat as normal repo |
+| `GIT_DIR == GIT_COMMON` (normal repo) | Standard 3 options | No worktree to clean up |
+| `GIT_DIR != GIT_COMMON`, named branch | Standard 3 options | Provenance-based (Step 5) |
+| `GIT_DIR != GIT_COMMON`, detached HEAD | Reduced 2 options (no merge) | Provenance-based on an explicitly requested discard; harness exit tool if not superpowers-owned |
 
 ### Step 2: Determine Base Branch
 
@@ -85,38 +88,26 @@ Skip to Step 5 if applicable. See `references/completion-strategies.md`.
 
 If no `completion:*` label, present options based on HEAD state from Step 1.7.
 
-**On a named branch (normal repo or named-branch worktree) — present exactly these 4 choices:**
+**On a named branch (normal repo or named-branch worktree) — present exactly these 3 choices:**
 
 1. Merge back to \<base-branch\> locally
 2. Push and create a Pull Request
 3. Keep the branch as-is (I'll handle it later)
-4. Discard this work
 
-**On detached HEAD (externally managed workspace) — present exactly these 3 choices:**
+**On detached HEAD (externally managed workspace) — present exactly these 2 choices:**
 
 1. Push as new branch and create a Pull Request
 2. Keep as-is (I'll handle it later)
-3. Discard this work
 
-Keep options concise. See `references/completion-strategies.md`.
+Keep options concise. Discard is not a menu option: it runs only when the user explicitly asks to throw the work away, and requires typed "discard" confirmation. See `references/completion-strategies.md`.
 
 ### Step 4: Execute Chosen Option
 
-Execute the user's chosen option. Each option has specific bash commands and confirmation requirements. Option 4 (Discard) requires typed "discard" confirmation. See `references/option-workflows.md`.
+Execute the user's chosen option (or an explicitly requested discard). Merge and discard first `cd` to the main repo root, since a worktree cannot be removed from inside itself. See `references/option-workflows.md`.
 
 ### Step 5: Cleanup Workspace
 
-Only runs for actions that delete the branch (Merge locally, Discard). Branch on env state from Step 1.7 first, then map options to actions:
-
-- **Named branch (4-option menu):** Options 1 (Merge) and 4 (Discard) trigger cleanup; Options 2 (PR) and 3 (Keep) preserve the worktree.
-- **Detached HEAD (3-option menu):** Option 3 (Discard) triggers cleanup; Options 1 (PR) and 2 (Keep) preserve the worktree.
-
-```bash
-# Re-detecting for clarity; may already be set from Step 1.7
-GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
-GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
-WORKTREE_PATH=$(git rev-parse --show-toplevel)
-```
+Only runs for Merge locally and an explicitly requested discard; PR and Keep always preserve the worktree. Use the `GIT_DIR`, `GIT_COMMON`, and `WORKTREE_PATH` values captured in Step 1.7 — after Step 4's directory change, re-detecting would return the main repo and cleanup would silently do nothing.
 
 **If `GIT_DIR == GIT_COMMON`:** Normal repo, no worktree to clean up. Done.
 
@@ -129,7 +120,7 @@ MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-tople
 if [[ "$WORKTREE_PATH" == "$MAIN_ROOT/.worktrees/"* ]] || \
    [[ "$WORKTREE_PATH" == "$MAIN_ROOT/worktrees/"* ]] || \
    [[ "$WORKTREE_PATH" == "$HOME/.config/superpowers/worktrees/"* ]]; then
-  # superpowers-owned: git worktree remove
+  # superpowers-owned: git worktree remove (never --force)
   cd "$MAIN_ROOT"
   git worktree remove "$WORKTREE_PATH"
   git worktree prune  # Self-healing: clean up any stale registrations
@@ -137,6 +128,8 @@ else
   # harness-owned: ExitWorktree or leave in place
 fi
 ```
+
+**If removal is refused** (`contains modified or untracked files`): those files exist nowhere else. Never `--force`. List them with `git -C "$WORKTREE_PATH" status --porcelain -uall`. Interactively, ask whether to commit them to the branch, move them into the main repo, or delete them, then retry. Under a `completion:*` label (no human present), leave the worktree in place, keep the branch, and report the file list.
 
 **Otherwise (harness-owned workspace):** Do NOT remove it. If your platform provides a workspace-exit tool (e.g., `ExitWorktree`), use it. Otherwise, leave the workspace in place.
 
@@ -151,7 +144,7 @@ See `references/worktree-cleanup.md` for full provenance check and removal comma
 | 1. Merge locally | Y | - | - | Y |
 | 2. Create PR | - | Y | Y | - |
 | 3. Keep as-is | - | - | Y | - |
-| 4. Discard | - | - | - | Y (force) |
+| Discard (explicit request only) | - | - | - | Y (force) |
 
 **Detached HEAD:**
 
@@ -159,16 +152,19 @@ See `references/worktree-cleanup.md` for full provenance check and removal comma
 |--------|------|---------------|----------------|
 | 1. Push as new branch + PR | yes | yes | - |
 | 2. Keep as-is | - | yes | - |
-| 3. Discard | - | - | yes (force) |
+| Discard (explicit request only) | - | - | yes (force) |
 
 ## Common Mistakes
 
 - **Skip test verification** -> merge broken code. Always verify tests first.
-- **Open-ended questions** -> present exactly 4 options (named branch) or 3 options (detached HEAD), not "what should I do?"
+- **Open-ended questions** -> present exactly 3 options (named branch) or 2 options (detached HEAD), not "what should I do?"
+- **Offering discard** -> the menu never lists it; finished, passing work is not a candidate for deletion unless the user asks.
+- **Re-detecting `WORKTREE_PATH` after `cd` to main root** -> cleanup sees the main repo and silently does nothing. Use the Step 1.7 value.
+- **`git worktree remove --force` when removal is refused** -> destroys files that exist nowhere else. Show them and ask (or leave in place when unattended).
 - **Remove harness-owned worktree** -> creates phantom state in harness registry. Check provenance (prefix-anchored to `$MAIN_ROOT/.worktrees/`, `$MAIN_ROOT/worktrees/`, or `$HOME/.config/superpowers/worktrees/`) before running `git worktree remove`.
 - **Run `git worktree remove` from inside the worktree** -> fails silently. Always `cd` to main repo root first.
 - **Auto-cleanup without provenance check** -> only remove worktrees we created; harness-owned workspaces need the harness exit tool.
-- **No discard confirmation** -> require typed "discard" before the Discard option (Option 4 on named branch, Option 3 on detached HEAD).
+- **No discard confirmation** -> an explicitly requested discard still requires the typed word "discard".
 
 See `references/red-flags.md` for detailed Never/Always lists.
 
@@ -183,7 +179,7 @@ See `references/red-flags.md` for detailed Never/Always lists.
 - `references/test-verification.md`: task-tracked test verification protocol
 - `references/pre-merge-simplification.md`: code simplifier dispatch protocol
 - `references/completion-strategies.md`: auto/manual completion strategy details
-- `references/option-workflows.md`: execution details for all 4 options
+- `references/option-workflows.md`: execution details for each option and explicit discard
 - `references/worktree-cleanup.md`: worktree cleanup procedures
 - `references/red-flags.md`: detailed red flags and common mistakes
 

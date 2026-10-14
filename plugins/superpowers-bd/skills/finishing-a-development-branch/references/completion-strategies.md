@@ -35,25 +35,25 @@ After executing, skip to Step 5 (Cleanup Worktree) if applicable.
 
 ```
 TaskCreate: "Present completion options"
-  description: "Present 4 structured options to user: merge, PR, keep, discard."
+  description: "Present 3 structured options to user: merge, PR, keep."
   activeForm: "Presenting options"
 TaskUpdate: present-options-task-id
   addBlockedBy: [verify-tests-task-id, simplification-task-id]
 
 TaskCreate: "Execute chosen option"
-  description: "Execute user's chosen option from the 4 presented."
+  description: "Execute user's chosen option from the 3 presented."
   activeForm: "Executing chosen option"
 TaskUpdate: execute-option-task-id
   addBlockedBy: [present-options-task-id]
 
 TaskCreate: "Cleanup worktree (if applicable)"
-  description: "Remove worktree for options 1, 2, or 4. Keep for option 3."
+  description: "Remove worktree for option 1 (merge) or an explicitly requested discard. Keep for options 2 and 3."
   activeForm: "Cleaning up worktree"
 TaskUpdate: cleanup-task-id
   addBlockedBy: [execute-option-task-id]
 ```
 
-### Present Exactly 4 Options
+### Present Exactly 3 Options
 
 ```
 Implementation complete. What would you like to do?
@@ -61,9 +61,8 @@ Implementation complete. What would you like to do?
 1. Merge back to <base-branch> locally
 2. Push and create a Pull Request
 3. Keep the branch as-is (I'll handle it later)
-4. Discard this work
 
 Which option?
 ```
 
-**Don't add explanation** - keep options concise.
+**Don't add explanation** - keep options concise. Do not add a discard option: discarding finished, passing work happens only when the user explicitly asks (see `option-workflows.md`).

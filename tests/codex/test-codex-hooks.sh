@@ -8,6 +8,10 @@ cd "$REPO_ROOT"
 TEST_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_DIR"' EXIT
 export CODEX_HOME="$TEST_DIR/no-plugin"
+# bd-in-progress-count.sh caches per working directory under $TMPDIR; isolate it
+# so a real cache for this checkout can't stand in for the stub bd's count
+mkdir -p "$TEST_DIR/tmp"
+export TMPDIR="$TEST_DIR/tmp"
 
 pass=0
 fail=0

@@ -43,11 +43,11 @@
    ```bash
    # Layer 1: Workflow
    echo "=== Secrets available in workflow: ==="
-   echo "IDENTITY: ${IDENTITY:+SET}${IDENTITY:-UNSET}"
+   echo "IDENTITY: $([ -n "${IDENTITY:-}" ] && echo SET || echo UNSET)"
 
    # Layer 2: Build script
    echo "=== Env vars in build script: ==="
-   env    # then search output for IDENTITY
+   printenv IDENTITY >/dev/null 2>&1 && echo "IDENTITY in environment" || echo "IDENTITY not in environment"
 
    # Layer 3: Signing script
    echo "=== Keychain state: ==="

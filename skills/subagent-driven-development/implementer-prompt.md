@@ -40,6 +40,8 @@ Codex currently uses the default worker for implementation because this reposito
 
     You are not alone in the codebase. Other agents may be working in parallel.
     Modify only your owned files and do not overwrite changes you did not make.
+    Do the work yourself: do not dispatch subagents (`Agent`, `spawn_agent`) or
+    request reviews. The orchestrator runs review after you report.
 
     ## Load Your Context
 
@@ -73,7 +75,10 @@ Codex currently uses the default worker for implementation because this reposito
     1. Implement exactly what the issue specifies
     2. ONLY modify your allowed files
     3. Write tests (TDD if issue says to)
-    4. Verify implementation works
+    4. Run the project's test command, not only the tests you touched; the
+       whole suite defines green. Name every failure, including ones you did
+       not cause. Do not fix failures in files you don't own — report them
+       (DONE_WITH_CONCERNS) so the orchestrator can attribute them.
     5. Commit (`feat:`, `fix:`, `refactor:`, etc.)
     6. Artifacts >50 lines: apply rule-of-five variant — read the skill file for your artifact type:
        - **Code (50+ lines):** Read {rule_of_five_code_path}
@@ -158,7 +163,7 @@ Codex currently uses the default worker for implementation because this reposito
     VERDICT: DONE|DONE_WITH_CONCERNS
     COMMIT: <hash>
     FILES: <count> changed (<insertions>+/<deletions>-)
-    TESTS: <pass>/<total> pass, exit <code>
+    TESTS: <pass>/<total> pass, exit <code> (project suite; failing test names in CONCERNS)
     SCOPE: CLEAN|VIOLATION
     INTERFACES: none | <symbol: old → new; ...>
     REPORT_PERSISTED: YES|NO

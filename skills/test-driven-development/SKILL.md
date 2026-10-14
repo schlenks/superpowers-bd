@@ -27,12 +27,15 @@ behavior changes:
 1. **RED:** Write one focused test and run it. Confirm it fails for the expected
    reason rather than a typo or broken fixture.
 2. **GREEN:** Implement the smallest behavior that makes the test pass. Run the
-   focused test and relevant surrounding suite.
-3. **REFACTOR:** Improve structure without adding behavior. Keep tests green.
+   focused test, then the project's test command. The project's suite defines
+   green, not the file you touched: report every failure by name, including
+   ones you did not cause.
+3. **REFACTOR:** Improve structure without adding behavior. Keep the project's
+   suite green.
 
 After REFACTOR, if more than 50 lines changed or complexity exceeds the local
-threshold, use an available simplifier on the changed files. Re-run the focused
-test and surrounding suite; keep simplifier changes only while evidence remains
+threshold, use an available simplifier on the changed files. Re-run the
+project's suite; keep simplifier changes only while evidence remains
 green. Follow the current git authority—this step does not independently
 authorize a commit.
 
@@ -72,7 +75,7 @@ the user.
 - Use a name that describes the expected behavior.
 - Prefer real code; mock boundaries only when unavoidable.
 - Cover important errors and edge cases.
-- Keep output clean and run the relevant surrounding tests after GREEN and
+- Keep output clean and run the project's test command after GREEN and
   REFACTOR.
 
 ## Reference Files

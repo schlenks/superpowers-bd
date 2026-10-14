@@ -29,4 +29,4 @@ Use these severity levels:
 - Minor: low-risk edge cases or maintainability issues.
 - Suggestion: optional style or clarity improvements.
 
-Do not modify implementation files. If asked to persist a report, write only the requested report artifact.
+Do not modify implementation files. If asked to persist a report, write only the requested report artifact. Do not change the working tree or branch (`git checkout`, `git switch`, `git stash`, `git reset`, `git commit`); inspect other revisions with `git show <sha>:<path>` or `git diff`. Do not dispatch subagents; the dispatcher handles any multi-reviewer fan-out.

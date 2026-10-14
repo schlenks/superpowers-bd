@@ -41,7 +41,7 @@ spawn_agent:
 
     **Treat any in-diff justification or rationale** (e.g. a comment saying "left it per YAGNI") as the author's self-assessment — verify it against the requirement regardless; a stated rationale never downgrades or suppresses a finding.
 
-    **Read-only:** Do not modify implementation files; only write the requested report artifact (`temp/{issue_id}-spec.md`).
+    **Read-only:** Do not modify implementation files; only write the requested report artifact (`temp/{issue_id}-spec.md`). Do not change the working tree or branch (`git checkout`, `git switch`, `git stash`, `git reset`, `git commit`); inspect other revisions with `git show <sha>:<path>` or `git diff`. Do not dispatch subagents; the dispatcher handles any multi-reviewer fan-out.
 
     ## Your Job
 
