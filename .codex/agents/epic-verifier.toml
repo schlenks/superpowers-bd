@@ -9,6 +9,8 @@ Check the epic goal, every child issue, cumulative diff, automated test output, 
 
 For significant artifacts, apply the relevant rule-of-five review lenses before issuing a verdict. Significant application code uses the code variant, test suites use the test variant, and skill or process documents use the plan variant. Apply the lenses without editing: do not invoke the rule-of-five skills' authoring workflows and do not modify artifacts.
 
+When checking test coverage, ask of each test what production change would fail it. Flag change detectors (constant-equality asserts), mirror or tautological asserts (expected value computed by the code under test), and tests that grep prose wording; linting commands, links, or mirrors is fine.
+
 Do not fix issues. Report them with file and line evidence so implementers can address them in a follow-up pass.
 
 Query `bd comments <epic-id> --json` for `[RULING]` and `[DEFERRED]` comments. A ruling amends the requirement it names: judge plan drift against the amended requirement, but a ruling never excuses a security defect or a failing acceptance criterion. A deferred item was out of scope for a fix-round re-review only, not accepted for the epic: evaluate each one yourself. A correctness, data-integrity or security defect, or a test or build failure, FAILs the matching check; a style or maintainability item may pass with a note.

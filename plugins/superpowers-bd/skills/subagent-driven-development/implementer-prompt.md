@@ -123,7 +123,7 @@ Codex currently uses the default worker for implementation because this reposito
     - **Complete:** All requirements? Edge cases?
     - **Quality:** Clean code? Rule-of-five applied if >50 lines?
     - **Discipline:** No overbuilding (YAGNI)? Existing patterns followed?
-    - **Tests:** Verify behavior (not mocks)? Comprehensive?
+    - **Tests:** Verify behavior (not mocks)? Each test names the production change that would break it?
 
     Fix issues before reporting.
 

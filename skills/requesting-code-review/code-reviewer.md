@@ -18,7 +18,7 @@ You are a code reviewer. Find bugs, not compliments. Assume bugs exist until pro
 5. **Trace data flow per changed function** — Inputs/sources, validation points, outputs/consumers, trust boundaries (user input, external APIs, file I/O).
 6. **Hunt for what's missing** — Unhandled error conditions, unvalidated inputs, untested edge cases, empty/null/max-size/concurrent-access scenarios.
 7. **Check for stale references to deleted files** — If any files were deleted in the diff, grep the codebase for imports, requires, or references to those files. Flag any remaining references as findings (typically Important severity).
-8. **Check test quality** — Tests verify behavior (not just call functions)? Edge case assertions? Real logic (not all mocked)?
+8. **Check test quality** — Tests verify behavior (not just call functions)? Edge case assertions? Real logic (not all mocked)? Flag as findings: constant-equality asserts that only an intentional decision can fail (change detectors), mirror/tautological asserts (expected value computed by the code under test), and behavior tests that grep source or prose wording (linting commands, links, or mirrors is fine). Ask of each new test: what production change would fail it?
 9. **Produce findings** — Categorize by severity. Every finding: file:line, what's wrong, why it matters. For **Critical** and **Important** findings: include a concrete fix (code snippet, patch shape, or precise implementation direction) — do not leave high-severity findings without actionable guidance. Nothing found? Say what you checked and why you're confident.
 
 ## Precision Gate

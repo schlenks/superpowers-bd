@@ -1,6 +1,6 @@
 ---
 name: rule-of-five-tests
-description: Use when writing 50+ lines of test code, adding test suites, or before claiming test work complete - apply 5 focused passes (Draft, Coverage, Independence, Speed, Maintainability) to catch issues single-shot generation misses
+description: Use when writing 50+ lines of test code, adding test suites, or before claiming test work complete - apply 5 focused passes (Draft, Coverage & Falsifiability, Independence, Speed, Maintainability) to catch issues single-shot generation misses
 effort: high
 ---
 
@@ -17,9 +17,9 @@ TaskCreate: "Pass 1: Draft"
   description: "Shape and structure. Test organization mirrors source. All test cases exist."
   activeForm: "Drafting"
 
-TaskCreate: "Pass 2: Coverage"
-  description: "Significant code paths tested? Happy, error, boundary? Every public function covered?"
-  activeForm: "Checking coverage"
+TaskCreate: "Pass 2: Coverage & Falsifiability"
+  description: "Significant behaviors tested? Happy, error, boundary? Each test names the production change that breaks it? Expected values hand-derived?"
+  activeForm: "Checking coverage and falsifiability"
 TaskUpdate: pass-2-id
   addBlockedBy: [draft-task-id]
 
@@ -30,13 +30,13 @@ TaskUpdate: pass-3-id
   addBlockedBy: [coverage-task-id]
 
 TaskCreate: "Pass 4: Speed"
-  description: "Unnecessary waits? Heavy fixtures? Could mock I/O? Any test >1s unjustified?"
+  description: "Unnecessary waits? Heavy fixtures? Real dependency slow or external enough to justify a double? Any test >1s unjustified?"
   activeForm: "Checking speed"
 TaskUpdate: pass-4-id
   addBlockedBy: [independence-task-id]
 
 TaskCreate: "Pass 5: Maintainability"
-  description: "Descriptive names? Clear intent? DRY helpers? A newcomer could add tests by following patterns?"
+  description: "Descriptive names? Clear intent? DRY setup helpers (never for expected values)? A newcomer could add tests by following patterns?"
   activeForm: "Improving maintainability"
 TaskUpdate: pass-5-id
   addBlockedBy: [speed-task-id]
@@ -107,24 +107,24 @@ Announce: "Applying rule-of-five-tests to [artifact]. Starting 5-pass review."
 | Pass | Focus | Exit when... |
 |------|-------|--------------|
 | **Draft** | Shape and structure. Test organization mirrors source. All test cases exist. | All test cases exist; structure follows source |
-| **Coverage** | Significant code paths tested? Happy, error, boundary? | Every public function tested; error paths covered |
+| **Coverage & Falsifiability** | Significant behaviors tested? Happy, error, boundary? Each test names the break that fails it? | Error paths covered; no change detectors, mirror assertions, or mock-only assertions |
 | **Independence** | Each test runs alone? Shared state? Order dependence? | Each test passes individually; no coupling |
-| **Speed** | Unnecessary waits? Heavy fixtures? Could mock I/O? | No test >1s unjustified; no unnecessary I/O |
-| **Maintainability** | Descriptive names? Clear intent? DRY helpers? | A newcomer could add tests by following patterns |
+| **Speed** | Unnecessary waits? Heavy fixtures? Real dependency or slow/external double? | No test >1s unjustified; no unnecessary I/O |
+| **Maintainability** | Descriptive names? Clear intent? DRY setup helpers? | A newcomer could add tests by following patterns |
 
 ## Common Mistakes
 
 | Mistake | Fix |
 |---------|-----|
-| Multiple lenses in one pass | ONE lens per pass. Coverage pass ignores naming. |
-| Checking for code bugs in tests | Tests don't have "bugs" in the traditional sense — check coverage and independence instead. |
+| Multiple lenses in one pass | ONE lens per pass. Coverage & Falsifiability pass ignores naming. |
 | Skipping Independence pass | Shared state is the #1 cause of flaky tests. Always check. |
-| Testing implementation details | Test behavior, not internal state. Mock at boundaries, not everywhere. |
+| Testing implementation details | Test behavior, not internal state. Mock only the slow or external level, not everywhere. |
 | Speed pass removes useful tests | Speed pass optimizes execution, not coverage. Never remove tests to go faster. |
 | Not running tests after each pass | Run the test suite after each pass to catch regressions in test code itself. |
 
 ## Reference Files
 
+- `../test-driven-development/references/writing-good-tests.md`: Falsifiability, change detectors, mocks, lint carve-out
 - `references/pass-definitions.md`: Detailed pass definitions with checklists
 - `references/pass-order-rationale.md`: Why this order for tests
 

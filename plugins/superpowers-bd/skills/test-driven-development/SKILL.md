@@ -71,19 +71,21 @@ the user.
 
 ## Test Quality
 
-- Test one behavior at a time.
-- Use a name that describes the expected behavior.
-- Prefer real code; mock boundaries only when unavoidable.
-- Cover important errors and edge cases.
+When writing or changing any test, read `references/writing-good-tests.md`:
+
+- Name the production change that would make the test fail, before writing it.
+- Derive expected values by hand, never with the code under test.
+- Assert on real behavior, never on mock behavior.
+- Keep test-only code in test utilities, out of production classes.
 - Keep output clean and run the project's test command after GREEN and
   REFACTOR.
 
 ## Reference Files
 
+- `references/writing-good-tests.md`: Load when writing or changing any test
 - `references/good-vs-bad-examples.md`: Load when shaping a focused RED/GREEN example
 - `references/why-order-matters.md`: Load when deciding whether test-first provides signal
 - `references/rationalizations-and-red-flags.md`: Load when behavior work is being exempted without evidence
 - `references/bug-fix-workflow.md`: Load for TDD combined with root-cause debugging
 - `references/when-stuck.md`: Load when RED or GREEN cannot progress
-- `references/testing-anti-patterns.md`: Load when adding mocks or test-only production APIs
 - `references/tdd-cycle-diagram.dot`: Optional visual of the cycle

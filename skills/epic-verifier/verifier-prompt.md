@@ -60,7 +60,8 @@ Agent tool:
 
     - Identify main code paths in changed code
     - Check each has corresponding test
-    - Evidence: List untested functions/paths
+    - Check each test names a production change that would fail it; flag change detectors (constant-equality asserts), mirror/tautological asserts, and tests that grep prose wording (linting commands, links, mirrors is fine)
+    - Evidence: List untested functions/paths and any flagged tests
     - If adequate: "All significant paths have tests"
 
     ### 1.4 No Regressions - All Tests Pass

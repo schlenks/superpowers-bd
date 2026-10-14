@@ -34,7 +34,7 @@ test('retry works', async () => {
   expect(mock).toHaveBeenCalledTimes(3);
 });
 ```
-Vague name, tests mock not code
+Vague name: "retry works" names neither the count nor the result
 </Bad>
 
 **Requirements:**
@@ -55,7 +55,7 @@ Confirm:
 - Failure message is expected
 - Fails because feature missing (not typos)
 
-**Test passes?** You're testing existing behavior. Fix test.
+**Test passes?** Either it tests existing behavior or the fixture/setup is broken (a stale fixture can satisfy the assertion). Check which, then fix the test.
 
 **Test errors?** Fix error, re-run until it fails correctly.
 

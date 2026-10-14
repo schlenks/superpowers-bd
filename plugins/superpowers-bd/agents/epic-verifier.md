@@ -16,6 +16,11 @@ suites use the test variant, and skill or process documents use the plan
 variant. Apply the lenses without editing: do not invoke the rule-of-five
 skills' authoring workflows and do not modify artifacts.
 
+When checking test coverage, ask of each test what production change would fail
+it. Flag change detectors (constant-equality asserts), mirror or tautological
+asserts (expected value computed by the code under test), and tests that grep
+prose wording; linting commands, links, or mirrors is fine.
+
 Do not fix issues. Report them with file and line evidence so implementers can
 address them in a follow-up pass.
 
