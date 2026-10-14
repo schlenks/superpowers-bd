@@ -1,0 +1,76 @@
+diff -u -r arms/A/writing-plans/SKILL.md arms/B/writing-plans/SKILL.md
+--- arms/A/writing-plans/SKILL.md	2026-09-22 18:08:46
++++ arms/B/writing-plans/SKILL.md	2026-10-14 13:10:25
+@@ -6,7 +6,7 @@
+ 
+ # Writing Plans
+ 
+-Write comprehensive implementation plans assuming zero codebase context. Document: which files to touch, code, testing, docs, how to test. Bite-sized tasks. DRY. YAGNI. TDD. Frequent commits. Assume skilled developer, minimal domain knowledge, weak test design.
++Write implementation plans for an engineer who has not seen this codebase or this spec. Assume they write idiomatic code in the project's language once they know the exact interface and the exact test, and that they will make a reasonable choice wherever the plan leaves one open. What they cannot know is what you decided: which files, which names and signatures, which values from the spec, which tests prove each task. Document those. Bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+ 
+ **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+ **Context:** Run in a dedicated worktree (created by brainstorming skill).
+@@ -41,11 +41,22 @@
+ 
+ See `references/task-enforcement-examples.md` for full TaskCreate blocks and dispatch loop.
+ 
+-## Bite-Sized Task Granularity
++## Step Granularity
+ 
+-Each step is one action (2-5 min): write failing test, run it to verify failure, implement minimal code, run test to verify pass, commit.
++Each step is one action with a checkable result: write failing test, run it to verify failure, implement, run test to verify pass, commit.
+ Split tasks only where a reviewer could reject one while approving its neighbor.
+ 
++## What a Step Contains
++
++A step is done when the implementer can write exactly one reasonable thing from it: unambiguous, not complete.
++
++- **Test step:** the test's name and its assertions, as code, with the spec's exact values in them.
++- **Code step:** the exact signature (name, parameters, return type), the file, and the specific values the spec pins (messages, constants, ordering rules). The implementer writes the body. Include a body only for an algorithm the signature and tests do not determine, or for exact copy the spec fixes.
++- **Verification step:** the command and the output that means it passed.
++- **Reference to another task:** that task's `**Interfaces:**` block says what to use; do not repeat its code.
++
++A plan is the set of decisions the implementer cannot make alone. A plan longer than the code it describes has written the code instead. Lines that decide nothing ("TBD", "handle edge cases", "add validation", "write tests for the above", a type no task defines) are the opposite failure. The self-review catches both.
++
+ ## Plan Document Header
+ 
+ Every plan MUST start with:
+@@ -152,8 +163,8 @@
+ **Step 2: Run test to verify it fails**
+ Run: `pytest tests/path/test.py::test_name -v`
+ Expected: FAIL
+-**Step 3: Write minimal implementation**
+-[code block]
++**Step 3: Implement `function(input: InputType) -> ResultType` in `exact/path/to/file.py`**
++[one line on the approach only where signature + tests leave a choice; code block only for an undetermined algorithm]
+ **Step 4: Run test to verify it passes**
+ Run: `pytest tests/path/test.py::test_name -v`
+ Expected: PASS
+@@ -175,12 +186,14 @@
+ - **Review Focus covered** -- Each nonempty focus item names an owning task and a test step that exercises the implied input or failure mode?
+ - **Context sections present** -- Purpose for non-obvious tasks? Not In Scope for boundary tasks?
+ - **File Structure complete** -- Every file in task `Files:` sections appears in File Structure table? No undeclared files?
++- **Step scan** -- Every step lets the implementer write exactly one reasonable thing: no line that decides nothing, no function body the signature and tests already determine?
++- **Proportion** -- Compare plan length to the spec's. Several times longer, or mostly code blocks = transcript; replace bodies with signatures, test names and assertions.
+ - **Importable task headings** -- Every implementation task starts with `### Task N:` (H3), so plan2beads can create its child issue?
+ 
+ ## Remember
+ 
+ - Exact file paths always
+-- Complete code in plan (not "add validation")
++- Exact signatures, test assertions, and the spec's values (not "add validation", and not full bodies)
+ - Exact commands with expected output
+ - Reference relevant skills by name
+ - **Every task needs `Depends on:`, `Complexity:`, and `Files:`**
+diff -u -r arms/A/writing-plans/references/verification-dispatch.md arms/B/writing-plans/references/verification-dispatch.md
+--- arms/A/writing-plans/references/verification-dispatch.md	2026-07-16 10:59:40
++++ arms/B/writing-plans/references/verification-dispatch.md	2026-10-14 13:10:25
+@@ -74,7 +74,7 @@
+ - File paths verified via Glob (existing files exist, new files in correct locations)
+ - Commands tested or known to work (`pytest`, `npm test`, etc.)
+ - Dependencies available (libraries installed, APIs accessible)
+-- Estimates realistic (2-5 min per bite-sized step)
++- Each step is one action with a checkable result
+ - No circular dependencies in task graph
+ - External service requirements documented
+ 
