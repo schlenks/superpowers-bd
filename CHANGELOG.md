@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-10-14
+
+Major version: several workflows now proceed where they used to stop and ask. See RELEASE-NOTES.md "Behavior changes" before upgrading.
+
+### Added
+
+- `skills/subagent-driven-development/rulings-and-escalation.md`: record-and-continue `[RULING]` policy with hard stops (destructive/irreversible, security-sensitive, unauthorized push/merge/publish, every-path-a-guess, bd unavailable) and async escalation via `human`-labeled question beads.
+- Resume-implementer fix loop: rounds 1-2 resume the original implementer (`SendMessage`; Codex `followup_task`/`send_input`), round 3 fresh one tier up, then adjudication; scoped single re-reviewer (`re-review-prompt.md`).
+- Native execution mode in `executing-plans` (single session, one epic verifier, one fix pass) and an SDD-vs-Native choice in the plan handoff and plan2beads.
+- Micro-task batching and complexity-scaled code-review fan-out in SDD.
+- `**Spec:**` plan header carried by plan2beads to the epic and read by SDD context loading, spec reviewers and implementers.
+- Intent-first brainstorming hybrid with a builder-check prompt; eval cases `brainstorm-greenfield-platform` and `brainstorm-small-edit-control`.
+- `skills/test-driven-development/references/writing-good-tests.md` (change-detector rule, falsifiability, lint carve-out for instruction-file audits).
+- `scripts/sdd-postmortem.py`: cache-aware per-seat cost, dispatch tree, verdict and gate give-up joins, idle gaps.
+- Tests: `test-hooks-minimal-path.sh`, `test-sdd-postmortem.sh`, `test-find-polluter.sh`; contract audit grows from 33 to 49 checks, with persistence and fix-loop checks executed against a stub `bd`.
+- Experiments: `docs/experiments/2026-10-14-upstream-v7/` (six research reports and a Native-vs-SDD pilot).
+
+### Changed
+
+- SDD no longer holds at `PENDING_HUMAN` for conflicts, disputes or an exhausted fix loop; `bd ready` is filtered with `--exclude-label human`.
+- `executing-plans` no longer stops for feedback between batches.
+- `finishing-a-development-branch`: 3-option menu (Discard only on explicit request); unattended runs keep the branch as-is.
+- plan2beads defaults to `completion:commit-only` without asking.
+- `writing-plans`: plans record decisions, not code; rule-of-five-plans adds a Proportion check and hand-traced Feasibility.
+- Hooks: `run-hook.cmd` picks bash ≥4 without PATH or the exec bit and fails open; every hook backfills PATH; Codex plugin hook commands are `bash`-prefixed; review agents disallow `Agent`.
+- `tests/claude-code/analyze-token-usage.py` delegates to `scripts/sdd-postmortem.py` and rejects non-`.jsonl` paths.
+
+### Removed
+
+- `skills/test-driven-development/references/testing-anti-patterns.md` (superseded by `writing-good-tests.md`).
+- `skills/executing-plans/references/{batch-execution-detail,batching-example,report-and-feedback}.md`.
+
+### Fixed
+
+- `find-polluter.sh` matched no test files and reported "Found 1" on empty input.
+- The systematic-debugging diagnostic example echoed a secret's value.
+- Worktree cleanup silently no-oped after a local merge; branch was deleted before its worktree; refused removals could be forced.
+- Integration branch could resolve to a merge-base SHA or the feature's tracking upstream.
+- Hook tests read the checkout's real cached in_progress count (TMPDIR leak).
+- `link-plugin-components.sh` crashed under `/bin/bash` 3.2 (`unbound variable` on empty arrays).
+
 ## [5.13.1] - 2026-10-10
 
 ### Fixed

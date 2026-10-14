@@ -1,8 +1,30 @@
 # Superpowers Release Notes
 
-## Unreleased - Upstream v7 Adoption
+## v6.0.0 (2026-10-14) - Autonomous Workflows from Upstream v7
 
 Adopts nine items from upstream superpowers v7, each re-tested on current models before it shipped. Research reports are in `docs/experiments/2026-10-14-upstream-v7/`; the plan is `docs/plans/2026-10-14-upstream-v7-adoption.md`.
+
+### Behavior changes (read before upgrading)
+
+This is a major version because several workflows now proceed where they used to stop and ask:
+
+- **SDD rules and continues.** Pre-flight requirement conflicts, spec disputes and an exhausted fix loop no longer hold at `PENDING_HUMAN`; the orchestrator records a `[RULING]` and keeps going. Destructive or irreversible actions, live secrets, and push/merge/publish not pre-authorized by a `completion:*` label still stop, as a separate `human`-labeled question bead that blocks only the affected issue.
+- **`executing-plans` no longer pauses between batches.** It is now Native epic execution: one session works the whole epic, then one epic verifier on the most capable model and one fix pass.
+- **`finishing-a-development-branch` no longer offers Discard.** The menu is Merge / PR / Keep; discarding happens only on an explicit request, still with typed confirmation. Unattended runs with no `completion:*` label keep the branch as-is.
+- **plan2beads no longer asks for a completion strategy.** It defaults to `completion:commit-only`; push, PR and local-merge labels still require an explicit choice. After import it offers SDD or Native per `execution-handoff.md`.
+- **`testing-anti-patterns.md` is removed**, replaced by `references/writing-good-tests.md`.
+- **Hook commands changed shape.** Claude hooks still run through `run-hook.cmd`, which now chooses bash itself; Codex plugin and agent-frontmatter hook commands now start with `bash`. Both review agents disallow the `Agent` tool.
+
+### Bug fixes
+
+- **`find-polluter.sh` found no tests:** `find -path` never matched `./`-prefixed paths and reported "Found 1" on empty input. Now accepts the pattern with or without `./`, matches `**/` at zero depth, and reports an honest 0 (new `tests/systematic-debugging/test-find-polluter.sh`: failed 4/5 before the fix, 5/5 after).
+- **Debugging example leaked a secret:** the multi-layer diagnostic in `systematic-debugging` echoed the value of `$IDENTITY` and ran bare `env`; it now prints only SET/UNSET.
+- **Worktree cleanup silently did nothing after a local merge:** `WORKTREE_PATH` was re-detected after `cd` to the main repo, so `GIT_DIR == GIT_COMMON` and cleanup was skipped; the branch was also deleted before its worktree was removed. Both fixed; a refused removal is never `--force`d.
+- **Integration branch resolution:** the destination branch is a named branch (plan/epic, else `main`, else `master`), never the merge-base SHA and never the feature's own tracking upstream — either could merge into the wrong ref.
+- **Implementers and reviewers no longer spawn subagents**, and reviewers never change the working tree or branch; the project's full suite, not the touched file, defines green.
+- **Codex hook test isolation:** `test-codex-hooks.sh`, `test-stop-gate.sh` and `test-work-state-anchor.sh` read the checkout's real cached in_progress count instead of their stub's; each now uses its own `TMPDIR`.
+
+### What's new
 
 **Rulings instead of holds (SDD).** Pre-flight conflicts, spec disputes and an exhausted fix loop no longer hold at `PENDING_HUMAN`. The orchestrator records `[RULING] <issue-id>: <decision> — why: <reason> — cost if wrong: <impact>` and continues. Only the hard stops in the new `rulings-and-escalation.md` (destructive or irreversible actions, live secrets, an unauthorized push, merge or publish, a plan where every path is a guess) wait for a human, and they wait asynchronously: a separate `human`-labeled question bead blocks the affected issue while independent issues keep running. In `claude -p` the old hold exited 0 with nothing built in 4/4 runs; the ruling variant built the right result in 3/3. Policy probes (n=9, $5.81): conflict ruled 2/2, destructive step withheld with its dependents blocked 6/6, question bead never dispatched 1/1.
 
@@ -29,6 +51,16 @@ Adopts nine items from upstream superpowers v7, each re-tested on current models
 **SDD post-mortem script.** `scripts/sdd-postmortem.py` reports per-seat cost from a session transcript (cache-aware, verified pricing), verdicts, gate give-ups and idle gaps. The probe it replaces measured the Opus controller at about $64, roughly 40% of a 105-subagent session. `test-sdd-postmortem.sh`: 46/46.
 
 **Contract audit.** The three epic-verifier persistence checks now execute the documented heredoc and `bd comments` commands in a temp git repo against a stub `bd` instead of matching prompt text, and new lints cover the canonical ruling prefix, synchronous human holds, the re-review mirror, the nameless implementer dispatch, bash-prefixed Codex hooks, the executable fix-round loop, the `Spec:` line flow and the shared fix-round cap.
+
+
+### Validation
+
+- `tests/verification/test-workflow-contract-audit.sh`: 49 passed, 0 failed (33 before this release).
+- `tests/codex/run-tests.sh`: 5 suites, 0 failed; `tests/claude-code/run-skill-tests.sh`: 4/4.
+- `tests/verification/test-hooks-minimal-path.sh` 53/53; `tests/claude-code/test-sdd-postmortem.sh` 46/46; `test-plugin-config-drift.sh` 30/30; `test-plan2beads-metadata.sh` and `test-find-polluter.sh` pass; `scripts/lint-shell.sh` 26 files clean.
+- `claude plugin validate .` passes (existing root-CLAUDE.md warning only); skills mirror (`diff -rq skills plugins/superpowers-bd/skills`) empty.
+- Executed as beads epic `superpowers_bd-ugg` via subagent-driven development: every task got spec review, code review and a Codex cross-model advisory review; the epic verifier failed once on stale docs and passed on re-verification at `49cd608`.
+- Not verified live: Codex `followup_task`/`send_input` resume, and the live plan2beads import (`RUN_LIVE_IMPORT`), which would write to the repository's own beads database. Follow-ups: `superpowers_bd-dc0`, `superpowers_bd-qto`, `superpowers_bd-dg2`, `superpowers_bd-wpc`.
 
 ## v5.13.1 (2026-10-10) - Faster Per-Turn Hooks
 
