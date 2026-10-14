@@ -202,10 +202,11 @@ Issue hub-abc.3 files: [auth.service.ts, models/index.ts]  ← CONFLICT with .1!
 After the conflict check, collapse a group of ready issues into one dispatch when ALL hold:
 
 - 3 or more ready issues, all `complexity:simple`;
-- file-disjoint: no shared file in their `## Files` sections (a missing `## Files` section disqualifies);
-- same shape: the same kind of mechanical edit applied to different files (rename, wording or config change, one-line fix), judged from the issue titles and steps. When unsure, do not batch.
+- file-disjoint: no shared file, and every `## Files` entry is a literal path (no globs or directories); a missing `## Files` section disqualifies;
+- independent: no member Consumes what another member Produces (check each `**Interfaces:**` section);
+- same shape: identical step text apart from the file path or identifier, OR a plan-time `batch:<group>` label on every member. Otherwise do not batch. A rename qualifies only when it is file-local.
 
-Standard and complex issues are never batched. A batch counts as one slot against `{wave_cap}`.
+Standard and complex issues are never batched. A batch counts as one slot against `{wave_cap}`; the wave-cap formula is unchanged and its members still count toward the complexity weighting. Record `[BATCH] <issue-ids>` as a comment on each member at dispatch so a crash-resume can reconstruct the batch.
 
 | Seat | Batch behavior |
 |------|----------------|
@@ -214,7 +215,7 @@ Standard and complex issues are never batched. A batch counts as one slot agains
 | Code review | N=1, whatever the tier default (see `budget-and-wave-cap.md`). No aggregator. |
 | Close | Close issues individually; each `bd close` reason carries a per-issue evidence line (`<issue-id>: <files changed>, <verification command> exit 0`). |
 
-**Split on failure.** If the spec review FAILs any issue or the code review finds a Critical or Important defect, do not retry the batch. Re-dispatch each failing issue as its own single-issue task through the normal path (full N for its complexity); issues that passed close as-is. One bad edit must not hold the others back.
+**Failure attribution and split.** The batch's code reviewer must tag every finding with its issue id; an untagged Critical or Important finding fails every issue in the batch. Issues whose spec checklist and tagged findings are clean close with their own evidence line. Failing issues are never retried as a batch: re-dispatch each singly, fixing forward from the batch HEAD (not redoing from BASE), with its own retry counter starting at the batch's count, and review it at the N from Review Fan-Out in `budget-and-wave-cap.md`. If an implementer reports BLOCKED or NEEDS_CONTEXT for part of a batch, those issues leave the batch and follow the single-issue route; the rest proceed.
 
 ## Parallel Dispatch (Native-Progress-Tracked)
 

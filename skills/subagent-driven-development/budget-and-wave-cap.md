@@ -83,7 +83,7 @@ Default issue complexity is `standard`.
 
 ## Review Fan-Out by Complexity
 
-The tier's N (tables above) is a ceiling for standard and complex issues. Simple issues get fewer reviewers. Resolve N per issue from its `complexity:` label (default `standard`):
+The tier's N (tables above) is the N for standard and complex issues. Simple issues get fewer reviewers. Resolve N per issue from its `complexity:` label (default `standard`):
 
 | Issue complexity | Code reviews N | Aggregator |
 |------------------|----------------|------------|
@@ -91,7 +91,7 @@ The tier's N (tables above) is a ceiling for standard and complex issues. Simple
 | standard | tier default | per tier default |
 | complex | tier default | per tier default |
 
-On max-20x and max-5x the tier default is 3 with an aggregator; on pro/api it is already 1. Batched micro-tasks (see `dispatch-and-conflict.md`) always use N=1. This applies to the Claude Code and Codex paths alike. A re-review after a Critical finding on a simple issue stays at N=1 unless the finding touches security or data loss, in which case use the tier default.
+On max-20x and max-5x the tier default is 3 with an aggregator; on pro/api it is already 1. Batched micro-tasks (see `dispatch-and-conflict.md`) always use N=1. This applies to the Claude Code and Codex paths alike. A re-review after a Critical finding on a simple issue stays at N=1 unless the controller, by the finding's category, classes it as security or data loss, in which case use the tier default.
 
 ## Context Tier
 
