@@ -30,7 +30,7 @@ Your first message is two things, in this order:
 
 That's the whole message.
 
-**When they're not there.** Unattended means an explicit signal only: a headless or non-interactive run (`claude -p`, `codex exec`), a background or subagent session, or the user or prompt saying not to wait or to proceed without them. Never infer it from a missing question tool. When unattended, treat it as the opt-out: make the calls yourself, and for project-sized work still write the design document with every call marked as yours, so they can review it when they're back.
+**When it's unattended.** Unattended means an explicit signal only: a headless or non-interactive run (`claude -p`, `codex exec`), a background or subagent session, or the user or prompt saying not to wait or to proceed without them. Never infer it from a missing question tool. When unattended, treat it as the opt-out: make the calls yourself, and for project-sized work still write the design document with every call marked as yours, so they can review it when they're back.
 
 ## The Conversation
 
@@ -119,4 +119,3 @@ After a project's document is approved, the next steps are superpowers-bd:using-
 | "I should explain the process first" | Ask your question. The process shows itself. |
 | "They said 'sounds good' to the idea" | Approval covers what you showed them. A description you haven't written isn't approved. |
 | "The spike works, I'll keep building on it" | Keeping it is a new request. Back through the gate. |
-

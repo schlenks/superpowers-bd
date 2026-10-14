@@ -1,5 +1,5 @@
 ---
-description: Greenfield request that leaves the platform and stack open. Brainstorming should ask about, or explicitly state and own, the platform choice before anything is built. Process case - graders are scored in both arms. Currently does not discriminate (skill fired 0/4 on this prompt); it measures the trigger gap tracked in superpowers_bd-dg2 and should start discriminating once that is fixed.
+description: "Greenfield request that leaves the platform and stack open. Brainstorming should ask about, or explicitly state and own, the platform choice before anything is built. Process case - graders are scored in both arms. Currently does not discriminate because the skill did not fire on this prompt (0/4), a greenfield gap separate from the existing-code gap in superpowers_bd-dg2, tracked in superpowers_bd-wpc. It should start discriminating once that is fixed."
 tags: [process, brainstorming, no-bash]
 max_turns: 15
 timeout_seconds: 300

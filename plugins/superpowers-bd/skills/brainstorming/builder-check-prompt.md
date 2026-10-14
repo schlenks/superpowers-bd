@@ -17,7 +17,7 @@ files, and do not dispatch subagents.
 Report only the questions you'd still need answered before you could plan
 this well: places where you'd have to guess and a wrong guess would
 matter. For each, give the question and why the answer changes the plan.
-Rank them by importance.
+Rank them by importance and report at most 5.
 
 Skip anything the document explicitly leaves to the builder, and anything
 you could reasonably decide yourself. Skip nitpicks about wording.

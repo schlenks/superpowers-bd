@@ -4,5 +4,5 @@ tool: Write
 arm: both
 min: 0
 max: 0
-input_match: '"file_path"\s*:\s*"[^"]*(?:docs/|design|plan)[^"]*"'
+input_match: '"file_path"\s*:\s*"[^"]*(?:docs/[^"]*|[^"]*design[^"]*)\.md"'
 ---
