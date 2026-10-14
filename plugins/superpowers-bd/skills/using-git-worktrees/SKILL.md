@@ -37,7 +37,7 @@ Report with branch state:
 
 **If `GIT_DIR == GIT_COMMON` (or in a submodule):** You are in a normal repo checkout.
 
-Has the user already indicated their worktree preference (CLAUDE.md, brainstorming spec, prior instructions)? If yes, honor it without asking. If no, and a human can answer, ask for consent before creating a worktree (unattended: a headless `claude -p` or background run, or `AskUserQuestion` unavailable, so proceed with a worktree without asking):
+Has the user already indicated their worktree preference (CLAUDE.md, brainstorming spec, prior instructions)? If yes, honor it without asking. If no, and a human can answer, ask for consent before creating a worktree. Unattended (defined in `finishing-a-development-branch` Step 3 Manual): proceed with a worktree without asking.
 
 > "Would you like me to set up an isolated worktree? It protects your current branch from changes."
 

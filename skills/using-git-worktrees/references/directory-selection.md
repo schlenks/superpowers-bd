@@ -20,7 +20,7 @@ grep -i "worktree.*director" CLAUDE.md 2>/dev/null
 
 ## 3. Ask User
 
-**Unattended** (headless `claude -p`, background run, or `AskUserQuestion` unavailable): skip the ask and use `.worktrees/`.
+**Unattended** (defined in `finishing-a-development-branch` Step 3 Manual): skip the ask and use `.worktrees/`.
 
 Interactive, if no directory exists and no CLAUDE.md preference:
 

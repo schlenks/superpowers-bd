@@ -18,7 +18,17 @@ Ad-hoc code review using the code-reviewer agent. Works outside SDD for any chan
 
 Extract N from the command argument if provided. If N is 0, negative, or non-integer, warn the user and default to empty (determined by recommendation in Step 5). Cap at 10 — if N>10, warn and use 10. If no argument, N is empty.
 
-**Fully specified arguments:** when the arguments name the target (a PR number or URL, or a ref range or `uncommitted`) and N, skip every AskUserQuestion below and use the arguments; requirements default to the PR description, or the general-review text when none exists. This is the only path that works in `claude -p`, where AskUserQuestion is unavailable.
+**Argument grammar:** `/cr [N] [<PR#|PR URL>|<base>..<head>|uncommitted]`. Map the target form to the later steps:
+
+| Target | REVIEW_MODE | Scope |
+|--------|-------------|-------|
+| PR number or URL | `pr` | that PR (Step 3 PR branch) |
+| `<base>..<head>` | `local` | custom refs: BASE=`<base>`, HEAD=`<head>` |
+| `uncommitted` | `local` | uncommitted changes |
+
+**Fully specified arguments:** when a target is given (N optional), skip every AskUserQuestion below. Requirements default to the PR description, or the general-review text when none exists. This is the only path that works in `claude -p`.
+
+**Unattended defaults** (explicit signals only, never a missing tool; see `finishing-a-development-branch` Step 3 Manual for the definition): large-PR guard proceeds with a warning line in the output; CLOSED/MERGED PR continues with a warning; the branch-diff base is `main`, else `master`, else stop with an error (never ask); custom refs that fail `git rev-parse` stop with an error (never re-ask).
 
 ## Step 2: Ask Review Mode
 
@@ -65,11 +75,11 @@ Fallback chain (separate Bash calls, no chaining):
 
 #### Branch diff vs main
 
-Run `git merge-base main HEAD`. If `main` doesn't exist, ask the user for the base branch name.
+Run `git merge-base main HEAD`. If `main` doesn't exist, interactively ask the user for the base branch name; unattended, use `master`, else stop with an error.
 
 #### Custom
 
-After receiving user-provided refs, validate each with `git rev-parse <ref>`. If either fails, inform the user the ref doesn't resolve and re-ask.
+After receiving user-provided refs, validate each with `git rev-parse <ref>`. If either fails, inform the user the ref doesn't resolve and re-ask (unattended: stop with an error).
 
 #### Verify changes exist
 
@@ -93,7 +103,7 @@ If `gh` is not installed or the repo has no GitHub remote, inform the user and s
 
 Capture the JSON output as `{PR_META}`. Extract: `{PR_NUMBER}`, `{PR_TITLE}`, `{PR_BODY}`, `{PR_URL}`, `{PR_STATE}`, and compute `{TOTAL_LINES}` = additions + deletions, `{FILE_COUNT}` = changedFiles. Format `{PR_STAT}` as a human-readable summary: `"{FILE_COUNT} files changed, {additions} insertions(+), {deletions} deletions(-)"`.
 
-**Large PR guard:** If `{TOTAL_LINES}` > 3000, use AskUserQuestion: "This PR is very large ({TOTAL_LINES} lines). The full diff may exceed the reviewer's context window. Proceed anyway, or review a smaller scope locally?"
+**Large PR guard:** If `{TOTAL_LINES}` > 3000, interactively use AskUserQuestion (unattended: proceed and print a warning line): "This PR is very large ({TOTAL_LINES} lines). The full diff may exceed the reviewer's context window. Proceed anyway, or review a smaller scope locally?"
 
 - **Proceed:** Continue to fetch the diff. Reviewers may miss changes in the tail.
 - **Switch to local mode:** Set `{REVIEW_MODE}` = `local`, clear all PR variables, and return to the local scope question (the five-option table above).
@@ -103,7 +113,7 @@ Capture the JSON output as `{PR_META}`. Extract: `{PR_NUMBER}`, `{PR_TITLE}`, `{
 If the diff is empty, inform the user ("PR has no changes") and stop.
 
 **PR state edge cases:**
-- **Closed/Merged:** If `{PR_STATE}` is `CLOSED` or `MERGED`, warn via AskUserQuestion: "This PR is {PR_STATE}. Continue?"
+- **Closed/Merged:** If `{PR_STATE}` is `CLOSED` or `MERGED`, warn via AskUserQuestion: "This PR is {PR_STATE}. Continue?" (unattended: continue with a warning line)
 - **Forks:** `gh pr diff` works correctly for fork PRs. No special handling needed, but note it in the review header for context.
 
 Set `{BASE_SHA}` = `PR_BASE` (sentinel), `{HEAD_SHA}` = `PR_HEAD` (sentinel). These sentinels trigger the PR_OVERRIDE in the dispatch step.

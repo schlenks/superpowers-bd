@@ -61,10 +61,13 @@ This determines which menu to show in Step 3:
 
 ### Step 2: Determine Base Branch
 
+Keep two values apart. `BASE_SHA` is the merge-base commit and is used only for diffs:
+
 ```bash
-git merge-base HEAD main
+BASE_SHA=$(git merge-base HEAD main || git merge-base HEAD master)
 ```
-If that fails, try `git merge-base HEAD master` instead. The merge-base result is the base; confirm it with the user only in an interactive session.
+
+`BASE_BRANCH` is the named destination branch for merge and PR: the plan or epic's stated branch, else the branch's upstream if known, else `main`, else `master`. Never `git checkout` a SHA. Confirm `BASE_BRANCH` with the user only in an interactive session; unattended with no resolvable named branch, do not merge: keep as-is and record it.
 
 ### Step 3 Auto: Execute Pre-Chosen Strategy
 
@@ -86,7 +89,7 @@ Skip to Step 5 if applicable. See `references/completion-strategies.md`.
 
 If no `completion:*` label, present options based on HEAD state from Step 1.7.
 
-**Unattended (no human can answer):** do not present the menu. Unattended means a headless `claude -p` run, a background session, or any run where `AskUserQuestion` is unavailable or the prompt says not to wait for input. Keep the branch and worktree, never merge, push or discard, and state this line verbatim in your final message: "Kept as-is (unattended; no completion label)". Record the choice as a `[RULING]` bd comment when an epic exists. Skip Steps 4 and 5.
+**Unattended (no human can answer):** do not present the menu. Unattended is inferred only from explicit signals: a headless or non-interactive run (`claude -p`, `codex exec`), a background or subagent session, or the user or prompt saying not to wait for input. Never infer it from a missing tool: interactive Codex sessions lack `AskUserQuestion`. Interactive sessions use the platform question mechanism (Claude: `AskUserQuestion`; Codex: `request_user_input` when available, else a direct question). Keep the branch and worktree, never merge, push or discard, and state this line verbatim in your final message: "Kept as-is (unattended; no completion label)". When an epic exists, record the choice as a bd comment on the epic id: `[RULING] <decision> — why: <reason> — cost if wrong: <impact>`. Skip Steps 4 and 5.
 
 **On a named branch (normal repo or named-branch worktree) — present exactly these 3 choices:**
 
