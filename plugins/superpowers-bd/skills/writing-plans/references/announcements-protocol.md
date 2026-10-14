@@ -115,7 +115,7 @@ Fix what the verdict names, re-run that pass once, and announce:
 {pass_name} verdict: {STATUS} — {SUMMARY}. Fixed; re-running {pass_name} once.
 ```
 
-If the re-run still returns BLOCKED/FAIL, do not stall. Decide the issue yourself, record the ruling under the pass's row in the plan's Verification Record, and continue to the next pass:
+If the re-run still returns BLOCKED/FAIL, do not stall. Decide the issue yourself, record the ruling on the `**Rulings:**` line of the plan's Verification Record, and continue to the next pass:
 
 ```
 {pass_name} still {STATUS} after one re-run. Ruling: {decision and why}. Recorded in the Verification Record; continuing.

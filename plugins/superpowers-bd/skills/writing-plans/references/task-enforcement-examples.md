@@ -20,7 +20,7 @@ TaskUpdate: draft-pass-id
   addBlockedBy: [checklist-task-id]
 
 TaskCreate: "Rule-of-five-plans: Feasibility pass"
-  description: "Can every step be executed? Deps available? Paths valid? Estimates realistic?"
+  description: "Can every step be executed? Deps available? Paths valid? One checkable result per step? Hand-trace; don't build or run the plan's code."
   activeForm: "Feasibility pass"
 TaskUpdate: feasibility-pass-id
   addBlockedBy: [draft-pass-id]
@@ -59,12 +59,13 @@ After task 1 completes, the orchestrator runs the Plan Verification Checklist in
 TaskUpdate(checklist-task-id, status: "in_progress")
 → Announce: "Running Plan Verification Checklist inline..."
 → Read the plan file
-→ For each item (Complete, Accurate, Commands valid, YAGNI, Minimal, Not over-engineered, Key Decisions, Context sections, File Structure complete):
+→ For each item (Complete, Accurate, Commands valid, YAGNI, Minimal, Not over-engineered, Key Decisions, Review Focus covered, Context sections, File Structure complete, Step scan, Proportion, Importable task headings):
     - Evaluate against the plan
     - Use Glob/Grep to verify file paths and commands where needed
     - Edit the plan inline to fix any issues
 → Announce per-item results (see references/announcements-protocol.md)
-→ If any item fails irrecoverably: stop, report to user
+→ If an inline fix does not resolve an item: re-check it once after another fix; if it still fails,
+  record a ruling in the Verification Record and continue
 → TaskUpdate(checklist-task-id, status: "completed")
 ```
 
@@ -80,7 +81,8 @@ TaskUpdate(id, status: "in_progress")
        prompt: <verification template with pass definition inlined>)
 → Collect verdict
 → Announce: "{pass_name} verdict: {STATUS} — {SUMMARY}"
-→ If BLOCKED/FAIL: stop, report to user
+→ If BLOCKED/FAIL: fix the plan and re-run this pass once; if it still fails,
+  record a ruling in the Verification Record and continue
 → TaskUpdate(id, status: "completed")
 → Next task
 ```

@@ -123,5 +123,5 @@ SUMMARY: <1-3 sentences — what you found and changed>
 
 ## Error Handling
 
-- **BLOCKED/FAIL verdict:** Fix what the SUMMARY names and re-run that pass once. If it still fails, record a ruling (the decision and why) under that pass's row in the Verification Record and continue to the next pass. See `references/announcements-protocol.md`.
+- **BLOCKED/FAIL verdict:** Fix what the SUMMARY names and re-run that pass once. If it still fails, record a ruling (the decision and why) on the `**Rulings:**` line of the Verification Record and continue to the next pass. See `references/announcements-protocol.md`.
 - **Malformed verdict:** If a sub-agent returns output that doesn't match the verdict format, re-run the pass once; a second malformed verdict is handled like a failed re-run above.
