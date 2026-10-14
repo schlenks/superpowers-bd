@@ -151,7 +151,7 @@ Create: `bd create --silent --parent hub-abc "Epic Verification" --body-file tem
 Run `bd ready`, `bd blocked`, `bd graph hub-abc`. Verify: independent tasks in ready, dependent tasks in blocked, graph shows expected flow.
 
 ### Step 5: Display Results and Execute
-Show: epic ID/title, completion label (note when defaulted), Spec value (when present), N implementation + 1 verification task, ready/blocked lists. Then immediately proceed to execute the epic by invoking `superpowers-bd:subagent-driven-development` with the epic ID — do NOT stop and tell the user to run it manually.
+Show: epic ID/title, completion label (note when defaulted), Spec value (when present), N implementation + 1 verification task, ready/blocked lists. Then choose and record the execution mode per `skills/writing-plans/references/execution-handoff.md` (Step 3: `[EXECUTION-MODE]` epic comment; an already-recorded mode is preserved, not re-chosen), and immediately proceed to execute the epic with the matching skill: `superpowers-bd:subagent-driven-development` for SDD or `superpowers-bd:executing-plans` for Native — do NOT stop and tell the user to run it manually.
 
 ## bd CLI Quick Reference
 `--silent`: ID only. `--type epic`: epic. `--parent <id>`: child. `--body-file <path>`: multi-line desc. `-d "text"`: single-line desc. `-l "label"`: labels. `-p N`: priority 0-4. `-e N`: estimate mins. `--deps "id1,id2"`: deps (affects `bd ready`). `--acceptance "text"`: criteria (semicolons, never `\n`). `--external-ref "ref"`: external link. `--defer "date"`: hide until date. `--claim`: assign+in_progress. `--suggest-next`: show unblocked after close.

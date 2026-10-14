@@ -12,7 +12,7 @@ Use this reference when converting a written Superpowers-BD implementation plan 
 
 ## Native Flow
 
-1. Track conversion progress with `update_plan`: load plan or story, create epic, create children, add dependencies, verify graph, report handoff, start execution.
+1. Track conversion progress with `update_plan`: load plan or story, create epic, create children, add dependencies, verify graph, report handoff, choose execution mode, start execution.
 2. For a local plan path, read the plan and identify the parent epic title, goal, architecture, key decisions, file structure, task list, dependencies, verification requirements, an optional `## Global Constraints` block, optional per-task `**Interfaces:**` lines (`Consumes:` / `Produces:`), and an optional `## Review Focus` block, and an optional `**Spec:**` header line.
 3. For a Shortcut input (`SC-1234` or `1234`), normalize to the numeric ID, run `short story <numeric-id> -f=markdown`, use the first markdown heading as the title, and store `--external-ref "sc-<id>"` for the epic.
 4. Do not ask for completion strategy. Use the user's explicit choice if given; otherwise label the epic `completion:commit-only` and say so in the import summary. The labels are `completion:commit-only`, `completion:push`, `completion:push-pr`, `completion:merge-local`; push and merge labels require an explicit user choice.
@@ -24,7 +24,7 @@ Use this reference when converting a written Superpowers-BD implementation plan 
 7. Create a final verification issue that depends on all implementation tasks.
 8. Add dependency edges so each child issue matches the plan's `Depends on:` section.
 9. Verify the graph with `bd show <epic-id>`, `bd ready`, and `bd blocked`. `bd ready is global`: filter ready and blocked results to the selected epic's child IDs, and report unrelated ready issues as ignored.
-10. Report the epic ID, child issue IDs, selected-epic ready set, selected-epic blocked set, and exact next action. Proceed into `subagent-driven-development` unless the user explicitly asked for conversion-only.
+10. Report the epic ID, child issue IDs, selected-epic ready set, selected-epic blocked set, and exact next action. Unless the user explicitly asked for conversion-only, choose and record the execution mode per `../../writing-plans/references/execution-handoff.md` (an existing `[EXECUTION-MODE]` epic comment is preserved), then proceed into `subagent-driven-development` (SDD) or `executing-plans` (Native).
 
 ## Issue Body Shape
 
@@ -54,6 +54,6 @@ Before reporting success:
 - Confirm that, when a `## Global Constraints` block is present, its text propagated into every child issue body, and that any `**Interfaces:**` line propagated verbatim into its task body. When both are absent, confirm task bodies match the pre-existing (section-less) shape.
 - Confirm that each `## Review Focus` item reached its owning child only, its named test exists in that child's steps, and the epic retains the full list. Legacy plans without the section import unchanged.
 - Confirm that a `**Spec:**` header line, when present, reached the epic description as `Spec: <value>`, and that a plan without it imports unchanged.
-- Confirm the next action starts `subagent-driven-development` unless the user explicitly asked for conversion-only.
+- Confirm the next action starts the recorded mode (`subagent-driven-development` for SDD, `executing-plans` for Native) unless the user explicitly asked for conversion-only.
 
 If the plan is missing required task metadata (titles, task headings, dependencies), stop and ask for clarification or update the plan before creating issues. Missing completion-strategy metadata is not such a case: use the Claude path's default (`completion:commit-only`) and report it.

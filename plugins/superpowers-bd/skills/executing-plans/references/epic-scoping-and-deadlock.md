@@ -2,14 +2,15 @@
 
 ## Epic Scoping
 
-`bd ready` is global: it shows ready issues across all epics, and it lists question beads unless you exclude them. Scope it every time:
+`bd ready` is global: it shows ready issues across all epics, lists question beads unless you exclude them, and never lists `in_progress` issues. Scope it every time, in this order:
 
 ```bash
-bd show <epic-id>                  # child IDs, including the verification task
-bd ready --exclude-label human     # ready work, without question beads
+bd show <epic-id>                                    # child IDs, including the verification task
+bd list --parent <epic-id> --status in_progress      # interrupted work: resume it first
+bd ready --parent <epic-id> --exclude-label human    # ready work, without question beads
 ```
 
-Work only on issues that are both in that `bd ready` output and children of your epic. Leave the verification task for the Final Review; never work on a question bead (it is the human's inbox).
+Work only on children of your epic. Leave the verification task for the Final Review; never work on a question bead (it is the human's inbox).
 
 ## Order
 
@@ -28,8 +29,9 @@ No ready issue for your epic while children remain open:
 
 1. `bd blocked` shows what each open child waits on.
 2. Waiting on a question bead (`human` label): that is an open escalation, not a deadlock. The run ends `SDD-STATUS: PARTIAL` once nothing else is ready.
-3. Waiting on a closed-looking issue you finished: you forgot `bd close`. Close it with its evidence.
-4. A dependency cycle (A -> B -> A): post a `[RULING]` removing the edge that the epic's Key Decisions or spec do not support (`bd dep remove`), then continue. If no source supports either edge, escalate with a question bead.
+3. An `in_progress` child left from before compaction: `bd ready` hides it, so it can look like nothing is left. Resume it (SKILL.md "What next").
+4. Waiting on a closed-looking issue you finished: you forgot `bd close`. Close it with its evidence.
+5. A dependency cycle (A -> B -> A): post a `[RULING]` removing the edge that the epic's Key Decisions or spec do not support (`bd dep remove`), then continue. If no source supports either edge, escalate with a question bead.
 
 ## If bd Commands Fail
 

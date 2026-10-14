@@ -34,7 +34,7 @@ Read the plan file, create the epic and child issues with `bd create`, verify de
 
 ## Output Contract
 
-End with the epic ID, created child task IDs, ready/blocked summary, and the exact next execution action. Proceed into `subagent-driven-development` after successful conversion unless the user explicitly asks for conversion-only.
+End with the epic ID, created child task IDs, ready/blocked summary, and the exact next execution action. After successful conversion, unless the user explicitly asks for conversion-only: choose and record the execution mode per `../writing-plans/references/execution-handoff.md` (an `[EXECUTION-MODE]` comment already on the epic is preserved, not re-chosen), then proceed into `subagent-driven-development` (SDD) or `executing-plans` (Native) accordingly.
 
 ## Reference Files
 

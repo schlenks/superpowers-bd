@@ -58,7 +58,7 @@ Offer both modes, each with its cost line, and a recommendation:
 - **Interactive:** ask with the platform question mechanism (Claude Code: `AskUserQuestion`; Codex: `request_user_input` when available, else a direct question), listing the recommended mode first.
 - **Unattended** (as defined in `superpowers-bd:finishing-a-development-branch`: explicit signals only): do not ask. Take the recommendation.
 
-Either way, record the choice on the epic before starting:
+If `bd comments <epic-id>` already has an `[EXECUTION-MODE]` line, use that mode and do not ask or record again. Otherwise, record the choice on the epic before starting:
 
 ```bash
 bd comments add <epic-id> "[EXECUTION-MODE] <SDD|Native> — <why: issue count, complexity labels, or the user's choice>"

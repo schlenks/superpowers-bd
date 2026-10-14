@@ -14,7 +14,7 @@ Implement every issue of a beads epic yourself, in this session: no implementer 
 
 **Why Native:** SDD pays for a fresh implementer and fresh reviewers on every issue. Native pays for one context (yours) plus one verifier at the end. Beads replaces what the fresh contexts bought: the issue body is the brief, `bd` is the durable ledger that survives compaction, TDD is the per-issue gate, and the epic verifier is the second pair of eyes.
 
-**Continuous execution.** Do not stop between issues to report or ask "should I continue?". Only the hard stops in `rulings-and-escalation.md` wait for a human, and even they never pause independent work. Everything else gets a `[RULING]` and you keep going.
+**Continuous execution.** Do not stop between issues to report or ask "should I continue?". The only human question in an interactive run is the end-of-run menu in `finishing-a-development-branch`. Only the hard stops in `rulings-and-escalation.md` wait for a human, and even they never pause independent work. Everything else gets a `[RULING]` and you keep going.
 
 ## When to Use
 
@@ -31,13 +31,17 @@ Prefer `superpowers-bd:subagent-driven-development` for long epics (later issues
 ## Setup
 
 1. `bd show <epic-id>`: note the Key Decisions, the `Spec:` line, the child IDs and the verification task (the child titled "Epic Verification" or containing "verify"). Read the spec if one is named; it outranks the issue text (authority order in `rulings-and-escalation.md`).
-2. **Resume check:** closed children are done; do not redo them. A child already `in_progress` was interrupted: read `bd comments <id>` and `git log --oneline` for its commits before continuing it. After compaction, trust bd and git over your memory.
-3. **Pre-flight scan:** read every open child body. Check each child's steps against the hard stops (Dispatch-Time Guard) and scan for contradictory requirements on a shared surface, as in SDD `SKILL.md` "Pre-flight Requirement-Conflict Scan". Rule, record, continue.
-4. **REQUIRED SUB-SKILL:** load `superpowers-bd:test-driven-development` now. It governs every issue below.
+2. **Base SHA:** if `bd comments <epic-id>` has no `[NATIVE-BASE] <sha>` line, post one with the current `git rev-parse HEAD` before the first issue. The final review's diff starts there; never derive it later.
+3. **Resume check:** closed children are done; do not redo them. A child already `in_progress` was interrupted: read `bd comments <id>` and `git log --oneline` for its commits before continuing it. If the verification task is `in_progress`, the run was in its final review: resume from the stage `bd comments <epic-id>` records (`references/completion-protocol.md` "Resuming"). After compaction, trust bd and git over your memory.
+4. **Pre-flight scan:** read every open child body. Check each child's steps against the hard stops (Dispatch-Time Guard) and scan for contradictory requirements on a shared surface, as in SDD `SKILL.md` "Pre-flight Requirement-Conflict Scan". Rule, record, continue.
+5. **REQUIRED SUB-SKILL:** load `superpowers-bd:test-driven-development` now. It governs every issue below.
 
 ## The Issue Loop
 
-Ready work for this epic = `bd ready --exclude-label human`, intersected with the epic's child IDs, minus the verification task (`references/epic-scoping-and-deadlock.md`). Take issues in that dependency order, one at a time:
+**What next**, before every issue (`references/epic-scoping-and-deadlock.md`):
+
+- First, `bd list --parent <epic-id> --status in_progress`: an implementation child there was interrupted (for example by compaction). Resume it at step 1 below; `bd ready` never lists it.
+- Otherwise, `bd ready --parent <epic-id> --exclude-label human`, minus the verification task. Take issues in that dependency order, one at a time:
 
 1. `bd update <id> --status=in_progress`, then `bd show <id>` and `bd comments <id>` (earlier rulings live there). Read the issue every time, even if you remember it from the scan.
 2. Work its steps in order under TDD: write the test, watch it fail for the expected reason, make it pass. Run every verification the issue names and read the output.
@@ -48,7 +52,7 @@ Ready work for this epic = `bd ready --exclude-label human`, intersected with th
 5. Close with evidence, under `superpowers-bd:verification-before-completion`:
    `bd close <id> --reason "commit <sha>; tests: <command> -> <result line>"`
    Never close an issue whose final test run you did not see pass.
-6. Back to `bd ready --exclude-label human` for newly unblocked issues.
+6. Back to **What next** for newly unblocked issues.
 
 **Rule-of-five is opt-in here.** Apply a `rule-of-five-*` variant only when the issue, the epic, or the user asks for it. The final verifier already applies rule-of-five lenses to files with more than 50 changed lines.
 
@@ -59,11 +63,12 @@ Ready work for this epic = `bd ready --exclude-label human`, intersected with th
 When every implementation child is closed, the verification task becomes ready. Run the epic verifier as the single review of the whole epic; see `references/completion-protocol.md` for dispatch details.
 
 - Dispatch it fresh and read-only on the **most capable available model**, set explicitly (Claude Code: `Agent` with `model: "opus"`; Codex: `spawn_agent agent=epic_verifier`). An omitted model inherits the session's, which may not be the most capable. Do not replace it with your own read of the diff.
-- **One fix pass, no re-review.** For every FAIL finding: write the test that reproduces it, watch it fail, fix, watch it pass, then run the whole suite. A finding you decide not to fix is a `[RULING]`, except a security defect, which is never ruled "keep" and escalates instead. There is no second fix pass and no second verifier dispatch.
+- **One fix pass, no re-review.** For every FAIL finding: write the test that reproduces it, watch it fail, fix, watch it pass, then run the whole suite. Only non-blocking findings (style, maintainability, an explicitly authorized requirement change) may be kept by `[RULING]`; an unmet acceptance criterion, a correctness, data-integrity or security defect, or a failing test or build is fixed or escalated, never ruled "keep". There is no second fix pass and no second verifier dispatch.
 
 ## Finish
 
-- Any open epic child, including a question bead, ends the run `SDD-STATUS: PARTIAL`; do not run `finishing-a-development-branch`.
+- Any open epic child, including a question bead, ends the run `SDD-STATUS: PARTIAL`; do not run `finishing-a-development-branch`. If the verification task is still blocked, say in the report that the closed issues have not been reviewed.
+- A full project suite that is not green after the fix pass also ends the run PARTIAL (`references/completion-protocol.md` green-suite gate).
 - Otherwise close the verification task with its evidence, report `SDD-STATUS: COMPLETE`, and use `superpowers-bd:finishing-a-development-branch`.
 - The final report lists every ruling under "Rulings I made" (from `bd comments <epic-id>`), each with its cost if wrong, and every escalation with its question bead ID.
 
