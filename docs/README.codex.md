@@ -116,6 +116,18 @@ The plugin wrapper bundles Markdown Codex agents under `plugins/superpowers-bd/a
 
 Codex SDD uses these agents for review, aggregation, and verification stages. Implementation work currently uses the default Codex worker with explicit file ownership and scope instructions.
 
+### SDD Fix Rounds
+
+When review finds Critical or Important issues, SDD sends them back to the implementer that wrote the code. The cap is 3 rounds per task:
+
+- **Rounds 1-2:** resume the original worker with the findings: `followup_task` (multi-agent V2, which also reloads an evicted child) or `send_input` (V1). Do not close an implementer (`close_agent`) before its task closes, or every later round falls back to a fresh dispatch.
+- **Fallback:** if the worker can't be messaged, `spawn_agent` a fresh worker with the issue id, the latest `[IMPL-REPORT]` from `bd comments <issue-id> --json`, and the findings. It is the same round, not an extra one.
+- **Round 3:** a fresh worker one `model_reasoning_effort` step up.
+- **Re-review:** one `code_reviewer` with `skills/subagent-driven-development/re-review-prompt.md`, scoped to the fix diff. It does not rerun spec review or the full reviewer fan-out.
+- **After round 3:** the orchestrator adjudicates with recorded rulings (`skills/subagent-driven-development/failure-recovery.md`).
+
+Neither `followup_task` nor `send_input` has been exercised live by this repository's tests; the fallback path covers a worker that rejects them.
+
 ## Codex Model Inheritance
 
 Superpowers-BD does not use `.zshrc`, shell environment variables, or plugin metadata to guess a user's Codex plan tier. The installed-plugin Codex agents omit `model`, so Codex inherits the active model selected by the user.

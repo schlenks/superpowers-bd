@@ -19,6 +19,17 @@ Agent tool:
 
     Run `bd show {epic_id}` to read epic description, goal, Key Decisions, and children listing.
 
+    ## Rulings and Deferred Items
+
+    Run `bd comments {epic_id} --json` and collect `[RULING]` and `[DEFERRED]`
+    comments. They are context, not failures:
+    - A `[RULING]` amends the requirement it names. Judge Plan Drift against
+      the amended requirement; implementing the ruling is not drift.
+    - A `[DEFERRED]` item is a recorded, out-of-scope follow-up from a fix-round
+      re-review. List it under the verdict; do not fail a check for it.
+    Neither excuses a security defect or a failing acceptance criterion: those
+    still FAIL their check.
+
     ## Git Context
 
     Base SHA (before epic): {base-sha}

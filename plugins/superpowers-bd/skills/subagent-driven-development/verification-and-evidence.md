@@ -17,7 +17,7 @@ The existing dispatch → review → close flow works unchanged for verification
 
 ## Verification Gap Closure
 
-After both reviews pass, apply `superpowers-bd:verification-before-completion` with gap closure:
+After both reviews pass, apply `superpowers-bd:verification-before-completion` with gap closure. A gap fix is a fix round: it uses the task's `fix_round` counter and the 3-round cap shared with review findings, and the same mechanics (rounds 1-2 resume the implementer, round 3 is a fresh dispatch one tier up; SKILL.md Review Rules, `background-execution.md` Fix Rounds).
 
 ```python
 on_code_review_pass(task_id, result):
@@ -25,36 +25,39 @@ on_code_review_pass(task_id, result):
     # Task tools are off by default on Claude Code 2.1.233+; bd is the record.
     verify_task = TaskCreate(
         subject=f"Verify: {task_id} implementation",
-        description=f"Run tests, check build. Max 3 attempts.",
-        metadata={"attempt": 1, "max_attempts": 3}
+        description=f"Run tests, check build. Fix rounds left: {3 - fix_round}.",
+        metadata={"fix_round": fix_round, "fix_round_cap": 3}
     )  # skip when Task tools are unavailable
 
-    # Run verification with gap closure loop
+    # Run verification; each failure becomes the next fix round (phase="verify"):
+    # on_review_findings(agent_id, [failure output as F1], phase="verify")
     verification_result = run_verification_with_gap_closure(
         task_id=task_id,
         verification_commands=["npm test", "npm run build"],  # run each separately
-        max_attempts=3
+        fix_round_cap=3  # shared with review fix rounds
     )
 
     if verification_result.passed:
         # Extract evidence and close with audit trail (see below)
         extract_evidence_and_close(task_id, implementer_result)
     elif verification_result.escalated:
-        # Gap closure exhausted: async escalation in bd, never only a TaskCreate
+        # Cap reached: Fix-Round Adjudication (failure-recovery.md). A failing check is
+        # load-bearing, so it escalates in bd, never only a TaskCreate / update_plan:
         # question bead + bd dep add {task_id} <question-bead>; never label the task itself
-        escalate(task_id, question="verification failed after 3 attempts: <failure history>")
-        escalated_tasks[task_id] = "verification failed after 3 attempts"
+        escalate(task_id, question="verification failed after 3 fix rounds: <failure history>")
+        escalated_tasks[task_id] = "verification failed after 3 fix rounds"
         # task stays open; continue with independent issues
 ```
 
 **Gap closure flow within SDD:**
 ```
-Code review passes → Create verification task (attempt 1) → Run verification
+Code review passes → Run verification
   → passes? → yes → bd close
-  → no → Create gap-fix task → Fix completes → Re-verify (attempt N+1)
-    → passes? → yes → bd close
-    → no, attempt < 3 → loop
-    → no, attempt >= 3 → question bead blocking the task (rulings-and-escalation.md), continue
+  → no, fix_round < 3 → next fix round (resume the implementer with the failure as F1)
+      → fix completes → Re-verify, then scoped re-review of the fix diff (re-review-prompt.md)
+      → both pass? → yes → bd close; no → loop
+  → no, fix_round == 3 → adjudicate (failure-recovery.md): question bead blocking the task
+    (rulings-and-escalation.md), continue
 ```
 
 **Integration with state machine:**

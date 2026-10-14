@@ -27,20 +27,20 @@ Execute a beads epic by dispatching independent implementation issues in paralle
 11. Select wave cap. Use explicit invocation first; otherwise use the budget/context heuristic in `budget-and-wave-cap.md`.
 12. Load `wave-orchestration.md`, create the active-wave flag, then dispatch implementers in parallel for non-conflicting ready issues. Mark each issue `in_progress` before dispatch.
 13. Route implementer status: `DONE`/`DONE_WITH_CONCERNS` -> review; `NEEDS_CONTEXT`/`BLOCKED` -> re-dispatch, rule, or escalate asynchronously.
-14. Run review pipeline: spec review, code review(s), platform-native aggregation when needed, and gap closure up to 3 attempts.
-15. Close passing issues immediately with evidence, post `[WAVE-SUMMARY]`, update checkpoint, and loop back to `bd ready`.
+14. Run review pipeline: spec review, code review(s), platform-native aggregation when needed, then fix rounds and gap closure under one 3-round cap (Review Rules).
+15. Close passing issues immediately with evidence, post `[WAVE-SUMMARY]`, update checkpoint, and loop back to `bd ready --exclude-label human`.
 16. When all implementation tasks are closed, dispatch the platform-native epic verifier; after PASS, run `finishing-a-development-branch`. The final report's first line is `SDD-STATUS: COMPLETE|PARTIAL` (`metrics-tracking.md`).
 
 ## Claude Code Dispatch Path
 
-1. Use `Agent` with `run_in_background: true` for implementers, spec reviewers, code reviewers, aggregation, simplification, and epic verification.
+1. Use `Agent` with `run_in_background: true` for implementers, spec reviewers, code reviewers, aggregation, simplification, and epic verification. Never give an implementer a `name` (teammate mode breaks resume); address it by agentId.
 2. Route implementer/reviewer models with the Claude Code table in `budget-and-wave-cap.md`.
 3. For 2+ code reviewers, aggregate with `multi-review-aggregation`.
 4. If `codex_enabled: true`, run the Codex cross-model advisory review in parallel with Claude Code code reviewers. This is Claude-only advisory input and must not replace Claude reviewer verdicts.
 
 ## Codex Dispatch Path
 
-1. Use `spawn_agent` for implementers and reviewers; use `wait_agent` only when the orchestrator is blocked on a result.
+1. Use `spawn_agent` for implementers and reviewers; use `wait_agent` only when the orchestrator is blocked on a result. Keep each implementer open until its task closes: fix rounds resume it with `followup_task` (`send_input` on multi-agent V1).
 2. Route specialist work through Codex native agents when available: `spec_reviewer`, `code_reviewer`, `review_aggregator`, and `epic_verifier`.
 3. Inherit the active Codex model and route strength with `model_reasoning_effort` per project policy in `budget-and-wave-cap.md`; do not describe Codex work using Claude Opus/Sonnet/Haiku tiers.
 4. Assign explicit file ownership in every implementer prompt, tell workers they are not alone in the codebase, and keep write scopes disjoint within each wave.
@@ -68,13 +68,7 @@ The checkpoint schema includes these platform fields in addition to wave, budget
 
 ## Legacy Quick Start Mapping
 
-If you are updating an older checkpoint or prompt, map old behavior as follows:
-
-1. Missing `platform` -> infer from the current session and write it at the next checkpoint.
-2. Missing `platform_agent_plan` -> rebuild from the active dispatch path.
-3. Old Codex checkpoint with stale model-routing fields -> ignore those fields and inherit the active Codex model.
-4. Missing `codex_enabled` in Claude Code -> detect `<codex-integration>` and store the result.
-5. Missing `codex_enabled` in Codex -> treat as false; native Codex sessions do not run a separate Codex cross-model advisory review.
+Older checkpoint or prompt: infer a missing `platform` from the session and rebuild a missing `platform_agent_plan` from the active dispatch path; ignore stale Codex model-routing fields (inherit the active Codex model); a missing `codex_enabled` is detected from `<codex-integration>` in Claude Code and treated as false in Codex (native Codex sessions do not run a separate Codex cross-model advisory review).
 
 ## Platform Mapping
 
@@ -83,11 +77,11 @@ If you are updating an older checkpoint or prompt, map old behavior as follows:
 
 ## Budget Summary
 
-Budget tier selects implementer/reviewer strength and review count. Exact model routing is platform-specific:
+Budget tier selects implementer/reviewer strength and the code-review N for standard/complex issues; simple issues get N=1 (`budget-and-wave-cap.md` Review Fan-Out by Complexity). Exact model routing is platform-specific:
 
 **Claude Code policy**
 
-| Tier | Implementer cap | Spec reviewer | Code reviews | Verifier | Simplify |
+| Tier | Implementer cap | Spec reviewer | Code reviews (N) | Verifier | Simplify |
 |------|-----------------|---------------|--------------|----------|----------|
 | max-20x | opus | sonnet for complex | 3 | opus | yes |
 | max-5x | opus | sonnet for complex | 3 | opus | yes |
@@ -95,7 +89,7 @@ Budget tier selects implementer/reviewer strength and review count. Exact model 
 
 **Codex project policy**
 
-| Tier | Implementer effort | Spec reviewer | Code reviews | Aggregator | Verifier | Simplify |
+| Tier | Implementer effort | Spec reviewer | Code reviews (N) | Aggregator | Verifier | Simplify |
 |------|--------------------|---------------|--------------|------------|----------|----------|
 | max-20x | inherit the active Codex model with `model_reasoning_effort=high` | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`high`) | yes |
 | max-5x | inherit the active Codex model with `model_reasoning_effort=high` | `spec_reviewer` (`high`) | 3 x `code_reviewer` (`high`) | `review_aggregator` (`medium`) | `epic_verifier` (`high`) | yes |
@@ -110,8 +104,9 @@ Default issue complexity is `standard`. Use `complexity:simple|standard|complex`
 ```
 INIT -> LOADING -> DISPATCH -> MONITOR -> STATUS_ROUTE
 STATUS_ROUTE [DONE|DONE_WITH_CONCERNS] -> REVIEW -> CLOSE -> LOADING
+REVIEW [Critical/Important] -> FIX_ROUND(R) -> RE_REVIEW -> CLOSE | FIX_ROUND(R+1) | ADJUDICATE (after R3)
 STATUS_ROUTE [NEEDS_CONTEXT|BLOCKED] -> RE_DISPATCH -> MONITOR
-RE_DISPATCH [>2 attempts] -> ESCALATE (question bead, async) -> LOADING
+RE_DISPATCH [3rd NEEDS_CONTEXT] -> ESCALATE (question bead, async) -> LOADING
 LOADING [no open implementation tasks] -> EPIC_VERIFIER -> COMPLETE
 ```
 
@@ -137,11 +132,12 @@ Before dispatching wave 1, read every in-scope child issue body (`bd show <id>` 
 
 Spec review happens before code quality review. The spec reviewer is skeptical: they must verify against code and requirements, not trust the implementer's report.
 
-Code review count follows the budget tier. In Claude Code, 2+ Claude reviewers are aggregated with `multi-review-aggregation`. In Codex, 2+ `code_reviewer` agents are aggregated with `review_aggregator`.
+Code review N comes from `budget-and-wave-cap.md` (tier N for standard/complex, 1 for simple); micro-task batching is in `dispatch-and-conflict.md`. 2+ reviewers are aggregated: `multi-review-aggregation` (Claude Code), `review_aggregator` (Codex). The Claude-only Codex advisory review runs whenever `codex_enabled: true` on a tier that includes it, whatever N is (even N=1); native Codex sessions skip it (Codex is the orchestrator).
 
-Claude-only Codex cross-model advisory language applies only when Claude Code detects a separate Codex integration. In native Codex sessions, Codex is the orchestrator and uses native agents rather than reviewing itself as an advisory external model.
-
-If reviewers find issues, loop: implementer fixes, reviewers re-check, and closure happens only after evidence passes. More than 3 failed review attempts -> rule on the remaining findings and record it; never pause the epic.
+**Fix rounds** (`background-execution.md` Fix Rounds; one cap, 3 rounds, shared with gap closure). Only Critical/Important consensus findings enter the loop; Minor ones go in the close reason. Send the fix as soon as findings exist: the subagent cache goes cold after about 5 minutes. A failing micro-task batch splits instead (`dispatch-and-conflict.md`).
+- **R1-R2:** resume the original implementer (`SendMessage` to its agentId in Claude Code; `followup_task`, or `send_input` on V1, in Codex). If it can't be messaged, dispatch fresh with the issue id, `[IMPL-REPORT]` and findings; that is the same round, not an extra one.
+- **R3:** fresh dispatch one tier up (Codex: one effort step up). After each round, one scoped re-reviewer checks the findings in `fix_base_sha..HEAD` (`re-review-prompt.md`).
+- **After R3:** adjudicate with rulings (`failure-recovery.md`); never pause the epic. A finding disputed on spec grounds goes to a ruling at once and does not use a round.
 
 **CANNOT_VERIFY resolution.** A spec reviewer returns `VERDICT: CANNOT_VERIFY` when a finding depends on code or state OUTSIDE the reviewed diff (e.g. a symbol or file owned by a sibling task in a parallel wave). This is neither PASS nor FAIL — the orchestrator must resolve it, and a task may NOT close on an unresolved CANNOT_VERIFY. Take the sibling dependency the reviewer named and check it against `wave_file_map` and the sibling's receipts/`[IMPL-REPORT]`:
 - If a closed sibling already satisfies the dependency (the named file/symbol exists and is correct), resolve to PASS and proceed to close.
@@ -155,9 +151,9 @@ Non-destructive ambiguity gets a recorded `[RULING]` and work continues. Only th
 
 **Never:** dispatch blocked issues, cross-epic issues, or file-conflicting issues in the same wave; skip `bd update --status=in_progress`; close without review evidence; start code review before spec review passes; skip Claude-only Codex advisory review when `platform: "claude-code"` and `codex_enabled: true` in the checkpoint.
 
-**Always:** check `bd ready --exclude-label human` before each wave; compare file lists for conflicts; close passing issues immediately; re-check `bd ready` after each close; write checkpoint after each wave; post `[WAVE-SUMMARY]`.
+**Always:** check `bd ready --exclude-label human` before each wave; compare file lists for conflicts; close passing issues immediately; re-check `bd ready --exclude-label human` after each close; write checkpoint after each wave; post `[WAVE-SUMMARY]`.
 
-**Review re-dispatch:** When re-dispatching a reviewer after a fix (`Agent`/`spawn_agent`), or writing a gap-fix task description, give the reviewer only the diff and requirements. Route your own assessment ("this is minor", "the plan already chose this", "don't flag X") to the resolution step, never into the reviewer's prompt — it biases an independent review.
+**Review re-dispatch:** When dispatching the re-reviewer (`Agent`/`spawn_agent`) or writing a fix message, give only the diff, requirements and findings. Route your own assessment ("this is minor", "the plan already chose this", "don't flag X") to the resolution step, never into the reviewer's prompt — it biases an independent review.
 
 **Deadlock:** `bd ready` empty but open issues remain -> if all wait on question beads, end `SDD-STATUS: PARTIAL`; otherwise inspect `bd blocked` for circular dependencies or forgotten closes.
 
@@ -168,6 +164,7 @@ Non-destructive ambiguity gets a recorded `[RULING]` and work continues. Only th
 - `implementer-prompt.md`: implementation worker contract, self-read pattern, report format
 - `spec-reviewer-prompt.md`: skeptical requirements compliance review
 - `code-quality-reviewer-prompt.md`: code quality review
+- `re-review-prompt.md`: scoped single re-reviewer for fix rounds
 - `skills/epic-verifier/verifier-prompt.md`: final epic verification
 - `simplifier-dispatch-guidance.md`: post-wave simplification when enabled
 

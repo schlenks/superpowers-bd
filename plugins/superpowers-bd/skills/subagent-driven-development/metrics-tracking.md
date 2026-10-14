@@ -55,6 +55,10 @@ task_metrics[f"{issue_id}.agg"] = normalize_agent_metrics(aggregation_result)
 ```
 
 Retries append a unique attempt suffix rather than overwriting prior metrics.
+Fix rounds key by round: `"{issue_id}.fix.R"` for the fixer and
+`"{issue_id}.rereview.R"` for the re-reviewer. A resumed implementer's
+completion may report cumulative usage for the whole session; record it as
+reported and do not subtract unless the earlier figure is known.
 
 ## Per-Wave Aggregates
 
@@ -98,7 +102,9 @@ bd comments add <epic-id> "[WAVE-SUMMARY] Wave N complete:
   - hub-abc.2: commit=[hash], files=[count] changed, tests=[pass_count] pass
 - Simplification: [applied/skipped (reason)] [files touched, if applied]
 - Wave cap: [N] ([explicit|recommended|fallback]; first wave only, or when it changes)
-- Rulings: [none | hub-abc.1: decision (one per [RULING] posted this wave)]
+- Fix rounds: [none | hub-abc.1: 1 (R1 resume) → PASS | hub-abc.2: 3 (R1 resume, R2 fallback, R3 fresh sonnet→opus) → adjudicated]
+- Rulings: [none | hub-abc.1: decision (one per [RULING] posted this wave, including spec disputes and fix-loop adjudications)]
+- Deferred: [none | hub-abc.1: file:line — issue (one per [DEFERRED] posted this wave)]
 - Escalated: [none | hub-abc.3: [HUMAN-NEEDED] question (question beads filed this wave)]
 - Metrics: [measured_count] measured, [missing_count] unavailable
   - Known minimum: [wave_tokens] tokens | [tool_calls] tool calls
@@ -137,6 +143,7 @@ SDD-STATUS: COMPLETE|PARTIAL
 Epic {epic_id} complete|partial
 - Waves: {wave_count}
 - Tasks: {task_count} ({impl} implementation, {spec} spec review, {code} code review, {agg} aggregation)
+- Fix rounds: {fix_rounds} across {fixed_tasks} tasks ({resumes} resumed, {fallbacks} fallback, {round3} round 3, {adjudicated} adjudicated)
 - Structured telemetry: {measured_count} measured, {missing_count} unavailable
 - Known tokens: {known_tokens} (minimum when any result is unavailable)
 - Tool calls: {known_tool_uses} (minimum when any result is unavailable)

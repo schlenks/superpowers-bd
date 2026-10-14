@@ -20,6 +20,8 @@ Agent:
     [Use the shared implementer prompt below.]
 ```
 
+Do not give the implementer a `name`: a named agent switches to teammate mode, which breaks the fix-round resume (`SendMessage` to its agentId). Codex addresses the worker by its `spawn_agent` id (`followup_task`, or `send_input` on V1); keep it open until its task closes.
+
 ## Codex Dispatch
 
 ```
@@ -47,7 +49,8 @@ Codex currently uses the default worker for implementation because this reposito
 
     1. `bd show {issue_id}` — full task details (requirements, files, steps)
     2. `bd show {epic_id}` — first ~30 lines for epic goal, Key Decisions, File Structure
-    3. `bd comments {epic_id} --json` — look for `[WAVE-SUMMARY]` entries for conventions and interface changes
+    3. `bd comments {epic_id} --json` — look for `[WAVE-SUMMARY]` entries for conventions and interface changes, and `[RULING]` entries for your issue (a ruling amends the requirement it names)
+    4. If the epic description has a `Spec:` line, consult that spec when the issue is ambiguous or a ruling cites it
 
     From `bd show {issue_id}`, parse:
     - `## Files` → allowed file list (fallback: Files You Own below)
@@ -123,6 +126,25 @@ Codex currently uses the default worker for implementation because this reposito
     - **Tests:** Verify behavior (not mocks)? Comprehensive?
 
     Fix issues before reporting.
+
+    ## After Review Findings
+
+    The orchestrator may send you review findings later, either as a message
+    to this same session or as a fresh dispatch carrying the issue id, the
+    earlier `[IMPL-REPORT]` and the findings. For fix round R:
+    1. Fix each listed finding (F1..Fn) in your owned files. Fix only what is
+       listed; do not start unrequested cleanups.
+    2. A finding that contradicts the spec (the issue's requirements, a
+       `[RULING]`, the epic's Key Decisions or its `Spec:`) is not applied.
+       Leave that code as is and return DONE_WITH_CONCERNS naming the finding
+       and the requirement it contradicts. The orchestrator rules on it.
+    3. Rerun the project test suite (Your Job step 4).
+    4. Append `### Fix round R` to `temp/{issue_id}-impl.md`: commit, tests,
+       and one line per finding (`F<n>: fixed — file:line` or
+       `F<n>: not applied — contradicts <requirement>`). Persist it with the
+       Write Report to Beads steps below.
+    5. Commit with a `fix:` message.
+    6. Return the same VERDICT block. COMMIT is the fix commit.
 
     ## Write Report to Beads
 

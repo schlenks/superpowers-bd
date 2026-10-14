@@ -16,19 +16,34 @@ if background agent shows no completion notification after extended time:
         note in wave summary: "Task X restarted due to agent failure"
 ```
 
-## Review Rejection Loop (past the cap)
+## Fix-Round Adjudication (after round 3)
+
+The fix loop has one cap: 3 rounds per task, shared by review findings and gap-closure fixes (SKILL.md Review Rules, `background-execution.md` Fix Rounds). Rounds 1-2 resume the implementer, round 3 is a fresh dispatch one tier up. When the round-3 re-review or re-verification still fails, adjudicate. Do not pause the epic and do not start a round 4.
 
 ```
-if rejection_count[task_id] exceeds the review-loop cap (SKILL.md Review Rules):
-    # Do not pause the epic. Adjudicate the remaining findings.
-    for finding in open_findings:
-        if fixing it needs a hard-stop action, or the finding is a security defect
-           that would be kept (security rule, rulings-and-escalation.md):
-            escalate(finding_step_or_task, question=finding)  # task stays open
-        else:
-            rule(task_id, decision="fix" | "accept as-is", why=evidence, cost_if_wrong=impact)
-    apply "fix" rulings once more, or close with the accepted findings listed in the close reason
-    continue with other ready issues
+for finding in open_findings:
+    if fixing it needs a hard-stop action,
+       or it is a security defect that would be kept (security rule, rulings-and-escalation.md),
+       or it is load-bearing (an acceptance criterion fails, or tests/build fail, without it):
+        escalate(task_id, question=finding + round history)   # question bead; task stays open
+    else:
+        rule(task_id, decision="accept as-is" | "follow-up bead <id>",
+             why=evidence, cost_if_wrong=impact)
+if nothing was escalated:
+    close with the accepted findings listed in the close reason
+continue with other ready issues
+```
+
+Three fixers, one of them stronger, failed on a load-bearing finding, so the plan's approach is in doubt: that is why it escalates rather than being ruled.
+
+## Spec Dispute During a Fix Round
+
+A fixer that refuses a finding because it contradicts the spec returns DONE_WITH_CONCERNS naming the requirement. Rule on it at once, using the authority order in `rulings-and-escalation.md`. The dispute does not use up a round:
+
+```
+ruling = rule(task_id, decision="keep spec, drop F<n>" | "apply F<n>", why, cost_if_wrong)
+if ruling drops the finding: remove it from the open findings; re-review the rest
+else: send the ruling to the same implementer in the same round R (resume, or fallback)
 ```
 
 ## Implementer BLOCKED
@@ -129,13 +144,14 @@ Here is the additional context:
 All other instructions from your original dispatch still apply.
 ```
 
-## Verification Gap Closure (>3 attempts)
+## Verification Gap Closure (after round 3)
 
 ```
-if verification_attempt_count[task_id] > 3:
-    # Gap closure already escalated via a question bead blocking the task (verification-and-evidence.md)
+if verification still fails and fix_round[task_id] == 3:
+    # A failing check is load-bearing: Fix-Round Adjudication escalates it via a
+    # question bead blocking the task (verification-and-evidence.md)
     # Don't dispatch new work for this task; continue with independent issues
-    record in [WAVE-SUMMARY] Escalated: "{task_id}: verification failed {n} times"
+    record in [WAVE-SUMMARY] Escalated: "{task_id}: verification failed after 3 fix rounds"
 ```
 
 ## Deadlock Detection
@@ -206,8 +222,11 @@ When the orchestrator sees `<sdd-checkpoint-recovery>` in session context, or fi
 4. Restore Claude-only Codex advisory fields only when platform is "claude-code".
    If current platform is Codex, ignore stale codex_enabled/codex_install_path fields.
 5. Check for in_progress tasks: bd show {epic_id}
-   if any tasks are in_progress:
-       bd update --status=open {task_id}  # reset interrupted wave
+   for each in_progress task:
+       if checkpoint.fix_loop has it:      # mid fix loop (checkpoint-recovery.md)
+           resume implementer_agent_id at its fix_round (fallback if it can't be messaged)
+       else:
+           bd update --status=open {task_id}  # reset interrupted wave
 6. Resume from LOADING at wave {wave_completed + 1}
 7. Print: "Resuming epic {epic_id} from wave {N} after context recovery."
 ```
