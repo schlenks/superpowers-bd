@@ -1,0 +1,1 @@
+{"type": "assistant", "timestamp": "2026-01-01T10:01:00Z", "message": {"id": "d1", "model": "claude-haiku-5-5", "usage": {"input_tokens": 50000, "output_tokens": 1000, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}, "content": [{"type": "text", "text": "x"}, {"type": "tool_use", "id": "toolu_B", "name": "Agent", "input": {}}]}}

@@ -16,14 +16,27 @@ import re
 import sys
 from datetime import datetime, timedelta
 
-# USD per million tokens: (input, output, cache_read, cache_write_5m, cache_write_1h).
-# Source: claude-api pricing table, 2026-10-06. Cache read = 0.1x input, 5m write =
-# 1.25x input, 1h write = 2x input. Keys are normalized model ids (no [1m] / date suffix).
-# Models absent here are reported as unpriced, never guessed.
+# USD per million tokens, explicit per model (cache-read multipliers differ by model).
+# Source: claude-api skill pricing table, cached 2026-10-06.
+# Cache writes: 5-minute = 1.25x input, 1-hour = 2x input. If a usage record does not
+# split writes by TTL, all cache writes are priced as 5-minute (see tokens_of).
+# Entry: (input, output, cache_read). Tiered models: list of (max_request_input_tokens, rates).
+# Request input size = input + cache_read + cache_write tokens of that one request.
+# ASSUMPTIONS (not in the table): claude-sonnet-5 cache_read 0.20 (same tier as Sonnet 5.5);
+# haiku-5-5 cache_read = 0.1x the tier's input.
+_SONNET = (2.00, 10.00, 0.20)
+_OPUS_OLD = (5.00, 25.00, 0.50)
+_FABLE = (10.00, 50.00, 0.25)
 PRICING = {
-    "claude-opus-5-5": (5.0, 25.0, 0.5, 6.25, 10.0),
-    "claude-sonnet-5-5": (3.0, 15.0, 0.3, 3.75, 6.0),
-    "claude-haiku-5": (1.0, 5.0, 0.1, 1.25, 2.0),
+    "claude-opus-5-5": (4.00, 20.00, 0.20),
+    "claude-sonnet-5-5": _SONNET,
+    "claude-sonnet-5": _SONNET,
+    "claude-haiku-5-5": [(100_000, (0.10, 0.50, 0.01)), (None, (0.50, 2.50, 0.05))],
+    "claude-fable-5-1": _FABLE,
+    "claude-fable-5": _FABLE,
+    "claude-opus-5": _OPUS_OLD,
+    "claude-opus-4-8": _OPUS_OLD,
+    "claude-haiku-4-5": (1.00, 5.00, 0.10),
 }
 
 TOKEN_KEYS = ("input", "output", "cache_read", "cache_write_5m", "cache_write_1h")
@@ -42,8 +55,8 @@ def ts(value):
 
 
 def read_transcript(path):
-    """Return (usage_by_message_id, events) where events are (ts, line_no)."""
-    usage, events = {}, []
+    """Return (usage_by_message_id, events, tool_use_ids); events are (ts, line_no)."""
+    usage, events, tool_ids = {}, [], set()
     with open(path, errors="replace") as fh:
         for n, line in enumerate(fh, 1):
             try:
@@ -56,10 +69,14 @@ def read_transcript(path):
             if t:
                 events.append((t, n))
             msg = ev.get("message")
+            content = msg.get("content") if isinstance(msg, dict) else None
+            for block in content if isinstance(content, list) else []:
+                if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("id"):
+                    tool_ids.add(block["id"])
             if ev.get("type") == "assistant" and isinstance(msg, dict) and msg.get("usage"):
                 key = msg.get("id") or f"line{n}"
                 usage[key] = (norm_model(msg.get("model")), msg["usage"], n)
-    return usage, events
+    return usage, events, tool_ids
 
 
 def tokens_of(u):
@@ -80,7 +97,12 @@ def price(model, tok):
     rates = PRICING.get(model)
     if not rates:
         return None
-    return sum(tok[k] * r for k, r in zip(TOKEN_KEYS, rates)) / 1_000_000
+    if isinstance(rates, list):
+        size = tok["input"] + tok["cache_read"] + tok["cache_write_5m"] + tok["cache_write_1h"]
+        rates = next(r for limit, r in rates if limit is None or size <= limit)
+    i, o, cr = rates
+    return (tok["input"] * i + tok["output"] * o + tok["cache_read"] * cr
+            + tok["cache_write_5m"] * 1.25 * i + tok["cache_write_1h"] * 2 * i) / 1_000_000
 
 
 def new_acc():
@@ -192,13 +214,15 @@ def analyze(session, temp_dir, idle_minutes):
     session_id = os.path.basename(session)[:-len(".jsonl")]
     base = session[:-len(".jsonl")]
     seats, models, events, spans, metas = {}, {}, [], {}, {}
+    launched_by = {}  # tool_use id -> transcript (seat) that issued it
     transcripts = {"main": session}
     for f in sorted(glob.glob(os.path.join(base, "subagents", "*.jsonl"))):
         sid = re.sub(r"^agent-", "", os.path.basename(f)[:-len(".jsonl")])
         transcripts[sid] = f
         metas[sid] = load_meta(f[:-len(".jsonl")] + ".meta.json")
     for sid, path in transcripts.items():
-        usage, evs = read_transcript(path)
+        usage, evs, tids = read_transcript(path)
+        launched_by.update(dict.fromkeys(tids, sid))
         acc = new_acc()
         for model, u, _ in usage.values():
             tok = tokens_of(u)
@@ -208,6 +232,12 @@ def analyze(session, temp_dir, idle_minutes):
         events += [(t, path, n) for t, n in evs]
         if sid != "main" and evs:
             spans[sid] = (min(t for t, _ in evs), max(t for t, _ in evs))
+    for sid, meta in metas.items():  # parent = transcript holding the launching tool_use
+        owner = launched_by.get(meta.get("toolUseId"))
+        if owner and owner != "main" and owner != sid:
+            meta["parentAgentId"] = owner
+        elif owner == "main":
+            meta.pop("parentAgentId", None)
     total = new_acc()
     for acc in seats.values():
         for k in TOKEN_KEYS + ("calls",):
