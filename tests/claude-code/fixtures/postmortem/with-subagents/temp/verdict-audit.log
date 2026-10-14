@@ -1,0 +1,3 @@
+2026-01-01T10:03:10Z agent_type=general-purpose agent_id=aaa111 DONE
+2026-01-01T10:03:20Z agent_type=code-reviewer agent_id=bbb222 NO_VERDICT
+2026-01-01T09:00:00Z agent_type=general-purpose agent_id=zzz999 DONE

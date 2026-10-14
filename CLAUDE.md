@@ -59,7 +59,9 @@ in `tests/claude-code/`; eval runs are single-session and non-interactive.
 ### Token Usage Analysis
 
 ```bash
-# Analyze session transcript for token costs
+# Full post-mortem: per-seat/model cost (cache-aware), dispatch tree, waves, idle gaps, hook logs
+python3 scripts/sdd-postmortem.py ~/.claude/projects/<project-dir>/<session>.jsonl [--json]
+# Cost tables only (delegates to the same script)
 python3 tests/claude-code/analyze-token-usage.py ~/.claude/projects/<project-dir>/<session>.jsonl
 ```
 
