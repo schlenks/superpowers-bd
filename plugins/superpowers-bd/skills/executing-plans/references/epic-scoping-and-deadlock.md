@@ -2,43 +2,38 @@
 
 ## Epic Scoping
 
-`bd ready` shows ALL ready issues across all epics. Always filter to your current epic:
+`bd ready` is global: it shows ready issues across all epics, and it lists question beads unless you exclude them. Scope it every time:
 
 ```bash
-# First, get the epic's children
-bd show <epic-id>  # Shows child issue IDs
-
-# Only work on issues that are BOTH in bd ready AND children of your epic
+bd show <epic-id>                  # child IDs, including the verification task
+bd ready --exclude-label human     # ready work, without question beads
 ```
 
-## When to Stop and Ask for Help
+Work only on issues that are both in that `bd ready` output and children of your epic. Leave the verification task for the Final Review; never work on a question bead (it is the human's inbox).
 
-**STOP executing immediately when:**
-- Hit a blocker mid-batch (missing dependency, test fails, instruction unclear)
-- `bd ready` shows nothing for your epic but issues remain open
-- You don't understand an instruction
-- Verification fails repeatedly
+## Order
+
+`bd ready` is the order. Closing an issue unblocks its dependents, so re-run it after every close:
+
+```
+start:        .1, .2 ready;  .3 blocked by .1;  .4 blocked by .2, .3
+close .1      -> .3 ready
+close .2, .3  -> .4 ready
+close .4      -> verification task ready -> Final Review
+```
 
 ## Deadlock Detection
 
-If no ready issues exist for your epic but issues remain open:
-1. Run `bd blocked` to see dependency chain
-2. Check for circular dependencies (A->B->A)
-3. Check if you forgot to `bd close` a completed issue
+No ready issue for your epic while children remain open:
+
+1. `bd blocked` shows what each open child waits on.
+2. Waiting on a question bead (`human` label): that is an open escalation, not a deadlock. The run ends `SDD-STATUS: PARTIAL` once nothing else is ready.
+3. Waiting on a closed-looking issue you finished: you forgot `bd close`. Close it with its evidence.
+4. A dependency cycle (A -> B -> A): post a `[RULING]` removing the edge that the epic's Key Decisions or spec do not support (`bd dep remove`), then continue. If no source supports either edge, escalate with a question bead.
 
 ## If bd Commands Fail
 
-- Check if beads is initialized: `bd doctor`
-- Check git status: `git status`
-- If persistent errors, stop and ask human for help
+bd being unavailable is a hard stop (`../../subagent-driven-development/rulings-and-escalation.md`), because bd is the only durable record of progress and rulings.
 
-**Ask for clarification rather than guessing.**
-
-## When to Revisit Earlier Steps
-
-**Return to Review (Step 1) when:**
-- Partner updates issues based on your feedback
-- Fundamental approach needs rethinking
-- Dependencies need restructuring
-
-**Don't force through blockers** - stop and ask.
+1. Retry once, then check `bd doctor` and `git status`.
+2. Still failing: stop. Report the exact command and error, every commit made this session, and which issues those commits implement, so the next session can reconcile bd with git.

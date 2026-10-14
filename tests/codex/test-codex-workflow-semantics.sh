@@ -187,8 +187,11 @@ assert_contains "skills/plan2beads/references/codex-plan2beads-flow.md" "Produce
 assert_contains "skills/plan2beads/references/codex-plan2beads-flow.md" "backward-compatible" "Codex plan2beads keeps the new sections backward-compatible"
 assert_contains "skills/executing-plans/references/codex-execution-checkpoints.md" "bd ready is global" "Codex executing-plans documents global bd ready scoping"
 assert_contains "skills/executing-plans/references/codex-execution-checkpoints.md" "child IDs" "Codex executing-plans filters ready/blocked by epic child IDs"
-assert_contains "skills/executing-plans/references/codex-execution-checkpoints.md" "wait for user feedback" "Codex executing-plans preserves feedback checkpoint"
-assert_not_contains "skills/executing-plans/references/codex-execution-checkpoints.md" "autonomous execution" "Codex executing-plans does not bypass feedback checkpoints"
+assert_contains "skills/executing-plans/references/codex-execution-checkpoints.md" "Do not stop between issues for a checkpoint report" "Codex executing-plans runs Native mode without per-issue human checkpoints"
+assert_not_contains "skills/executing-plans/references/codex-execution-checkpoints.md" "wait for user feedback" "Codex executing-plans no longer waits for user feedback between batches"
+assert_contains "skills/executing-plans/references/codex-execution-checkpoints.md" "rulings-and-escalation.md" "Codex executing-plans reuses the SDD hard stops and formats by pointer"
+assert_contains "skills/executing-plans/references/codex-execution-checkpoints.md" "spawn_agent agent=epic_verifier" "Codex executing-plans ends with the native epic verifier"
+assert_not_contains "skills/executing-plans/SKILL.md" "Ready for feedback|Do NOT proceed until human feedback" "executing-plans has no per-batch human checkpoint"
 
 assert_contains "skills/ad-hoc-code-review/SKILL.md" "../requesting-code-review/code-reviewer.md" "ad-hoc review keeps shared review standard"
 assert_section "skills/ad-hoc-code-review/references/codex-review-flow.md" "Native Flow"

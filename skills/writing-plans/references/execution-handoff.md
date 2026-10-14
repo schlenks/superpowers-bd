@@ -8,18 +8,17 @@ neither condition applies.
 
 ### Extended context (1M) — streamlined flow
 ```
-writing-plans -> Plan Verification -> rule-of-five-plans -> Human Review -> plan2beads -> subagent-driven
-                      |                   |              |            |           |              |
-                 Scope check         Quality polish  Approve/Edit  Convert    bd verify     Parallel
-                                                                                           execution
+writing-plans -> Plan Verification -> rule-of-five-plans -> Human Review -> plan2beads -> Choose mode -> SDD | Native
+                       |                     |                  |              |              |              |
+                  Scope check          Quality polish      Approve/Edit   Convert + verify  [EXECUTION-MODE]  Execution
 ```
 
 ### Standard context (200k) — with compaction pauses
 ```
-writing-plans -> Plan Verification -> rule-of-five-plans -> Human Review -> /clear -> plan2beads -> /clear -> subagent-driven
-                      |                   |              |            |        |           |            |
-                 Scope check         Quality polish  Approve/Edit  Reclaim  bd verify   Reclaim     Parallel
-                                                                   context              context     execution
+writing-plans -> Plan Verification -> rule-of-five-plans -> Human Review -> /clear -> plan2beads -> Choose mode -> /clear -> SDD | Native
+                       |                     |                  |            |            |              |            |          |
+                  Scope check          Quality polish      Approve/Edit   Reclaim   Convert + verify  [EXECUTION-MODE] Reclaim  Execution
+                                                                          context                                    context
 ```
 
 After saving the plan and human approval:
@@ -47,28 +46,45 @@ bd blocked        # Shows tasks waiting on dependencies
 bd graph <epic>   # Visual dependency graph
 ```
 
-## Step 3: Begin Execution
+## Step 3: Choose the Execution Mode
 
-**Extended context (1M):** Proceed directly — announce the epic and begin execution:
+Offer both modes, each with its cost line, and a recommendation:
+
+- **SDD** (`superpowers-bd:subagent-driven-development`): fresh implementer and reviewers per issue, parallel waves. Costs the most (upstream measured about 2.5x Native on a small fixture), and holds up on long epics.
+- **Native** (`superpowers-bd:executing-plans`): this session implements every issue and one verifier on the most capable model reviews the whole epic. Cheapest; later issues run on a compacting context.
+
+**Recommendation:** Native when the epic has ≤5 implementation issues (not counting the verification task) or every implementation issue is labeled `complexity:simple`; otherwise SDD. An explicit choice from the user or the plan overrides the recommendation.
+
+- **Interactive:** ask with the platform question mechanism (Claude Code: `AskUserQuestion`; Codex: `request_user_input` when available, else a direct question), listing the recommended mode first.
+- **Unattended** (as defined in `superpowers-bd:finishing-a-development-branch`: explicit signals only): do not ask. Take the recommendation.
+
+Either way, record the choice on the epic before starting:
+
+```bash
+bd comments add <epic-id> "[EXECUTION-MODE] <SDD|Native> — <why: issue count, complexity labels, or the user's choice>"
 ```
-Epic <epic-id> ready with N tasks. Starting execution.
+
+## Step 4: Begin Execution
+
+**Extended context (1M):** Proceed directly — announce the epic and mode, then begin:
+```
+Epic <epic-id> ready with N tasks. Execution: <SDD|Native>. Starting execution.
 ```
 
 **Standard context (200k):** Planning consumes context. Before execution, reclaim it:
 ```
-Epic <epic-id> ready with N tasks.
+Epic <epic-id> ready with N tasks. Execution: <SDD|Native>.
 
 To maximize context for execution, run:
   /clear
 
-Then say:
-  execute epic <epic-id>
+Then say one of:
+  execute epic <epic-id>                          (SDD)
+  use executing-plans on epic <epic-id>           (Native)
 ```
 
-## Step 4: Execute
+## Step 5: Execute
 
-**REQUIRED SUB-SKILL:** Use `superpowers-bd:subagent-driven-development`
-- Reads from beads epic (not markdown)
-- Parallel dispatch of non-conflicting tasks
-- Dependency-aware execution
-- Two-stage review (spec compliance + code quality) after each task
+**REQUIRED SUB-SKILL**, per the recorded mode:
+- **SDD:** `superpowers-bd:subagent-driven-development`: parallel dispatch of non-conflicting tasks, dependency-aware waves, spec and code review after each task.
+- **Native:** `superpowers-bd:executing-plans`: issues in `bd ready` order in this session, TDD per issue, one epic-verifier review and one fix pass at the end.
