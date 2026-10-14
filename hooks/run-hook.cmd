@@ -15,27 +15,42 @@ CMDBLOCK
 # Unix shell runs from here. Builtins only until the exec: PATH may be broken
 # (cron, launchd, GUI app), so dirname and `env bash` are off-limits.
 # Contract: run-hook.cmd <script> [args] runs <script> with bash >= 4 when one
-# is available, otherwise /bin/bash, without needing PATH or <script>'s exec
-# bit. Every Claude hook launches here, so launcher trouble fails open: one
-# stderr line, exit 0, never a blocked session.
-case "$0" in */*) d=${0%/*} ;; *) d=. ;; esac
+# is available (known absolute paths first, then PATH), otherwise /bin/bash
+# (hook scripts are bash 3.2-safe), without needing <script>'s exec bit.
+# Absolute install locations win over PATH, so a PATH-relative or repo-planted
+# bash is used only when no known absolute one qualifies. Every Claude hook
+# launches here, so launcher trouble fails open: one "run-hook.cmd:" stderr
+# line, exit 0, never a blocked session.
+# SUPERPOWERS_BD_BASH_CANDIDATES (tests only) replaces the absolute lists.
+skip() { echo "run-hook.cmd: $1; skipping hook" >&2; exit 0; }
+case "$0" in */*) d=${0%/*} ;; *) skip "cannot locate hook directory from '$0'" ;; esac
 script=${1:-}
 [ "$#" -gt 0 ] && shift
 if [ -z "$script" ] || [ ! -f "$d/$script" ]; then
-    echo "run-hook.cmd: hook script '$script' not found in $d; skipping" >&2
-    exit 0
+    skip "hook script '$script' not found in $d"
 fi
+preferred=${SUPERPOWERS_BD_BASH_CANDIDATES-/opt/homebrew/bin/bash /usr/local/bin/bash /usr/bin/bash}
+last_resort=${SUPERPOWERS_BD_BASH_CANDIDATES-/bin/bash}
+# shellcheck disable=SC2016  # the version test runs inside the candidate bash
+is_bash4() { "$1" -c '[ "${BASH_VERSINFO[0]}" -ge 4 ]' 2>/dev/null; }
 interp=
+# shellcheck disable=SC3028  # BASH_VERSINFO is read only when $BASH is a bash
 case "${BASH:-}" in
     */bash) [ "${BASH_VERSINFO:-0}" -ge 4 ] 2>/dev/null && interp=$BASH ;;
 esac
 if [ -z "$interp" ]; then
-    for candidate in /opt/homebrew/bin/bash /usr/local/bin/bash /bin/bash; do
+    for candidate in $preferred; do
         if [ -x "$candidate" ]; then interp=$candidate; break; fi
     done
 fi
 if [ -z "$interp" ]; then
-    echo "run-hook.cmd: no bash found for $script; skipping hook" >&2
-    exit 0
+    found=$(command -v bash 2>/dev/null) || found=
+    case "$found" in /*) is_bash4 "$found" && interp=$found ;; esac
 fi
+if [ -z "$interp" ]; then
+    for candidate in $last_resort; do
+        if [ -x "$candidate" ]; then interp=$candidate; break; fi
+    done
+fi
+[ -n "$interp" ] || skip "no bash found for $script"
 exec "$interp" "$d/$script" "$@"

@@ -5,7 +5,7 @@
 # Always exits 0 (audit-only, never blocks).
 
 # Backfill PATH for cron/launchd/GUI launches; appended so callers' resolution wins.
-export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:${HOME:-}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+export PATH="${PATH:+$PATH:}/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin${HOME:+:$HOME/.local/bin}"
 
 set -euo pipefail
 
