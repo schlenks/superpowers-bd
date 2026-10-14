@@ -53,8 +53,8 @@ When verification fails:
 1. Record the failure evidence.
 2. Fix the root cause.
 3. Re-run the same verification.
-4. After three failed repair attempts, stop and request human direction with the
-   attempted fixes and current evidence.
+4. At most 3 fix rounds, one cap shared with review fixes. Still failing after
+   round 3: escalate with a `[HUMAN-NEEDED]` question bead and continue other work.
 
 See `references/gap-closure-protocol.md` for native progress examples.
 

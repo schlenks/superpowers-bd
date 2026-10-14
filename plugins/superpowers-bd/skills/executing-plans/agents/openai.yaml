@@ -1,6 +1,6 @@
 interface:
   display_name: "Execute Plans"
-  short_description: "Run written plans in verified batches"
+  short_description: "Run a beads epic natively with one whole-epic review"
   brand_color: "#2563EB"
   default_prompt: "Use $executing-plans to execute this implementation plan."
 policy:

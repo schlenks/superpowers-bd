@@ -216,7 +216,7 @@ Check that commands appear:
 # Should see:
 # /superpowers-bd:brainstorm - Interactive design refinement
 # /superpowers-bd:write-plan - Create implementation plan
-# /superpowers-bd:execute-plan - Execute plan in batches
+# /superpowers-bd:execute-plan - Execute a beads epic natively (Native mode)
 ```
 
 ### Codex

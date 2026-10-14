@@ -48,4 +48,4 @@ If dev server isn't running, note: "Visual verification skipped: start dev serve
 Visual verification failures trigger the same gap closure loop:
 - Console errors -> fix task -> re-verify
 - Missing elements -> fix task -> re-verify
-- Max 3 attempts -> escalate to human
+- Counts against the task's single fix-round cap (3, shared with review findings) -> after round 3, escalate with a `[HUMAN-NEEDED]` question bead (`gap-closure-protocol.md` Step 4) and continue with independent work

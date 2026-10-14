@@ -16,7 +16,7 @@ Manual test cases to verify gap closure loop works correctly.
 
 **Verify:**
 - TaskList shows fix task and re-verify task
-- Metadata shows attempt: 2
+- Metadata shows fix_round: 1
 - Final status: completed (not escalated)
 
 ## Test 2: Three Failures, Human Escalation
@@ -28,9 +28,9 @@ Manual test cases to verify gap closure loop works correctly.
 4. Third run (after fix): build still fails
 
 **Expected:**
-1. Three gap-fix tasks created (attempts 1, 2, 3)
-2. After third failure, human intervention task created
-3. Automated flow stops for this task
+1. Three gap-fix tasks created (fix rounds 1, 2, 3)
+2. After the round-3 failure, a `[HUMAN-NEEDED]` question bead blocks the issue
+3. Automated flow stops for this task; independent work continues
 
 **Verify:**
 - TaskList shows intervention task
@@ -49,7 +49,7 @@ Manual test cases to verify gap closure loop works correctly.
 
 **Verify:**
 - TaskList shows only the verification task
-- Metadata shows attempt: 1
+- No fix_round recorded (no fix needed)
 - Status: completed
 
 ## Test 4: Gap Closure with Blocked Re-verification

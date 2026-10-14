@@ -166,6 +166,6 @@ Before rule-of-five-plans, verify scope and accuracy:
 - `references/announcements-protocol.md`: Required announcement templates for verification phases
 - `references/verification-dispatch.md`: Sub-agent prompt templates and dispatch flow for verification passes
 - `references/verification-footer.md`: Plan Document Footer template (Verification Record)
-- `references/execution-handoff.md`: Post-plan workflow: plan2beads -> subagent-driven-development
+- `references/execution-handoff.md`: Post-plan workflow: plan2beads -> choose SDD or Native (executing-plans)
 
 <!-- compressed: 2026-02-11, original: 915 words, compressed: 599 words -->

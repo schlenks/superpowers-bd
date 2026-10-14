@@ -98,7 +98,7 @@ if [ -f go.mod ]; then go mod download; fi
 
 ## Step 4: Verify Clean Baseline
 
-Run the project test suite. Report pass/fail. If failing, interactive sessions ask before proceeding; unattended runs record the failing tests as the baseline (a `[RULING]` bd comment, or the report) and continue, so later runs compare against them.
+Run the project test suite. Report pass/fail. If failing, interactive sessions ask before proceeding; unattended runs record the failing tests as the baseline (a bd comment `[RULING] <epic-id>: baseline has failing tests <names> — why: unattended run, no one to ask — cost if wrong: <impact>`, or the report) and continue, so later runs compare against them.
 
 ## Quick Reference
 

@@ -23,7 +23,7 @@ After all 5 sub-agent verdicts are collected (plus 1 inline checklist self-revie
 | Risk | {STATUS} | {CHANGES} | {SUMMARY} |
 | Optimality | {STATUS} | {CHANGES} | {SUMMARY} |
 
-**Rulings:** {one line per pass or checklist item that still failed after one re-run: `[RULING] {pass or item}: {decision and why}`, or `none`}
+**Rulings:** {one line per pass or checklist item that still failed after one re-run: `[RULING] {pass or item}: {decision} — why: {reason} — cost if wrong: {impact}`, or `none`}
 ```
 
 The `{STATUS}`, `{CHANGES}`, and `{SUMMARY}` values come directly from each sub-agent's verdict. The checklist RESULTS rows come from the inline self-review announced at task 2 completion (see references/announcements-protocol.md — Plan Verification Checklist results template).
