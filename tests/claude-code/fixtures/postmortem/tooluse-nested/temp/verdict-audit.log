@@ -1,0 +1,2 @@
+2026-01-01T10:01:30Z agent_type=general-purpose agent_id=ddd444 VERDICT: DONE
+2026-01-01T10:02:30Z agent_type=code-reviewer agent_id=eee555 VERDICT: FAIL (2 critical)

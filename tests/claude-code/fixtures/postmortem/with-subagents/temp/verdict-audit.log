@@ -1,3 +1,5 @@
-2026-01-01T10:03:10Z agent_type=general-purpose agent_id=aaa111 DONE
+2026-01-01T10:02:50Z agent_type=general-purpose agent_id=aaa111 NO_VERDICT
+2026-01-01T10:03:10Z agent_type=general-purpose agent_id=aaa111 VERDICT: PASS - all checks ran
 2026-01-01T10:03:20Z agent_type=code-reviewer agent_id=bbb222 NO_VERDICT
-2026-01-01T09:00:00Z agent_type=general-purpose agent_id=zzz999 DONE
+2026-01-01T10:03:30Z agent_id=bbb222 VERDICT_GATE_GIVEUP after 2 blocks
+2026-01-01T09:00:00Z agent_type=general-purpose agent_id=zzz999 VERDICT: DONE

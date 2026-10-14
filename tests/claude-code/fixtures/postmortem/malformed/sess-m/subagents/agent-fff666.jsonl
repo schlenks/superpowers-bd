@@ -1,0 +1,2 @@
+{"type": "assistant", "timestamp": "2026-01-01T10:01:00", "message": {"id": "f1", "model": "claude-sonnet-5-5", "usage": {"input_tokens": 1000, "output_tokens": 100}}}
+{"type": "assistant", "timestamp": "2026-01-01T10:01:01", "message": {"id": "f2", "model": "claude-mystery-1", "usage": {"input_tokens": 1, "output_tokens": 1}}}
