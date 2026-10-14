@@ -42,6 +42,7 @@ TaskCreate: "Final validation gate" [blockedBy: verify] → Epic exists, childre
 - Interfaces (OPTIONAL): per-task `**Interfaces:**` line with `Consumes:` / `Produces:` -> preserved verbatim in that task's description (absent = task body unchanged)
 - Success Criteria: H2 with `- [ ]` -> epic acceptance criteria
 - Key Decisions: `## Key Decisions` -> epic description (placed first)
+- Spec (OPTIONAL): header line `**Spec:** <path or URL>` -> copied verbatim into the epic description as a line `Spec: <value>` (absent = epic description unchanged)
 - Global Constraints (OPTIONAL): `## Global Constraints` -> epic-wide rules; thread the block text into EVERY child task body and keep it on the epic (absent = no constraints, every task body unchanged)
 - Review Focus (OPTIONAL for legacy plans): `## Review Focus` -> keep the full list on the epic; copy each `**Task N:**` item into its owning child task, alongside the task's test step
 
@@ -55,16 +56,15 @@ TaskCreate: "Final validation gate" [blockedBy: verify] → Epic exists, childre
 - **Global Constraints (OPTIONAL, backward-compatible):** If a `## Global Constraints` H2 exists, copy its text into each child task body (so every implementer carries the epic-wide rules) and retain it in the epic description. If absent, parse exactly as before — no constraints block, no change to any task body.
 - **Interfaces (OPTIONAL, backward-compatible):** If a task has a `**Interfaces:**` line (with `Consumes:` / `Produces:`), preserve it verbatim in that task's description. If absent, the task body is unchanged. Regex: `\*\*Interfaces:\*\*` then capture the following `Consumes:` / `Produces:` lines.
 - **Review Focus (OPTIONAL, backward-compatible):** If a `## Review Focus` H2 exists, retain the whole block in the epic description. For each bullet beginning `- **Task N:**`, copy that bullet verbatim under `Review Focus:` in the owning child task body only; verify the named test is present in that task's steps. A `None identified` bullet adds no child text. If a task number is missing or its test is absent, stop and correct the plan before creating issues. A legacy plan without this H2 imports unchanged.
+- **Spec (OPTIONAL, backward-compatible):** If a `**Spec:**` header line exists (regex `\*\*Spec:\*\*\s*(.+)$`), write `Spec: <value>` verbatim on its own line in the epic description, directly after Key Decisions. Do not resolve, fetch, or rewrite the path or URL. Subagent-driven-development reads this line at context loading so plan conflicts can be ruled against the spec. Absent means the epic description is unchanged.
 - A plan with NEITHER `## Global Constraints` nor any `**Interfaces:**` imports identically to prior behavior.
 
 **Local-plan gate:** Count H3 `### Task N:` headings before creating the epic. 0 H3 matches: stop before creating the epic and correct the local plan's task headings. Shortcut stories may still create an epic without implementation tasks.
 
-### Step 1b: Ask Completion Strategy
+### Step 1b: Completion Strategy (no ask by default)
 
-```
-How should this epic complete? 1. Commit only (default) 2. Push 3. Push+PR 4. Merge local
-```
-Labels: 1=`completion:commit-only`, 2=`completion:push`, 3=`completion:push-pr`, 4=`completion:merge-local`. Default 1 if skipped.
+Do NOT ask. Use the user's explicit choice if one was given in the request; otherwise default to `completion:commit-only` and say so in the Step 5 import summary ("Completion: commit-only (default; no choice given)").
+Labels: commit only=`completion:commit-only`, push=`completion:push`, push+PR=`completion:push-pr`, merge local=`completion:merge-local`. Push and merge labels apply ONLY on an explicit user choice, never by default or inference.
 
 ### Step 2: Create the Epic
 
@@ -151,7 +151,7 @@ Create: `bd create --silent --parent hub-abc "Epic Verification" --body-file tem
 Run `bd ready`, `bd blocked`, `bd graph hub-abc`. Verify: independent tasks in ready, dependent tasks in blocked, graph shows expected flow.
 
 ### Step 5: Display Results and Execute
-Show: epic ID/title, N implementation + 1 verification task, ready/blocked lists. Then immediately proceed to execute the epic by invoking `superpowers-bd:subagent-driven-development` with the epic ID — do NOT stop and tell the user to run it manually.
+Show: epic ID/title, completion label (note when defaulted), Spec value (when present), N implementation + 1 verification task, ready/blocked lists. Then immediately proceed to execute the epic by invoking `superpowers-bd:subagent-driven-development` with the epic ID — do NOT stop and tell the user to run it manually.
 
 ## bd CLI Quick Reference
 `--silent`: ID only. `--type epic`: epic. `--parent <id>`: child. `--body-file <path>`: multi-line desc. `-d "text"`: single-line desc. `-l "label"`: labels. `-p N`: priority 0-4. `-e N`: estimate mins. `--deps "id1,id2"`: deps (affects `bd ready`). `--acceptance "text"`: criteria (semicolons, never `\n`). `--external-ref "ref"`: external link. `--defer "date"`: hide until date. `--claim`: assign+in_progress. `--suggest-next`: show unblocked after close.

@@ -27,8 +27,10 @@ Read the plan file, create the epic and child issues with `bd create`, verify de
 - Keep each child issue dependency-aware with clear `Depends on:`, `Complexity:`, and `Files:` sections from the source plan.
 - Preserve optional metadata when the plan carries it: a `## Global Constraints` block threads into **every** child task body, and a per-task `**Interfaces:**` line (`Consumes:` / `Produces:`) stays verbatim in that task's body. Both are optional — a plan without them imports exactly as before (backward-compatible).
 - Preserve `## Review Focus` when present: keep the full list on the epic and copy each `**Task N:**` item into its owning child task. Verify the named test appears in that task's steps. Legacy plans without Review Focus import unchanged.
+- Carry the optional `**Spec:**` header line verbatim onto the epic description as `Spec: <value>`; absent leaves the epic unchanged.
+- Completion strategy: never ask. Without an explicit user choice, label the epic `completion:commit-only` and state the default in the import summary. `completion:push`, `completion:push-pr` and `completion:merge-local` require an explicit user choice.
 - Verify the dependency shape with `bd ready`, `bd blocked`, and `bd show <epic-id>` before handing off.
-- If the plan is incomplete or ambiguous, ask a concise question before creating issues.
+- If the plan is incomplete or ambiguous, ask a concise question before creating issues (completion strategy is not a reason to ask).
 
 ## Output Contract
 

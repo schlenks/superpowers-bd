@@ -22,6 +22,7 @@ CLAUDE_PARSER="commands/plan2beads.md"
 CODEX_PARSER="skills/plan2beads/references/codex-plan2beads-flow.md"
 PLAN2BEADS_SKILL="skills/plan2beads/SKILL.md"
 WRITING_PLANS_SKILL="skills/writing-plans/SKILL.md"
+SPEC_FIXTURE="tests/claude-code/fixtures/plan-with-spec.md"
 
 echo "=== Test: plan2beads metadata round-trip ==="
 
@@ -97,6 +98,28 @@ assert_contains "$WRITING_PLANS_SKILL" "## Global Constraints" "writing-plans he
 assert_contains "$WRITING_PLANS_SKILL" "\*\*Interfaces:\*\*" "writing-plans header contract documents Interfaces"
 assert_contains "$WRITING_PLANS_SKILL" "## Review Focus" "writing-plans header contract documents Review Focus"
 assert_contains "$WRITING_PLANS_SKILL" 'Importable task headings' "writing-plans checks task heading format before approval"
+
+# --- Spec pointer: fixture, both parsers, absent-case unchanged ---
+assert_file "$SPEC_FIXTURE"
+assert_contains "$SPEC_FIXTURE" '^\*\*Spec:\*\* docs/specs/example-spec\.md$' "spec fixture carries a Spec header line"
+if grep -q '\*\*Spec:\*\*' "$FIXTURE"; then fail "constraints fixture must stay Spec-free (absent case)"; else pass "constraints fixture has no Spec line (absent case imports unchanged)"; fi
+assert_contains "$CLAUDE_PARSER" 'Spec: <value>' "Claude parser lands the Spec line on the epic description"
+assert_contains "$CLAUDE_PARSER" 'Absent means the epic description is unchanged' "Claude parser leaves the epic unchanged without Spec"
+assert_contains "$CODEX_PARSER" 'Spec: <value>' "Codex parser lands the Spec line on the epic description"
+assert_contains "$CODEX_PARSER" 'Absent leaves the epic description unchanged' "Codex parser leaves the epic unchanged without Spec"
+assert_contains "$PLAN2BEADS_SKILL" 'Spec: <value>' "plan2beads shared rules note Spec preservation"
+assert_contains "$WRITING_PLANS_SKILL" '\*\*Spec:\*\*' "writing-plans header contract documents the Spec line"
+
+# --- Completion strategy: default commit-only, no ask, push/merge need explicit choice ---
+assert_contains "$CLAUDE_PARSER" 'Do NOT ask' "Claude parser does not ask for completion strategy"
+assert_contains "$CLAUDE_PARSER" 'default to `completion:commit-only`' "Claude parser defaults to commit-only without a choice"
+assert_contains "$CLAUDE_PARSER" 'ONLY on an explicit user choice' "Claude parser requires an explicit choice for push or merge labels"
+if grep -q 'How should this epic complete' "$CLAUDE_PARSER"; then fail "Claude parser still contains the completion question"; else pass "Claude parser has no completion question"; fi
+assert_contains "$CODEX_PARSER" 'Do not ask for completion strategy' "Codex parser does not ask for completion strategy"
+assert_contains "$CODEX_PARSER" 'otherwise label the epic `completion:commit-only`' "Codex parser defaults to commit-only without a choice"
+assert_contains "$CODEX_PARSER" 'require an explicit user choice' "Codex parser requires an explicit choice for push or merge labels"
+if grep -q 'Ask for completion strategy' "$CODEX_PARSER"; then fail "Codex parser still asks for completion strategy"; else pass "Codex parser has no completion ask"; fi
+assert_contains "$PLAN2BEADS_SKILL" 'never ask' "plan2beads shared rules say never ask for completion"
 
 # --- GUARDED: live import round-trip (orchestrator-driven, not spawned here) ---
 if [ "${RUN_LIVE_IMPORT:-0}" = "1" ]; then
