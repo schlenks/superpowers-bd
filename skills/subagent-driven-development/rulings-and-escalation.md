@@ -63,8 +63,9 @@ bd dep add <work-item> <question-bead>    # work item stays open and blocked unt
 
 - **The whole task needs a human** (NEEDS_CONTEXT exhausted, scope change, gap closure exhausted, a kept security defect): the work item is the task. Set it back to `open`; `bd ready` will not list it while the question bead is open.
 - **One step needs a human:** the question bead is the withheld step (Dispatch-Time Guard). The human runs or declines the step, then responds or dismisses.
-- **Answered:** when a question bead closes, read the answer (`bd comments <question-bead>`). Responded: re-dispatch the work item with the answer as context. Dismissed: record a `[RULING]` on how to proceed without it, or leave the work item open if a hard stop still applies.
+- **Answered:** when a question bead closes, read the answer (close reason in `bd show <question-bead>`, plus `bd comments <question-bead>`). Responded: re-dispatch the work item with the answer in its prompt. Dismissed: record a `[RULING]` on how to proceed without it, or leave the work item open if a hard stop still applies.
 - **Dependents** of the work item stay blocked through the normal dependency chain. A task held on CANNOT_VERIFY whose sibling is waiting on a question bead also gets `bd dep add <held-task> <question-bead>`.
+- **Never dispatch a question bead.** It is the human's inbox, not work. List ready work with `bd ready --exclude-label human`.
 - Continue with every independent ready issue. Escalation never pauses the epic.
 
 `bd human list` is the human's inbox. Never let `TaskCreate` (Claude Code) or `update_plan` (Codex) be the only record of an escalation: Task tools are off by default on Claude Code 2.1.233+, and native progress trackers do not survive the session. They may mirror the bd record.

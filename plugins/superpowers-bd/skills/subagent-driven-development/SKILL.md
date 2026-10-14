@@ -22,7 +22,7 @@ Execute a beads epic by dispatching independent implementation issues in paralle
 6. Detect context tier. Claude Code: extended if the model ID contains `[1m]` **or** is a 1M-native family (`sonnet-5`, `fable-5`); otherwise standard. Codex: use visible model/context info; if unknown, default to standard. See `budget-and-wave-cap.md` Context Tier and the Fable effort ceiling.
 7. Build `platform_agent_plan` once per session and store it in the checkpoint. It must name the native dispatch path for implementers, spec reviewers, code reviewers, aggregators, and epic verifier.
 8. Claude Code only: detect Codex cross-model advisory review by looking for `<codex-integration>`. Store `codex_enabled` and `codex_install_path` in the checkpoint. In Codex sessions, omit `codex_install_path` and set `codex_enabled: false` or leave it absent because Codex is the orchestrator.
-9. Run `bd ready`, filter to this epic's children, and exclude blocked/cross-epic/file-conflicting issues.
+9. Run `bd ready --exclude-label human` (question beads are never dispatched), filter to this epic's children, and exclude blocked/cross-epic/file-conflicting issues.
 10. **Pre-flight requirement-conflict scan:** read each in-scope child issue body (`bd show <id>`) and check for contradictory requirements on a shared surface — two issues specifying incompatible behavior for the same file, API endpoint, data contract, or behavioral rule. This is requirement-level contradiction only; `wave_file_map` handles file-write conflicts separately. Also check each child's steps against the hard stops. See Pre-flight Requirement-Conflict Scan.
 11. Select wave cap. Use explicit invocation first; otherwise use the budget/context heuristic in `budget-and-wave-cap.md`.
 12. Load `wave-orchestration.md`, create the active-wave flag, then dispatch implementers in parallel for non-conflicting ready issues. Mark each issue `in_progress` before dispatch.
@@ -155,11 +155,11 @@ Non-destructive ambiguity gets a recorded `[RULING]` and work continues. Only th
 
 **Never:** dispatch blocked issues, cross-epic issues, or file-conflicting issues in the same wave; skip `bd update --status=in_progress`; close without review evidence; start code review before spec review passes; skip Claude-only Codex advisory review when `platform: "claude-code"` and `codex_enabled: true` in the checkpoint.
 
-**Always:** check `bd ready` before each wave; compare file lists for conflicts; close passing issues immediately; re-check `bd ready` after each close; write checkpoint after each wave; post `[WAVE-SUMMARY]`.
+**Always:** check `bd ready --exclude-label human` before each wave; compare file lists for conflicts; close passing issues immediately; re-check `bd ready` after each close; write checkpoint after each wave; post `[WAVE-SUMMARY]`.
 
 **Review re-dispatch:** When re-dispatching a reviewer after a fix (`Agent`/`spawn_agent`), or writing a gap-fix task description, give the reviewer only the diff and requirements. Route your own assessment ("this is minor", "the plan already chose this", "don't flag X") to the resolution step, never into the reviewer's prompt — it biases an independent review.
 
-**Deadlock:** `bd ready` empty but open issues remain -> inspect `bd blocked` for circular dependencies or forgotten closes.
+**Deadlock:** `bd ready` empty but open issues remain -> if all wait on question beads, end `SDD-STATUS: PARTIAL`; otherwise inspect `bd blocked` for circular dependencies or forgotten closes.
 
 **Crash/compact recovery:** read `temp/sdd-checkpoint-{epic_id}.json`, restore wave state, and resume at LOADING. At COMPLETE, delete checkpoint and metrics files.
 
