@@ -76,6 +76,12 @@ Manual bootstrap install:
 
 Prefer native `$skill` entry points when the plugin is installed. Use fallback CLI commands only from a manual bootstrap install.
 
+## Unattended Rulings and Escalation
+
+SDD and Native execution never stop to ask on a judgment call. The orchestrator decides, records `[RULING] <issue-id>: <decision> — why: <reason> — cost if wrong: <impact>` as a bd comment, and continues. Only the hard stops in `skills/subagent-driven-development/rulings-and-escalation.md` (destructive or irreversible actions, live secrets or credentials, a push, merge or publish no `completion:*` label authorizes, a plan where every path is a guess) wait for a human, as do a security defect someone wants kept and a fix loop exhausted on a load-bearing finding. They wait asynchronously: a separate `human`-labeled `[HUMAN-NEEDED]` question bead blocks the affected issue while independent issues keep running. This matters most in `codex exec`, where a question ends the run with nothing built. `$finishing-a-development-branch` in an unattended run keeps the branch as-is instead of showing its menu.
+
+After `$plan2beads`, the execution handoff offers **SDD** (`$subagent-driven-development`) or **Native** (`$executing-plans`) and recommends Native for epics with five or fewer implementation issues or only `complexity:simple` ones. Unattended runs take the recommendation.
+
 ## Codex Native Execution
 
 Shared skills use platform-neutral workflow intent. Codex uses the native Codex surface for that intent:
@@ -83,7 +89,7 @@ Shared skills use platform-neutral workflow intent. Codex uses the native Codex 
 | Shared intent | Claude Code implementation | Codex implementation |
 |---------------|----------------------------|----------------------|
 | Track progress | `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet` | `update_plan` |
-| Delegate work | `Task` with background execution when appropriate | `spawn_agent`, then `wait_agent` when blocked on results |
+| Delegate work | `Agent` with background execution when appropriate | `spawn_agent`, then `wait_agent` when blocked on results |
 | Ask questions | `AskUserQuestion` | `request_user_input` when available for structured choices, otherwise direct user question |
 | Verify completion | `Skill` plus verification commands and captured evidence | `$skill` plus verification commands and captured evidence |
 
@@ -98,6 +104,7 @@ For durable project tracking in repositories that use beads, keep `bd` as the so
 - `$writing-plans` - implementation plan creation
 - `$plan2beads` - convert a plan or Shortcut story into beads issues
 - `$subagent-driven-development` - execute beads epics in parallel waves
+- `$executing-plans` - Native mode: execute a beads epic in this session, with one `epic_verifier` review at the end
 - `$ad-hoc-code-review` - `/cr`-style local or PR review from Codex
 - `$verification-before-completion` - evidence before completion claims
 
@@ -142,6 +149,8 @@ The installable plugin wrapper bundles Codex lifecycle hooks in both `plugins/su
 Inside this repository, project-local SessionStart and UserPromptSubmit hooks defer when the installed Superpowers-BD plugin has a trusted hook for the same event. This prevents duplicate context injection while preserving the project-local fallback when the plugin or its hook is unavailable.
 
 Review hook commands before trusting a checkout. In Codex, use `/hooks` to inspect hook sources, review new or changed hooks, trust hooks, or disable individual hooks.
+
+Every plugin hook command starts with `bash "${PLUGIN_ROOT}/hooks/..."`, so hooks run even when Codex launches them with a minimal `PATH` or a script has lost its executable bit. `tests/verification/test-workflow-contract-audit.sh` fails if a command drops the `bash` prefix.
 
 Current installed-plugin hook behavior:
 

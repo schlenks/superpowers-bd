@@ -1,5 +1,35 @@
 # Superpowers Release Notes
 
+## Unreleased - Upstream v7 Adoption
+
+Adopts nine items from upstream superpowers v7, each re-tested on current models before it shipped. Research reports are in `docs/experiments/2026-10-14-upstream-v7/`; the plan is `docs/plans/2026-10-14-upstream-v7-adoption.md`.
+
+**Rulings instead of holds (SDD).** Pre-flight conflicts, spec disputes and an exhausted fix loop no longer hold at `PENDING_HUMAN`. The orchestrator records `[RULING] <issue-id>: <decision> — why: <reason> — cost if wrong: <impact>` and continues. Only the hard stops in the new `rulings-and-escalation.md` (destructive or irreversible actions, live secrets, an unauthorized push, merge or publish, a plan where every path is a guess) wait for a human, and they wait asynchronously: a separate `human`-labeled question bead blocks the affected issue while independent issues keep running. In `claude -p` the old hold exited 0 with nothing built in 4/4 runs; the ruling variant built the right result in 3/3. Policy probes (n=9, $5.81): conflict ruled 2/2, destructive step withheld with its dependents blocked 6/6, question bead never dispatched 1/1.
+
+**Fix rounds resume the original implementer.** Rounds 1-2 send the findings to the implementer that wrote the code (`SendMessage`; Codex `followup_task`/`send_input`), falling back to a fresh dispatch in the same round when it can't be messaged; round 3 is a fresh dispatch one tier up. One scoped re-reviewer (`re-review-prompt.md`) checks the fix diff instead of rerunning the full review fan-out. Paired A/B: resuming cost 63% less with correct findings (Sonnet, cheaper in 12/12 pairs) and 38% less on Opus, and resumed Sonnet fixers applied a spec-contradicting finding 0/8 times against 7/8 for fresh ones.
+
+**Unattended defaults outside SDD.** `finishing-a-development-branch`, `using-git-worktrees` and `/cr` detect unattended runs from explicit signals only and take a safe default instead of asking: finishing keeps the branch as-is, worktrees record a failing baseline and continue. `AskUserQuestion` does not exist in `claude -p` (measured), so the old ask ended the run.
+
+**Leaner plans.** Plans record decisions, not code: "Complete code in plan" is gone, steps are "one action with a checkable result", and rule-of-five-plans gains a Proportion check. On Opus 5.5 (n=4 per arm) the old skill ran the product's code outside the plan 4/4 times, the lean one 0/4, at 37% lower median cost and 43% less wall time.
+
+**plan2beads carries the spec.** A plan's `**Spec:**` header becomes a `Spec:` line on the epic; SDD reads it at context loading, ranks it in rulings, and passes it to spec reviewers and implementers. Default completion is `completion:commit-only`. Evidence is upstream's: seeded inconsistencies resolved 0-1/5 without the spec in scope, 4-5/5 with it.
+
+**writing-good-tests replaces testing-anti-patterns.** The TDD reference now fires on any test writing and adds a change-detector rule and a lint carve-out for instruction-file audits. Constant-equality change-detector asserts fell from 17/21 to 4/21 across Sonnet and Opus (p=0.00014); a re-run on the shipped text wrote 0/4 (baseline 8/8) with mutation kills unchanged (13.75/14).
+
+**Brainstorming hybrid.** Intent-first questions from v7 with bd's code reading and a builder check. With the skill forced to run on a caching request, the hybrid read the code 5/5 and raised the oversell risk 5/5 without an A/B/C menu (v7 read the code 0/6); in simulated-user conversations it found the hidden goal 2/2 where the old skill missed it 2/2. Caveat: with Bash available the skill fired 0/15 on changes to existing code, so the gain only applies when it runs.
+
+**Native execution mode.** `executing-plans` now executes a beads epic in the current session, with one epic verifier on the most capable model and one fix pass at the end, and the plan handoff offers SDD or Native (Native recommended for ≤5 implementation issues or all `complexity:simple`). Upstream measured Sonnet as final reviewer catching a planted crash 0/3 against Opus 3/3, hence the strongest-model verifier.
+
+**Native vs SDD pilot.** On one fixture epic, Native cost $1.59-$1.75 and about 5 minutes (n=3) against SDD's $6.54 and 30.5 minutes (n=1); both fixed the seeded defect 4/4, but pre-flight caught it every time, so this is a provisional GO on cost only (`native-vs-sdd-pilot.md`, follow-up `superpowers_bd-qto`; spend $11.61).
+
+**Hooks survive a minimal PATH.** Under `/bin/sh -c` with a cron-style PATH, all 10 Claude hooks exited 127. `run-hook.cmd` now finds bash without PATH or the target's exec bit and fails open; every hook script appends system dirs to PATH; Codex plugin and agent-frontmatter hook commands start with `bash`; both review agents disallow `Agent`. `test-hooks-minimal-path.sh`: 53/53.
+
+**Micro-task batching and review fan-out by complexity.** Three or more file-disjoint, same-shape `complexity:simple` issues go to one implementer and one review, and code-review N scales with complexity. Upstream measured -73% cost and -87% dispatches on a 12-micro-task plan, with 0 false batches on a must-not-batch plan (3/3); bd previously spent about 72 dispatches on twelve one-line issues.
+
+**SDD post-mortem script.** `scripts/sdd-postmortem.py` reports per-seat cost from a session transcript (cache-aware, verified pricing), verdicts, gate give-ups and idle gaps. The probe it replaces measured the Opus controller at about $64, roughly 40% of a 105-subagent session. `test-sdd-postmortem.sh`: 46/46.
+
+**Contract audit.** The three epic-verifier persistence checks now execute the documented heredoc and `bd comments` commands in a temp git repo against a stub `bd` instead of matching prompt text, and new lints cover the canonical ruling prefix, synchronous human holds, the re-review mirror, the nameless implementer dispatch, bash-prefixed Codex hooks, the executable fix-round loop, the `Spec:` line flow and the shared fix-round cap.
+
 ## v5.13.1 (2026-10-10) - Faster Per-Turn Hooks
 
 The work-state anchor and the stop gate each called `bd list` on every prompt and every turn end. With bd 1.3's embedded Dolt, each call opens the database, about 700ms, so an ordinary turn paid roughly 1.4 seconds in these two hooks. The in_progress count is now cached against the database's state, the Dolt manifest plus the journal size, and is re-read only after a bd write. The stop gate also checks the message first and consults bd only when the turn ends on an unevidenced completion claim. Both changes apply to the Codex hooks too.

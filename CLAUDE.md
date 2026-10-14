@@ -139,11 +139,13 @@ Claude Code integration tests run headless Claude Code sessions and verify behav
 
 ### Key Workflows
 
-1. **brainstorming** → **using-git-worktrees** → **writing-plans** → **plan2beads** → **subagent-driven-development** → **epic-verifier** → **finishing-a-development-branch**
+1. **brainstorming** → **using-git-worktrees** → **writing-plans** → **plan2beads** → **subagent-driven-development** (or Native mode, **executing-plans**) → **epic-verifier** → **finishing-a-development-branch**. The execution handoff offers SDD or Native and recommends Native for epics with ≤5 implementation issues or only `complexity:simple` ones.
 
 2. **subagent-driven-development** uses state machine: `INIT → LOADING → DISPATCH → MONITOR → REVIEW → CLOSE → COMPLETE`
 
-3. **epic-verifier** runs engineering checklist (YAGNI, drift, tests, docs, security) and variant-aware rule-of-five on files >50 lines changed
+3. **Rulings, not holds:** SDD and Native rule on judgment calls with `[RULING] <issue-id>: <decision> — why: <reason> — cost if wrong: <impact>` and continue; only the hard stops in `skills/subagent-driven-development/rulings-and-escalation.md` wait for a human, asynchronously via a `human`-labeled question bead.
+
+4. **epic-verifier** runs engineering checklist (YAGNI, drift, tests, docs, security) and variant-aware rule-of-five on files >50 lines changed
 
 ## Writing Skills
 
@@ -165,6 +167,7 @@ See `skills/writing-skills/SKILL.md` for complete guide.
 - **Audit logging**: `hooks/log-file-modification.sh` (PostToolUse hook via code-reviewer agent frontmatter); `hooks/verdict-audit.sh` also appends every subagent verdict to `temp/verdict-audit.log`
 - **Wave observability**: `hooks/notification.sh` (Notification hook — during an active SDD wave, logs `agent_needs_input`/`agent_completed` notifications to `temp/sdd-notifications.log`; silent no-op otherwise, never blocks). Whether the 2.1.198 `agent_needs_input`/`agent_completed` payloads fire for SDD's in-session Agent-tool subagents (vs only `claude agents` background sessions) is UNVERIFIED — this hook gathers the evidence before any reactive-MONITOR gate is built on top of it.
 - **Beads config**: `.beads/metadata.json`
+- **Hook launch contract**: every Claude hook in `hooks/hooks.json` launches through `hooks/run-hook.cmd`, which finds bash without `PATH` or the script's exec bit and fails open; agent-frontmatter and Codex plugin hook commands start with `bash` (`tests/verification/test-hooks-minimal-path.sh`).
 - **Note**: Claude Code 2.1.275 fired a plugin skill frontmatter hook but not a plugin agent frontmatter hook in a live probe; the same project-local agent hook fired. Keep `link-plugin-components.sh` until both plugin-installed paths pass a live test.
 
 ## Releasing
