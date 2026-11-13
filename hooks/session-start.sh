@@ -88,7 +88,7 @@ if [ -n "$checkpoint_dir" ] && [ -d "$checkpoint_dir" ]; then
         if [ "$epic_open_children" = "0" ]; then
             rm -f "$latest_checkpoint" 2>/dev/null || true
         else
-            checkpoint_message="\n\n<sdd-checkpoint-recovery>SDD checkpoint found for epic ${checkpoint_epic_id}. Read temp/sdd-checkpoint-${checkpoint_epic_id}.json to resume orchestration. Do NOT re-ask budget tier. See checkpoint-recovery.md for recovery logic.</sdd-checkpoint-recovery>"
+            checkpoint_message="\n\n<sdd-checkpoint-recovery>SDD checkpoint found for epic ${checkpoint_epic_id}. Read temp/sdd-checkpoint-${checkpoint_epic_id}.json to resume orchestration. Do NOT re-ask budget tier. If the superpowers-bd:subagent-driven-development skill is not in your context in full (after compaction it can be cut short or dropped), invoke it again before dispatching; its checkpoint-recovery.md has the recovery logic.</sdd-checkpoint-recovery>"
         fi
     fi
 fi

@@ -82,4 +82,3 @@ architecture or assumptions.
 - `references/condition-based-waiting.md`: Load for timing and polling failures
 - `references/condition-based-waiting-example.ts`: TypeScript condition-wait example
 - `references/find-polluter.sh`: Script for test pollution searches
-- `references/tests/`: Pressure-test scenarios

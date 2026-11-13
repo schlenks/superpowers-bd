@@ -73,7 +73,7 @@ if [ -d "$checkpoint_dir" ]; then
     else
       checkpoint_message="
 
-<sdd-checkpoint-recovery>SDD checkpoint found: ${checkpoint_name}. Restore the matching temp checkpoint before dispatching more work.</sdd-checkpoint-recovery>"
+<sdd-checkpoint-recovery>SDD checkpoint found: ${checkpoint_name}. Restore the matching temp checkpoint before dispatching more work. If the superpowers-bd:subagent-driven-development skill is not in your context in full, load it again first.</sdd-checkpoint-recovery>"
     fi
   fi
 fi

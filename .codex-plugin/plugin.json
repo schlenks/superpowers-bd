@@ -1,6 +1,6 @@
 {
   "name": "superpowers-bd",
-  "version": "6.0.0",
+  "version": "6.1.0",
   "description": "Beads-integrated workflow skills for TDD, debugging, code review, and wave-based development.",
   "author": {
     "name": "Doug Schlenker",

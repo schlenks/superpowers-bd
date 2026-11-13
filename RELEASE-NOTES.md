@@ -1,5 +1,29 @@
 # Superpowers Release Notes
 
+## v6.1.0 (2026-11-13) - Brainstorming Retune from Upstream v7.0.2
+
+Ports what applies from upstream superpowers v7.0.1 and v7.0.2. The upstream SDD helper-script fixes and the Pi, OpenCode, Hermes, Muse and Copilot fixes don't apply to this fork.
+
+### Brainstorming
+
+The v6.0.0 brainstorming opened every session the same way: an offer to skip the questions, then one open question. Upstream users found that formulaic (obra/superpowers#2530), and upstream retuned it over two releases. This release ports that retune.
+
+- **It reads before it asks.** In an existing project, or when you point it at a spec, plan or files, it reads them before its first message and doesn't ask what they already answer.
+- **It echoes a detailed request back** with what it found in the code, including anything you may not have considered.
+- **It asks a question only when the answer would change what gets built.** Otherwise it states its call as a proposal you can correct. Recon and where files go are its own calls.
+- **It asks why first** when you haven't said, as an open question. Once it knows why, a decision with nameable choices comes as options with a recommendation.
+- **It lays out the approaches in a message of their own** before writing anything up.
+- **It offers to skip the questions only when it started on its own.** If you invoked brainstorming, it no longer offers to skip it.
+- **Small changes still get their design in chat**, not a document. Upstream now writes a design doc at every size; this fork does not. Calling something small never skips approval.
+
+In first-turn runs on Opus with brainstorming invoked explicitly on a caching request (6 runs per arm), the skip offer appeared in 6 of 6 before and 0 of 6 after, the request was echoed back in 0 of 6 before and 6 of 6 after, and the open decision came as named options with a recommendation in 0 of 6 before and 5 of 6 after. Nothing was built before approval in either arm, and a one-line edit was simply made in 3 of 3 control runs. Multi-turn conversations were not re-tested.
+
+### Skills and hooks
+
+- **Systematic-debugging no longer installs its pressure scenarios.** They open with "This is a real scenario. You must choose and act" and sat where an agent could read them mid-task. They now live in `tests/systematic-debugging/pressure-scenarios/` (upstream #2277).
+- **A new fast-suite test, `tests/verification/test-skill-layout.sh`,** fails when a `SKILL.md` reaches 20,000 bytes or a skill ships pressure scenarios or creation logs. After a compaction, Claude Code re-attaches each invoked skill cut to its first 5,000 tokens, about 20,000 characters (upstream #2481). Every skill here is under that; the test keeps it so.
+- **The SDD checkpoint banner tells a compacted orchestrator to load the SDD skill again** if it is no longer in context in full. Both the Claude and Codex SessionStart hooks carry it.
+
 ## v6.0.0 (2026-10-14) - Autonomous Workflows from Upstream v7
 
 Adopts nine items from upstream superpowers v7, each re-tested on current models before it shipped. Research reports are in `docs/experiments/2026-10-14-upstream-v7/`; the plan is `docs/plans/2026-10-14-upstream-v7-adoption.md`.

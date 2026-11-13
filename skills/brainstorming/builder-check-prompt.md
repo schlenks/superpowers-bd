@@ -24,3 +24,13 @@ you could reasonably decide yourself. Skip nitpicks about wording.
 
 If nothing important is left, say "nothing important left".
 ```
+
+## Handling what comes back
+
+Sort what the builder asks into three piles:
+
+- **Answered already** by the conversation or the project: put the answer in the document.
+- **Minor:** a sensible builder could settle it without changing what gets built. Settle it yourself and mark it in the document as your call.
+- **Theirs:** only your human partner can answer it, and the answer changes what gets built.
+
+Bring the "theirs" pile in one message, most important first. Update the document with their answers, then hand it over with a short list of the calls you made so they can check those while reading. That's the only round of questions the check produces.

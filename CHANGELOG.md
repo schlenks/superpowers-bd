@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.0] - 2026-11-13
+
+Ports from upstream superpowers v7.0.1 and v7.0.2.
+
+### Changed
+
+- Brainstorming retune (upstream #2530, #2560, #2571, #2644): it reads the project and any referenced context before its first message, echoes a detailed request back with what it found, asks a question only when the answer would change what gets built, asks why first, lays out named options with a recommendation, puts the approaches in a message of their own before any write-up, and makes process steps (recon, where files go) its own calls. The offer to skip the questions appears only when the skill started on its own. Small changes still get their design in chat; calling something small never skips approval.
+- Builder-check result handling moved from `skills/brainstorming/SKILL.md` into `builder-check-prompt.md`.
+- The SDD checkpoint banner (Claude and Codex SessionStart hooks) tells a compacted orchestrator to load the SDD skill again if it is no longer in context in full.
+
+### Added
+
+- `tests/verification/test-skill-layout.sh` (fast suite): fails when a `SKILL.md` reaches 20,000 bytes, the cut Claude Code applies when it re-attaches a skill after compaction, or when a skill directory ships pressure scenarios or creation logs.
+
+### Fixed
+
+- Systematic-debugging pressure scenarios moved from `skills/systematic-debugging/references/tests/` to `tests/systematic-debugging/pressure-scenarios/`. They open with "This is a real scenario. You must choose and act" and were installed where an agent could read them mid-task (upstream #2277).
+
 ## [6.0.0] - 2026-10-14
 
 Major version: several workflows now proceed where they used to stop and ask. See RELEASE-NOTES.md "Behavior changes" before upgrading.

@@ -54,6 +54,7 @@ while [[ $# -gt 0 ]]; do
             echo "  test-subagent-driven-development.sh  Test skill loading and requirements"
             echo "  test-reviewer-prompt-parity.sh       Verify agent/template prompt match"
             echo "  ../verification/test-workflow-contract-audit.sh  Verify cross-surface workflow contracts"
+            echo "  ../verification/test-skill-layout.sh  Verify SKILL.md size and no dev files in skills"
             echo "  test-sdd-postmortem.sh               Verify sdd-postmortem.py cost and tree report"
             echo ""
             echo "Integration Tests (use --integration):"
@@ -73,6 +74,7 @@ tests=(
     "test-subagent-driven-development.sh"
     "test-reviewer-prompt-parity.sh"
     "../verification/test-workflow-contract-audit.sh"
+    "../verification/test-skill-layout.sh"
     "test-sdd-postmortem.sh"
 )
 
